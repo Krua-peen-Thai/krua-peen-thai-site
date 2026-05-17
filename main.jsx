@@ -199,7 +199,14 @@ const order = { id: makeOrderCode(locationId), status:"À confirmer", customer, 
       <header className="sticky top-0 z-50 border-b border-amber-500/20 bg-black/80 backdrop-blur-xl">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
           <button onClick={() => setView("site")} className="text-left"><div className="text-xl font-black tracking-wide text-amber-300">{BRAND.name}</div><div className="text-xs text-stone-300">Thaï • Sushi • Poké • Traiteur</div></button>
-          <nav className="flex items-center gap-2 text-sm"><button onClick={() => setView("site")} className={`rounded-full px-4 py-2 ${view === "site" ? "bg-amber-400 text-black" : "bg-white/10"}`}>Site client</button><button onClick={() => setView("admin")} className={`rounded-full px-4 py-2 ${view === "admin" ? "bg-amber-400 text-black" : "bg-white/10"}`}>Dashboard Tina {orders.filter(o=>o.status==="À confirmer").length > 0 && <span className="ml-2 rounded-full bg-red-500 px-2 py-1 text-xs text-white">{orders.filter(o=>o.status==="À confirmer").length}</span>}</button></nav>
+        <nav className="flex items-center gap-2 text-sm">
+  <button
+    onClick={() => setView("site")}
+    className="rounded-full bg-amber-400 px-4 py-2 text-black"
+  >
+    Site client
+  </button>
+</nav>
         </div>
       </header>
 
