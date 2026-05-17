@@ -1,7 +1,7 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { createClient } from "@supabase/supabase-js";
-import { ShoppingCart, MapPin, Phone, MessageCircle, Clock, ChefHat, Lock, CheckCircle2, XCircle, PackageCheck, Settings, Eye, CalendarDays, Sparkles, UtensilsCrossed, Search, ChevronDown, BellRing, Volume2 } from "lucide-react";
+import { ShoppingCart, MapPin, Phone, MessageCircle, Clock, ChefHat, Lock, CheckCircle2, XCircle, PackageCheck, Settings, Eye, CalendarDays, Sparkles, UtensilsCrossed, Search, ChevronDown } from "lucide-react";
 import "./style.css";
 
 const BRAND = { name: "KRUA PEÈN THAÏ", phone: "0670395523", email: "kan-siam@laposte.net", instagram: "@krua_peen_thai", facebook: "KRUA Peèn-Thaï" };
@@ -88,10 +88,30 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 const supabase = supabaseUrl && supabaseAnonKey ? createClient(supabaseUrl, supabaseAnonKey) : null;
 
 function euro(value) { return new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" }).format(value || 0); }
-function getLocationCode(locationId) {
-  if (locationId === "KERJ" || locationId === "KERD") return "KER";
-  if (locationId === "BRI") return "BRI";
-  return "PLAB";
+function locationCode(locationId) { return locationId === "KERJ" || locationId === "KERD" ? "KER" : locationId; }
+async function makeOrderCode(locationId, currentOrders = []) {
+  const clean = locationCode(locationId);
+  const pattern = new RegExp(`^KR-${clean}-(\\d{3})$`);
+  let maxNumber = 0;
+
+  if (supabase) {
+    const { data, error } = await supabase.from("orders").select("code").like("code", `KR-${clean}-%`);
+    if (!error && data?.length) {
+      maxNumber = data
+        .map(row => String(row.code || "").match(pattern))
+        .filter(Boolean)
+        .map(match => Number(match[1]))
+        .reduce((max, n) => Math.max(max, n), 0);
+    }
+  } else {
+    maxNumber = currentOrders
+      .map(order => String(order.id || "").match(pattern))
+      .filter(Boolean)
+      .map(match => Number(match[1]))
+      .reduce((max, n) => Math.max(max, n), 0);
+  }
+
+  return `KR-${clean}-${String(maxNumber + 1).padStart(3, "0")}`;
 }
 function whatsappLink(phone, text) { const normalized = phone.replace(/^0/, "33").replace(/\s/g, ""); return `https://wa.me/${normalized}?text=${encodeURIComponent(text)}`; }
 
@@ -112,12 +132,10 @@ function KruaSite() {
   const [searchTerm, setSearchTerm] = useState("");
   const [openCategory, setOpenCategory] = useState("Plats de la semaine");
   const [orderSearch, setOrderSearch] = useState("");
+  const [orderLocationFilter, setOrderLocationFilter] = useState("ALL");
+  const [orderStatusFilter, setOrderStatusFilter] = useState("ACTIVE");
+  const [hideFinished, setHideFinished] = useState(true);
   const [appMode, setAppMode] = useState(supabase ? "Connecté à Supabase" : "Mode démo local");
-  const [notificationReady, setNotificationReady] = useState(false);
-  const [unseenOrders, setUnseenOrders] = useState(0);
-  const [notificationMessage, setNotificationMessage] = useState("");
-  const orderCodesRef = useRef(new Set());
-  const initialOrdersLoadedRef = useRef(false);
 
   useEffect(() => {
     const openAdmin = () => {
@@ -145,14 +163,9 @@ function KruaSite() {
     return () => window.removeEventListener("hashchange", openAdmin);
   }, []);
 
-  useEffect(() => {
-    if (!supabase) return;
-    loadSupabaseData(false);
-    const interval = window.setInterval(() => loadSupabaseData(true), 10000);
-    return () => window.clearInterval(interval);
-  }, []);
+  useEffect(() => { if (supabase) loadSupabaseData(); }, []);
 
-  async function loadSupabaseData(checkForNewOrders = false) {
+  async function loadSupabaseData() {
     try {
       const [productsRes, locationsRes, settingsRes, ordersRes] = await Promise.all([
         supabase.from("products").select("*"),
@@ -167,78 +180,8 @@ function KruaSite() {
       const setting = settingsRes.data?.[0];
       if (setting) { setOrdersOpen(setting.orders_open); setSiteMessage(setting.site_message || "Précommandes ouvertes jusqu’à la veille 20h"); }
       else await supabase.from("settings").upsert({ id:"main", orders_open:true, site_message:"Précommandes ouvertes jusqu’à la veille 20h" });
-      if (ordersRes.data?.length) {
-        const mappedOrders = ordersRes.data.map(o => ({
-          id:o.code,
-          dbId:o.id,
-          status:o.status,
-          customer:{ firstName:o.first_name, lastName:o.last_name || "", phone:o.phone, note:o.note || "" },
-          locationId:o.location_id,
-          items:(o.order_items || []).map(item => ({ id:item.product_id, name:item.name, qty:item.qty, price:Number(item.price) }))
-        }));
-
-        const knownCodes = orderCodesRef.current;
-        const newOrders = mappedOrders.filter(o => !knownCodes.has(o.id));
-        orderCodesRef.current = new Set(mappedOrders.map(o => o.id));
-        setOrders(mappedOrders);
-
-        if (checkForNewOrders && initialOrdersLoadedRef.current && newOrders.length > 0) {
-          notifyNewOrders(newOrders);
-        }
-        initialOrdersLoadedRef.current = true;
-      } else {
-        orderCodesRef.current = new Set();
-        setOrders([]);
-        initialOrdersLoadedRef.current = true;
-      }
+      if (ordersRes.data?.length) setOrders(ordersRes.data.map(o => ({ id:o.code, dbId:o.id, status:o.status, customer:{ firstName:o.first_name, lastName:o.last_name || "", phone:o.phone, note:o.note || "" }, locationId:o.location_id, items:(o.order_items || []).map(item => ({ id:item.product_id, name:item.name, qty:item.qty, price:Number(item.price) })) })));
     } catch (e) { console.error(e); setAppMode("Erreur Supabase, mode local"); }
-  }
-
-  function playNotificationSound() {
-    try {
-      const AudioContext = window.AudioContext || window.webkitAudioContext;
-      if (!AudioContext) return;
-      const audioContext = new AudioContext();
-      const oscillator = audioContext.createOscillator();
-      const gain = audioContext.createGain();
-      oscillator.type = "sine";
-      oscillator.frequency.setValueAtTime(880, audioContext.currentTime);
-      gain.gain.setValueAtTime(0.001, audioContext.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.18, audioContext.currentTime + 0.03);
-      gain.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.55);
-      oscillator.connect(gain);
-      gain.connect(audioContext.destination);
-      oscillator.start();
-      oscillator.stop(audioContext.currentTime + 0.6);
-    } catch (error) {
-      console.warn("Notification sonore bloquée", error);
-    }
-  }
-
-  async function enableNotifications() {
-    playNotificationSound();
-    if ("Notification" in window && Notification.permission === "default") {
-      await Notification.requestPermission();
-    }
-    setNotificationReady(true);
-    setNotificationMessage("Notifications activées. Tina peut laisser le dashboard ouvert.");
-    setTimeout(() => setNotificationMessage(""), 3500);
-  }
-
-  function notifyNewOrders(newOrders) {
-    const count = newOrders.length;
-    const first = newOrders[0];
-    const message = count === 1
-      ? `Nouvelle commande ${first.id} - ${first.customer.firstName || "Client"}`
-      : `${count} nouvelles commandes reçues`;
-
-    setUnseenOrders(old => old + count);
-    setNotificationMessage(message);
-    playNotificationSound();
-
-    if ("Notification" in window && Notification.permission === "granted") {
-      new Notification("KRUA PEÈN THAÏ", { body: message });
-    }
   }
 
   const availableProducts = products.filter(p => p.available);
@@ -255,37 +198,10 @@ function KruaSite() {
   function addToCart(id) { setCart(old => ({ ...old, [id]:(old[id] || 0) + 1 })); }
   function removeFromCart(id) { setCart(old => { const n={...old}; n[id]=(n[id]||0)-1; if(n[id]<=0) delete n[id]; return n; }); }
 
-  async function generateOrderCode(locationId) {
-    const clean = getLocationCode(locationId);
-    const prefix = `KR-${clean}-`;
-    let existingCodes = orders.map(order => order.id);
-
-    if (supabase) {
-      const { data, error } = await supabase
-        .from("orders")
-        .select("code")
-        .ilike("code", `${prefix}%`);
-
-      if (!error && data) {
-        existingCodes = data.map(row => row.code);
-      }
-    }
-
-    const maxNumber = existingCodes
-      .map(code => {
-        if (typeof code !== "string" || !code.startsWith(prefix)) return 0;
-        const rawNumber = code.slice(prefix.length);
-        return /^\d{3}$/.test(rawNumber) ? Number(rawNumber) : 0;
-      })
-      .reduce((max, number) => Math.max(max, number), 0);
-
-    return `${prefix}${String(maxNumber + 1).padStart(3, "0")}`;
-  }
-
   async function submitOrder() {
     if (!ordersOpen) return alert("Les précommandes sont actuellement fermées.");
     if (!customer.firstName || !customer.phone || cartLines.length === 0) return alert("Merci de remplir prénom, téléphone et panier.");
-    const orderCode = await generateOrderCode(locationId);
+    const orderCode = await makeOrderCode(locationId, orders);
     const order = { id: orderCode, status:"À confirmer", customer, locationId, items: cartLines.map(({id,name,qty,price}) => ({id,name,qty,price})) };
     if (supabase) {
       const { data, error } = await supabase.from("orders").insert({ code:order.id, status:order.status, first_name:customer.firstName, last_name:customer.lastName, phone:customer.phone, note:customer.note, location_id:locationId, total }).select().single();
@@ -295,7 +211,6 @@ function KruaSite() {
       if (linesRes.error) return alert("Erreur lignes : " + linesRes.error.message);
       order.dbId = data.id;
     }
-    orderCodesRef.current = new Set([order.id, ...orderCodesRef.current]);
     setOrders(old => [order, ...old]); setCart({}); setCustomer({ firstName:"", lastName:"", phone:"", note:"" });
     alert(`Demande enregistrée : ${order.id}\nTina confirmera par téléphone ou WhatsApp.`);
   }
@@ -322,15 +237,47 @@ function KruaSite() {
     if (supabase) await supabase.from("settings").upsert({ id:"main", orders_open:ordersOpen, site_message:value });
   }
 
+  const locationFilterOptions = [
+    { id: "ALL", label: "Tous" },
+    { id: "PLAB", label: "Plabennec" },
+    { id: "BRI", label: "Brignogan" },
+    { id: "KER", label: "Kerlouan" },
+  ];
+  const statusFilterOptions = [
+    { id: "ACTIVE", label: "À traiter" },
+    { id: "À confirmer", label: "À confirmer" },
+    { id: "Confirmée", label: "Confirmées" },
+    { id: "Récupérée", label: "Récupérées" },
+    { id: "Annulée", label: "Annulées" },
+    { id: "ALL", label: "Toutes" },
+  ];
+
   const visibleOrders = useMemo(() => {
     const statusOrder = { "À confirmer":0, "Confirmée":1, "Récupérée":2, "Annulée":3 };
     const q = orderSearch.trim().toLowerCase();
-    return orders.filter(o => !q || [o.id,o.customer.firstName,o.customer.lastName,o.customer.phone,locations.find(l=>l.id===o.locationId)?.city].filter(Boolean).join(" ").toLowerCase().includes(q)).sort((a,b)=>(statusOrder[a.status]??9)-(statusOrder[b.status]??9));
-  }, [orders, orderSearch, locations]);
+    return orders
+      .filter(o => {
+        const loc = locations.find(l => l.id === o.locationId);
+        const locCode = locationCode(o.locationId);
+        const searchBlob = [o.id, o.customer.firstName, o.customer.lastName, o.customer.phone, loc?.city, loc?.label].filter(Boolean).join(" ").toLowerCase();
+        const matchesSearch = !q || searchBlob.includes(q);
+        const matchesLocation = orderLocationFilter === "ALL" || locCode === orderLocationFilter;
+        const matchesStatus = orderStatusFilter === "ALL"
+          || (orderStatusFilter === "ACTIVE" ? ["À confirmer", "Confirmée"].includes(o.status) : o.status === orderStatusFilter);
+        const matchesFinished = !hideFinished || !["Récupérée", "Annulée"].includes(o.status) || orderStatusFilter !== "ACTIVE";
+        return matchesSearch && matchesLocation && matchesStatus && matchesFinished;
+      })
+      .sort((a,b)=>(statusOrder[a.status]??9)-(statusOrder[b.status]??9));
+  }, [orders, orderSearch, locations, orderLocationFilter, orderStatusFilter, hideFinished]);
+
   const prepSummary = useMemo(() => {
-    const s = {}; orders.filter(o => o.status !== "Annulée").forEach(o => o.items.forEach(i => { s[i.name]=(s[i.name]||0)+i.qty; }));
+    const s = {};
+    orders
+      .filter(o => !["Annulée", "Récupérée"].includes(o.status))
+      .filter(o => orderLocationFilter === "ALL" || locationCode(o.locationId) === orderLocationFilter)
+      .forEach(o => o.items.forEach(i => { s[i.name]=(s[i.name]||0)+i.qty; }));
     return Object.entries(s).sort((a,b)=>b[1]-a[1]);
-  }, [orders]);
+  }, [orders, orderLocationFilter]);
 
   return (
     <div className="min-h-screen bg-[#070504] text-stone-50">
@@ -361,8 +308,8 @@ function KruaSite() {
           <section id="traiteur" className="mx-auto max-w-7xl px-4 py-12 pb-20"><div className="rounded-[2rem] border border-amber-300/20 bg-gradient-to-br from-stone-900 to-black p-8"><h2 className="text-3xl font-black">Traiteur thaï, sushi & poké bowls</h2><p className="mt-3 max-w-3xl text-stone-300">Mariage, retour de mariage, anniversaire, séminaire, repas d’entreprise. Demandez un devis, Tina vous recontacte.</p><div className="mt-6 grid gap-3 md:grid-cols-2"><input placeholder="Nom" className="rounded-xl border border-white/10 bg-black p-4"/><input placeholder="Téléphone" className="rounded-xl border border-white/10 bg-black p-4"/><input placeholder="Type d’événement" className="rounded-xl border border-white/10 bg-black p-4"/><input placeholder="Nombre de personnes" className="rounded-xl border border-white/10 bg-black p-4"/><textarea placeholder="Votre demande" className="rounded-xl border border-white/10 bg-black p-4 md:col-span-2"/></div><button className="mt-5 rounded-2xl bg-amber-400 px-6 py-4 font-black text-black">Demander un devis</button></div></section>
         </main>
       ) : (
-        <main className="mx-auto max-w-7xl px-4 py-8"><div className="mb-8 flex flex-wrap items-center justify-between gap-4"><div><h1 className="text-4xl font-black">Dashboard Tina</h1><p className="mt-2 text-stone-300">Commandes, confirmations WhatsApp, produits semaine et préparation.</p><p className="mt-2 text-sm text-amber-300">Mode actuel : {appMode}</p></div><div className="flex flex-wrap items-center gap-3"><button onClick={enableNotifications} className="rounded-2xl bg-amber-400 px-5 py-3 font-black text-black"><Volume2 className="mr-2 inline" size={18}/>{notificationReady ? "Notifications actives" : "Activer notifications"}</button>{unseenOrders > 0 && <button onClick={() => { setUnseenOrders(0); setNotificationMessage(""); }} className="rounded-2xl bg-red-500 px-5 py-3 font-black text-white"><BellRing className="mr-2 inline" size={18}/>{unseenOrders} nouvelle{unseenOrders > 1 ? "s" : ""}</button>}</div></div>{notificationMessage && <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-3xl border border-amber-300/30 bg-amber-400/15 p-5 text-amber-100"><div className="flex items-center gap-3"><BellRing className="text-amber-300"/><b>{notificationMessage}</b></div><button onClick={() => { setUnseenOrders(0); setNotificationMessage(""); }} className="rounded-xl bg-amber-400 px-4 py-2 font-black text-black">J'ai vu</button></div>}<div className="mb-6 grid gap-3 sm:grid-cols-4">{[["orders","Commandes"],["products","Produits"],["locations","Emplacements"],["settings","Réglages"]].map(([id,label])=><button key={id} onClick={()=>setAdminTab(id)} className={`rounded-2xl p-4 text-left font-black ${adminTab===id ? "bg-amber-400 text-black" : "bg-white/10"}`}>{label}</button>)}</div>
-          {adminTab==="orders" && <div className="grid gap-6 lg:grid-cols-[1fr_360px]"><section className="space-y-4"><div className="rounded-3xl border border-white/10 bg-stone-900 p-5"><h2 className="mb-4 text-2xl font-black">Nouvelles commandes</h2><div className="relative mb-4"><Search className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400" size={18}/><input value={orderSearch} onChange={e=>setOrderSearch(e.target.value)} placeholder="Rechercher commande, nom, téléphone..." className="w-full rounded-2xl border border-white/10 bg-black py-4 pl-12 pr-4"/></div>{visibleOrders.map(order=>{const loc=locations.find(l=>l.id===order.locationId)||locations[0]; const orderTotal=order.items.reduce((s,i)=>s+i.qty*i.price,0); const msg=`Bonjour ${order.customer.firstName}, votre commande ${order.id} est bien reçue pour ${loc.city} (${loc.label}). Paiement sur place. Merci, KRUA PEÈN THAÏ.`; return <div key={order.id} className="mb-4 rounded-3xl border border-white/10 bg-black p-5"><div className="mb-4 flex flex-wrap items-start justify-between gap-3"><div><div className="text-2xl font-black text-amber-300">{order.id}</div><div className="text-lg font-bold">{order.customer.firstName} {order.customer.lastName}</div><div className="text-stone-300">{order.customer.phone}</div></div><span className={`rounded-full px-4 py-2 text-sm font-bold ${order.status==="Confirmée" ? "bg-green-500/20 text-green-300" : order.status==="Annulée" ? "bg-red-500/20 text-red-300" : order.status==="Récupérée" ? "bg-blue-500/20 text-blue-300" : "bg-orange-500/20 text-orange-300"}`}>{order.status}</span></div><div className="rounded-2xl bg-white/[0.04] p-4"><MapPin className="mr-2 inline text-amber-300" size={16}/>{loc.city} • {loc.label} • {loc.hours}</div><div className="my-4 space-y-2">{order.items.map(item=><div key={item.id} className="flex justify-between rounded-xl bg-white/[0.04] px-4 py-3"><span>{item.qty} × {item.name}</span><b>{euro(item.qty*item.price)}</b></div>)}</div>{order.customer.note && <div className="mb-4 rounded-xl bg-amber-400/10 p-3 text-sm text-amber-100">Note : {order.customer.note}</div>}<div className="mb-4 flex justify-between border-t border-white/10 pt-4 text-xl font-black"><span>Total</span><span>{euro(orderTotal)}</span></div><div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5"><a href={`tel:${order.customer.phone}`} className="rounded-2xl bg-white/10 px-4 py-4 text-center font-black"><Phone className="mr-2 inline" size={18}/>Appeler</a><a href={whatsappLink(order.customer.phone,msg)} target="_blank" className="rounded-2xl bg-green-500 px-4 py-4 text-center font-black text-black"><MessageCircle className="mr-2 inline" size={18}/>WhatsApp</a><button onClick={()=>updateOrderStatus(order.id,"Confirmée")} className="rounded-2xl bg-amber-400 px-4 py-4 font-black text-black"><CheckCircle2 className="mr-2 inline" size={18}/>Confirmer</button><button onClick={()=>updateOrderStatus(order.id,"Récupérée")} className="rounded-2xl bg-blue-500 px-4 py-4 font-black"><PackageCheck className="mr-2 inline" size={18}/>Récupérée</button><button onClick={()=>updateOrderStatus(order.id,"Annulée")} className="rounded-2xl bg-red-500/90 px-4 py-4 font-black"><XCircle className="mr-2 inline" size={18}/>Annuler</button></div></div>})}</div></section><aside className="space-y-6"><div className="rounded-3xl border border-amber-300/20 bg-stone-900 p-5"><h2 className="mb-4 flex items-center gap-2 text-2xl font-black"><PackageCheck className="text-amber-300"/>Résumé préparation</h2><div className="space-y-2">{prepSummary.map(([name,qty])=><div key={name} className="flex justify-between rounded-xl bg-black/40 px-4 py-3"><span>{name}</span><b className="text-amber-300">x{qty}</b></div>)}</div></div><div className="rounded-3xl border border-white/10 bg-stone-900 p-5"><h2 className="mb-4 flex items-center gap-2 text-2xl font-black"><Eye className="text-amber-300"/>Règles V1</h2><ul className="space-y-3 text-stone-300"><li>• Précommande jusqu’à la veille 20h</li><li>• Retrait pendant le service, sans créneau</li><li>• Paiement sur place</li><li>• Confirmation par téléphone ou WhatsApp Business</li><li>• Hiboutik reste la caisse séparée</li></ul></div></aside></div>}
+        <main className="mx-auto max-w-7xl px-4 py-8"><div className="mb-8 flex flex-wrap items-center justify-between gap-4"><div><h1 className="text-4xl font-black">Dashboard Tina</h1><p className="mt-2 text-stone-300">Commandes, confirmations WhatsApp, produits semaine et préparation.</p><p className="mt-2 text-sm text-amber-300">Mode actuel : {appMode}</p></div><div className="rounded-2xl bg-amber-400 px-5 py-3 font-black text-black"><Lock className="mr-2 inline" size={18}/>Accès PIN</div></div><div className="mb-6 grid gap-3 sm:grid-cols-4">{[["orders","Commandes"],["products","Produits"],["locations","Emplacements"],["settings","Réglages"]].map(([id,label])=><button key={id} onClick={()=>setAdminTab(id)} className={`rounded-2xl p-4 text-left font-black ${adminTab===id ? "bg-amber-400 text-black" : "bg-white/10"}`}>{label}</button>)}</div>
+          {adminTab==="orders" && <div className="grid gap-6 lg:grid-cols-[1fr_360px]"><section className="space-y-4"><div className="rounded-3xl border border-white/10 bg-stone-900 p-5"><div className="mb-4 flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-2xl font-black">Commandes service</h2><p className="mt-1 text-sm text-stone-400">Filtre par marché, statut et préparation.</p></div><div className="rounded-2xl bg-black px-4 py-3 text-sm font-black text-amber-300">{visibleOrders.length} commande{visibleOrders.length>1?"s":""}</div></div><div className="mb-4 grid gap-3"><div className="flex gap-2 overflow-x-auto pb-1">{locationFilterOptions.map(opt=><button key={opt.id} onClick={()=>setOrderLocationFilter(opt.id)} className={`whitespace-nowrap rounded-full px-4 py-2 text-sm font-black ${orderLocationFilter===opt.id ? "bg-amber-400 text-black" : "bg-black text-stone-200"}`}>{opt.label}</button>)}</div><div className="flex gap-2 overflow-x-auto pb-1">{statusFilterOptions.map(opt=><button key={opt.id} onClick={()=>setOrderStatusFilter(opt.id)} className={`whitespace-nowrap rounded-full px-4 py-2 text-sm font-black ${orderStatusFilter===opt.id ? "bg-amber-400 text-black" : "bg-black text-stone-200"}`}>{opt.label}</button>)}</div><label className="flex w-fit items-center gap-2 rounded-full bg-black px-4 py-2 text-sm text-stone-300"><input type="checkbox" checked={hideFinished} onChange={()=>setHideFinished(!hideFinished)} className="accent-amber-400"/> Masquer récupérées / annulées</label></div><div className="relative mb-4"><Search className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400" size={18}/><input value={orderSearch} onChange={e=>setOrderSearch(e.target.value)} placeholder="Rechercher commande, nom, téléphone..." className="w-full rounded-2xl border border-white/10 bg-black py-4 pl-12 pr-4"/></div>{visibleOrders.length===0 && <div className="rounded-2xl border border-white/10 bg-black/40 p-6 text-center text-stone-300">Aucune commande pour ce filtre.</div>}{visibleOrders.map(order=>{const loc=locations.find(l=>l.id===order.locationId)||locations[0]; const orderTotal=order.items.reduce((s,i)=>s+i.qty*i.price,0); const msg=`Bonjour ${order.customer.firstName}, votre commande ${order.id} est bien reçue pour ${loc.city} (${loc.label}). Paiement sur place. Merci, KRUA PEÈN THAÏ.`; return <div key={order.id} className="mb-4 rounded-3xl border border-white/10 bg-black p-5"><div className="mb-4 flex flex-wrap items-start justify-between gap-3"><div><div className="text-2xl font-black text-amber-300">{order.id}</div><div className="text-lg font-bold">{order.customer.firstName} {order.customer.lastName}</div><div className="text-stone-300">{order.customer.phone}</div></div><span className={`rounded-full px-4 py-2 text-sm font-bold ${order.status==="Confirmée" ? "bg-green-500/20 text-green-300" : order.status==="Annulée" ? "bg-red-500/20 text-red-300" : order.status==="Récupérée" ? "bg-blue-500/20 text-blue-300" : "bg-orange-500/20 text-orange-300"}`}>{order.status}</span></div><div className="rounded-2xl bg-white/[0.04] p-4"><MapPin className="mr-2 inline text-amber-300" size={16}/>{loc.city} • {loc.label} • {loc.hours}</div><div className="my-4 space-y-2">{order.items.map(item=><div key={item.id} className="flex justify-between rounded-xl bg-white/[0.04] px-4 py-3"><span>{item.qty} × {item.name}</span><b>{euro(item.qty*item.price)}</b></div>)}</div>{order.customer.note && <div className="mb-4 rounded-xl bg-amber-400/10 p-3 text-sm text-amber-100">Note : {order.customer.note}</div>}<div className="mb-4 flex justify-between border-t border-white/10 pt-4 text-xl font-black"><span>Total</span><span>{euro(orderTotal)}</span></div><div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5"><a href={`tel:${order.customer.phone}`} className="rounded-2xl bg-white/10 px-4 py-4 text-center font-black"><Phone className="mr-2 inline" size={18}/>Appeler</a><a href={whatsappLink(order.customer.phone,msg)} target="_blank" className="rounded-2xl bg-green-500 px-4 py-4 text-center font-black text-black"><MessageCircle className="mr-2 inline" size={18}/>WhatsApp</a><button onClick={()=>updateOrderStatus(order.id,"Confirmée")} className="rounded-2xl bg-amber-400 px-4 py-4 font-black text-black"><CheckCircle2 className="mr-2 inline" size={18}/>Confirmer</button><button onClick={()=>updateOrderStatus(order.id,"Récupérée")} className="rounded-2xl bg-blue-500 px-4 py-4 font-black"><PackageCheck className="mr-2 inline" size={18}/>Récupérée</button><button onClick={()=>updateOrderStatus(order.id,"Annulée")} className="rounded-2xl bg-red-500/90 px-4 py-4 font-black"><XCircle className="mr-2 inline" size={18}/>Annuler</button></div></div>})}</div></section><aside className="space-y-6"><div className="rounded-3xl border border-amber-300/20 bg-stone-900 p-5"><h2 className="mb-4 flex items-center gap-2 text-2xl font-black"><PackageCheck className="text-amber-300"/>Préparation à produire</h2><p className="mb-4 text-sm text-stone-400">Total actif selon le filtre emplacement.</p><div className="space-y-2">{prepSummary.length===0 && <div className="rounded-xl bg-black/40 px-4 py-3 text-stone-400">Rien à préparer pour ce filtre.</div>}{prepSummary.map(([name,qty])=><div key={name} className="flex justify-between rounded-xl bg-black/40 px-4 py-3"><span>{name}</span><b className="text-amber-300">x{qty}</b></div>)}</div></div><div className="rounded-3xl border border-white/10 bg-stone-900 p-5"><h2 className="mb-4 flex items-center gap-2 text-2xl font-black"><Eye className="text-amber-300"/>Règles V1</h2><ul className="space-y-3 text-stone-300"><li>• Précommande jusqu’à la veille 20h</li><li>• Retrait pendant le service, sans créneau</li><li>• Paiement sur place</li><li>• Confirmation par téléphone ou WhatsApp Business</li><li>• Hiboutik reste la caisse séparée</li></ul></div></aside></div>}
           {adminTab==="products" && <div className="rounded-3xl border border-white/10 bg-stone-900 p-5"><h2 className="mb-4 text-2xl font-black">Produits commandables</h2><p className="mb-5 text-stone-300">Tina coche les produits disponibles cette semaine et peut ajuster les prix.</p><div className="grid gap-3 md:grid-cols-2">{products.map(p=><div key={p.id} className="rounded-2xl bg-black/40 p-4"><div className="mb-3 flex items-start justify-between gap-3"><div><div className="text-sm font-black text-amber-300">{p.code}</div><div className="font-black">{p.name}</div><div className="text-sm text-stone-400">{p.category}</div></div><label className="flex items-center gap-2 text-sm font-bold"><span>{p.available ? "ON" : "OFF"}</span><input type="checkbox" checked={p.available} onChange={()=>updateProduct(p.id,"available",!p.available)} className="h-7 w-7 accent-amber-400"/></label></div><div className="grid gap-2 sm:grid-cols-[1fr_120px]"><input value={p.name} onChange={e=>updateProduct(p.id,"name",e.target.value)} className="rounded-xl border border-white/10 bg-stone-900 p-3"/><input type="number" step="0.1" value={p.price} onChange={e=>updateProduct(p.id,"price",Number(e.target.value))} className="rounded-xl border border-white/10 bg-stone-900 p-3"/></div></div>)}</div></div>}
           {adminTab==="locations" && <div className="rounded-3xl border border-white/10 bg-stone-900 p-5"><h2 className="mb-4 text-2xl font-black">Emplacements & horaires</h2><div className="grid gap-4 md:grid-cols-2">{locations.map(l=><div key={l.id} className="rounded-2xl bg-black/40 p-4"><div className="mb-4 font-black text-amber-300">{l.label}</div><div className="grid gap-3"><input value={l.city} onChange={e=>updateLocation(l.id,"city",e.target.value)} className="rounded-xl border border-white/10 bg-stone-900 p-3"/><input value={l.place} onChange={e=>updateLocation(l.id,"place",e.target.value)} className="rounded-xl border border-white/10 bg-stone-900 p-3"/><input value={l.hours} onChange={e=>updateLocation(l.id,"hours",e.target.value)} className="rounded-xl border border-white/10 bg-stone-900 p-3"/></div></div>)}</div></div>}
           {adminTab==="settings" && <div className="grid gap-6 lg:grid-cols-2"><div className="rounded-3xl border border-white/10 bg-stone-900 p-5"><h2 className="mb-4 text-2xl font-black">Ouverture commandes</h2><button onClick={toggleOrdersOpen} className={`w-full rounded-2xl p-5 text-xl font-black ${ordersOpen ? "bg-green-500 text-black" : "bg-red-500 text-white"}`}>{ordersOpen ? "PRECOMMANDES OUVERTES" : "PRECOMMANDES FERMÉES"}</button></div><div className="rounded-3xl border border-white/10 bg-stone-900 p-5"><h2 className="mb-4 text-2xl font-black">Message accueil</h2><textarea value={siteMessage} onChange={e=>saveSiteMessage(e.target.value)} className="min-h-32 w-full rounded-xl border border-white/10 bg-black p-4"/></div></div>}
