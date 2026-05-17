@@ -10,7 +10,8 @@
     "react": "latest",
     "react-dom": "latest",
     "lucide-react": "latest",
-    "@supabase/supabase-js": "latest"
+    "@supabase/supabase-js": "latest",
+    "web-push": "latest"
   },
   "devDependencies": {
     "tailwindcss": "^3.4.17",
