@@ -189,13 +189,18 @@ function KruaSite() {
   }, []);
 
   async function subscribeToPushNotifications() {
+    setNotificationStatus("Activation des notifications en cours...");
     try {
       if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
         setNotificationStatus("Notifications non supportées sur cet appareil");
         return;
       }
       if (!VAPID_PUBLIC_KEY) {
-        setNotificationStatus("Clé VAPID manquante dans Vercel");
+        setNotificationStatus("Clé VAPID publique manquante dans Vercel");
+        return;
+      }
+      if (Notification.permission === "denied") {
+        setNotificationStatus("Notifications bloquées dans Android/Chrome. Autorise-les dans les paramètres du site.");
         return;
       }
 
@@ -214,17 +219,21 @@ function KruaSite() {
         });
       }
 
+      const subscriptionJson = subscription.toJSON();
       const response = await fetch("/api/save-subscription", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ subscription }),
+        body: JSON.stringify({
+          endpoint: subscriptionJson.endpoint,
+          keys: subscriptionJson.keys,
+        }),
       });
 
       if (!response.ok) throw new Error(await response.text());
-      setNotificationStatus("Notifications activées");
+      setNotificationStatus("Notifications activées sur cette tablette");
     } catch (error) {
       console.error(error);
-      setNotificationStatus("Erreur activation notifications");
+      setNotificationStatus(`Erreur activation notifications : ${error.message || error}`);
     }
   }
 
