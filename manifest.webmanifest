@@ -1,7 +1,7 @@
 {
-  "name": "KRUA Dashboard Tina",
+  "name": "KRUA Tina Dashboard",
   "short_name": "KRUA Tina",
-  "description": "Dashboard commandes KRUA PEÈN THAÏ",
+  "description": "Dashboard de commandes KRUA PEÈN THAÏ",
   "start_url": "/admin",
   "scope": "/",
   "display": "standalone",
