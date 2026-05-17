@@ -95,7 +95,7 @@ function makeOrderCode(locationId) {
 function whatsappLink(phone, text) { const normalized = phone.replace(/^0/, "33").replace(/\s/g, ""); return `https://wa.me/${normalized}?text=${encodeURIComponent(text)}`; }
 
 function KruaSite() {
-  const [view, setView] = useState("site");
+ const [view, setView] = useState(window.location.hash === "#admin" ? "admin" : "site");
   const [adminTab, setAdminTab] = useState("orders");
   const [ordersOpen, setOrdersOpen] = useState(true);
   const [siteMessage, setSiteMessage] = useState("Précommandes ouvertes jusqu’à la veille 20h");
