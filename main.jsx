@@ -149,7 +149,7 @@ function KruaSite() {
   async function submitOrder() {
     if (!ordersOpen) return alert("Les précommandes sont actuellement fermées.");
     if (!customer.firstName || !customer.phone || cartLines.length === 0) return alert("Merci de remplir prénom, téléphone et panier.");
-    const order = { id: makeOrderCode(locationId), status:"À confirmer", customer, ... }
+const order = { id: makeOrderCode(locationId), status:"À confirmer", customer, locationId, items: cartLines.map(({id,name,qty,price}) => ({id,name,qty,price})) };
     if (supabase) {
       const { data, error } = await supabase.from("orders").insert({ code:order.id, status:order.status, first_name:customer.firstName, last_name:customer.lastName, phone:customer.phone, note:customer.note, location_id:locationId, total }).select().single();
       if (error) return alert("Erreur commande : " + error.message);
