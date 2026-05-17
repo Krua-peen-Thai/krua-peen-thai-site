@@ -272,9 +272,11 @@ function KruaSite() {
     }
 
     const maxNumber = existingCodes
-      .filter(code => typeof code === "string" && code.startsWith(prefix))
-      .map(code => Number(code.replace(prefix, "")))
-      .filter(number => Number.isFinite(number))
+      .map(code => {
+        if (typeof code !== "string" || !code.startsWith(prefix)) return 0;
+        const rawNumber = code.slice(prefix.length);
+        return /^\d{3}$/.test(rawNumber) ? Number(rawNumber) : 0;
+      })
       .reduce((max, number) => Math.max(max, number), 0);
 
     return `${prefix}${String(maxNumber + 1).padStart(3, "0")}`;
