@@ -95,13 +95,9 @@ function makeOrderCode(locationId) {
 function whatsappLink(phone, text) { const normalized = phone.replace(/^0/, "33").replace(/\s/g, ""); return `https://wa.me/${normalized}?text=${encodeURIComponent(text)}`; }
 
 function KruaSite() {
-const [view, setView] = useState(() => {
-  if (window.location.hash === "#admin") {
-    const pin = prompt("Code PIN Dashboard Tina");
-    return pin === ADMIN_PIN ? "admin" : "site";
-  }
-  return "site";
-});
+  const ADMIN_PIN = "2580";
+  const [view, setView] = useState("site");
+  const [adminUnlocked, setAdminUnlocked] = useState(false);
   const [adminTab, setAdminTab] = useState("orders");
   const [ordersOpen, setOrdersOpen] = useState(true);
   const [siteMessage, setSiteMessage] = useState("Précommandes ouvertes jusqu’à la veille 20h");
@@ -116,6 +112,32 @@ const [view, setView] = useState(() => {
   const [openCategory, setOpenCategory] = useState("Plats de la semaine");
   const [orderSearch, setOrderSearch] = useState("");
   const [appMode, setAppMode] = useState(supabase ? "Connecté à Supabase" : "Mode démo local");
+
+  useEffect(() => {
+    const openAdmin = () => {
+      if (window.location.hash !== "#admin") return;
+
+      if (window.sessionStorage.getItem("kruaAdminUnlocked") === "true") {
+        setAdminUnlocked(true);
+        setView("admin");
+        return;
+      }
+
+      const pin = window.prompt("Code PIN Dashboard Tina");
+      if (pin === ADMIN_PIN) {
+        window.sessionStorage.setItem("kruaAdminUnlocked", "true");
+        setAdminUnlocked(true);
+        setView("admin");
+      } else {
+        window.location.hash = "";
+        setView("site");
+      }
+    };
+
+    openAdmin();
+    window.addEventListener("hashchange", openAdmin);
+    return () => window.removeEventListener("hashchange", openAdmin);
+  }, []);
 
   useEffect(() => { if (supabase) loadSupabaseData(); }, []);
 
