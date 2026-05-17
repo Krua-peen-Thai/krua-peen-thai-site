@@ -88,9 +88,10 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 const supabase = supabaseUrl && supabaseAnonKey ? createClient(supabaseUrl, supabaseAnonKey) : null;
 
 function euro(value) { return new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" }).format(value || 0); }
-function makeOrderCode(locationId) {
-  const clean = locationId === "KERJ" || locationId === "KERD" ? "KER" : locationId;
-  return `KR-${clean}-${Date.now()}`;
+function getLocationCode(locationId) {
+  if (locationId === "KERJ" || locationId === "KERD") return "KER";
+  if (locationId === "BRI") return "BRI";
+  return "PLAB";
 }
 function whatsappLink(phone, text) { const normalized = phone.replace(/^0/, "33").replace(/\s/g, ""); return `https://wa.me/${normalized}?text=${encodeURIComponent(text)}`; }
 
@@ -254,10 +255,36 @@ function KruaSite() {
   function addToCart(id) { setCart(old => ({ ...old, [id]:(old[id] || 0) + 1 })); }
   function removeFromCart(id) { setCart(old => { const n={...old}; n[id]=(n[id]||0)-1; if(n[id]<=0) delete n[id]; return n; }); }
 
+  async function generateOrderCode(locationId) {
+    const clean = getLocationCode(locationId);
+    const prefix = `KR-${clean}-`;
+    let existingCodes = orders.map(order => order.id);
+
+    if (supabase) {
+      const { data, error } = await supabase
+        .from("orders")
+        .select("code")
+        .ilike("code", `${prefix}%`);
+
+      if (!error && data) {
+        existingCodes = data.map(row => row.code);
+      }
+    }
+
+    const maxNumber = existingCodes
+      .filter(code => typeof code === "string" && code.startsWith(prefix))
+      .map(code => Number(code.replace(prefix, "")))
+      .filter(number => Number.isFinite(number))
+      .reduce((max, number) => Math.max(max, number), 0);
+
+    return `${prefix}${String(maxNumber + 1).padStart(3, "0")}`;
+  }
+
   async function submitOrder() {
     if (!ordersOpen) return alert("Les précommandes sont actuellement fermées.");
     if (!customer.firstName || !customer.phone || cartLines.length === 0) return alert("Merci de remplir prénom, téléphone et panier.");
-    const order = { id: makeOrderCode(locationId), status:"À confirmer", customer, locationId, items: cartLines.map(({id,name,qty,price}) => ({id,name,qty,price})) };
+    const orderCode = await generateOrderCode(locationId);
+    const order = { id: orderCode, status:"À confirmer", customer, locationId, items: cartLines.map(({id,name,qty,price}) => ({id,name,qty,price})) };
     if (supabase) {
       const { data, error } = await supabase.from("orders").insert({ code:order.id, status:order.status, first_name:customer.firstName, last_name:customer.lastName, phone:customer.phone, note:customer.note, location_id:locationId, total }).select().single();
       if (error) return alert("Erreur commande : " + error.message);
