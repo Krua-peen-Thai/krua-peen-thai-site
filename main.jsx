@@ -392,7 +392,7 @@ const order = { id: await makeOrderCode(locationId, orders), status:"À confirme
     closingDate.setHours(20, 0, 0, 0);
 
     const serviceOpenDate = new Date(date);
-    serviceOpenDate.setHours(6, 0, 0, 0);
+    serviceOpenDate.setHours(0, 0, 0, 0);
 
     if (!ordersOpen && !serviceOrdersOpen) {
       return {
