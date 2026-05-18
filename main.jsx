@@ -353,18 +353,26 @@ const order = { id: await makeOrderCode(locationId, orders), status:"À confirme
   }
 
   function getServiceDate(location) {
-    const dayMap = { Dimanche: 0, Lundi: 1, Mardi: 2, Mercredi: 3, Jeudi: 4, Vendredi: 5, Samedi: 6 };
+    const dayMap = {
+      Dimanche: 0,
+      Lundi: 1,
+      Mardi: 2,
+      Mercredi: 3,
+      Jeudi: 4,
+      Vendredi: 5,
+      Samedi: 6
+    };
+
     const target = dayMap[location?.day] ?? new Date().getDay();
-    const today = new Date();
-    const result = new Date(today);
+    const now = new Date();
+    const result = new Date(now);
+
     result.setHours(0, 0, 0, 0);
-    let diff = (target - today.getDay() + 7) % 7;
-    const { end } = parseServiceHours(location?.hours);
-    const serviceEndToday = new Date(result);
-    serviceEndToday.setHours(end.hour, end.minute, 0, 0);
-    if (diff === 0 && today > serviceEndToday) diff = 7;
-    result.setDate(today.getDate() + diff);
-    return result;
+
+    let diff = target - now.getDay();
+    if (diff < 0) diff += 7;
+
+    return new Date(result.getTime() + diff * 24 * 60 * 60 * 1000);
   }
 
   function getServiceWindow(location) {
