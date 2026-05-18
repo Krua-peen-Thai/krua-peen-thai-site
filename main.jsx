@@ -148,6 +148,9 @@ function KruaSite() {
   const [orderSearch, setOrderSearch] = useState("");
   const [appMode, setAppMode] = useState(supabase ? "Connecté à Supabase" : "Mode démo local");
   const [notificationStatus, setNotificationStatus] = useState("Notifications inactives");
+  const [adminLocationFilter, setAdminLocationFilter] = useState("ALL");
+  const [adminStatusFilter, setAdminStatusFilter] = useState("ACTIVE");
+  const [hideDoneOrders, setHideDoneOrders] = useState(true);
 
   useEffect(() => {
     const normalizePath = () => window.location.pathname.replace(/\/$/, "");
@@ -244,10 +247,12 @@ function KruaSite() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          title: `Nouvelle commande ${order.id}`,
-          body: `${order.customer.firstName} - ${loc.city} - ${euro(orderTotal)}`,
-          url: "/#admin",
+          title: "Nouvelle commande KRUA",
+          body: `${order.id} · ${loc.city} · ${euro(orderTotal)}`,
+          url: "/admin",
           orderCode: order.id,
+          location: loc.city,
+          total: euro(orderTotal),
         }),
       });
     } catch (error) {
@@ -329,15 +334,75 @@ const order = { id: await makeOrderCode(locationId, orders), status:"À confirme
     if (supabase) await supabase.from("settings").upsert({ id:"main", orders_open:ordersOpen, site_message:value });
   }
 
+  function getNextServiceDate(location) {
+    const dayMap = { Dimanche: 0, Lundi: 1, Mardi: 2, Mercredi: 3, Jeudi: 4, Vendredi: 5, Samedi: 6 };
+    const target = dayMap[location?.day] ?? new Date().getDay();
+    const today = new Date();
+    const result = new Date(today);
+    result.setHours(0, 0, 0, 0);
+    let diff = (target - today.getDay() + 7) % 7;
+    if (diff === 0) diff = 7;
+    result.setDate(today.getDate() + diff);
+    return result;
+  }
+
+  function formatServiceDate(location) {
+    const date = getNextServiceDate(location);
+    const label = date.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" });
+    return label.charAt(0).toUpperCase() + label.slice(1);
+  }
+
+  function buildWhatsAppMessage(order, loc) {
+    return `Bonjour,
+
+Votre commande ${order.id} est bien confirmée pour ${loc.city} le ${formatServiceDate(loc)}.
+
+Vous pourrez la récupérer pendant le service directement au food truck.
+
+Merci et à très bientôt 🙏🌶️
+KRUA PEÈN THAÏ`;
+  }
+
+  function buildSmsMessage(order, loc) {
+    return `KRUA PEÈN THAÏ : Commande ${order.id} confirmée pour ${loc.city} ${formatServiceDate(loc)}. Retrait pendant le service au food truck. Merci 🌶️`;
+  }
+
+  function smsLink(phone, text) {
+    const normalized = phone.replace(/\s/g, "");
+    return `sms:${normalized}?body=${encodeURIComponent(text)}`;
+  }
+
+  const activeOrdersCount = orders.filter(o => o.status === "À confirmer" || o.status === "Confirmée").length;
+
   const visibleOrders = useMemo(() => {
     const statusOrder = { "À confirmer":0, "Confirmée":1, "Récupérée":2, "Annulée":3 };
     const q = orderSearch.trim().toLowerCase();
-    return orders.filter(o => !q || [o.id,o.customer.firstName,o.customer.lastName,o.customer.phone,locations.find(l=>l.id===o.locationId)?.city].filter(Boolean).join(" ").toLowerCase().includes(q)).sort((a,b)=>(statusOrder[a.status]??9)-(statusOrder[b.status]??9));
-  }, [orders, orderSearch, locations]);
+    return orders
+      .filter(o => adminLocationFilter === "ALL" || locationCode(o.locationId) === adminLocationFilter)
+      .filter(o => {
+        if (adminStatusFilter === "ACTIVE") return o.status === "À confirmer" || o.status === "Confirmée";
+        if (adminStatusFilter === "ALL") return true;
+        return o.status === adminStatusFilter;
+      })
+      .filter(o => !hideDoneOrders || (o.status !== "Récupérée" && o.status !== "Annulée"))
+      .filter(o => !q || [o.id,o.customer.firstName,o.customer.lastName,o.customer.phone,locations.find(l=>l.id===o.locationId)?.city].filter(Boolean).join(" ").toLowerCase().includes(q))
+      .sort((a,b)=>(statusOrder[a.status]??9)-(statusOrder[b.status]??9));
+  }, [orders, orderSearch, locations, adminLocationFilter, adminStatusFilter, hideDoneOrders]);
+
   const prepSummary = useMemo(() => {
-    const s = {}; orders.filter(o => o.status !== "Annulée").forEach(o => o.items.forEach(i => { s[i.name]=(s[i.name]||0)+i.qty; }));
-    return Object.entries(s).sort((a,b)=>b[1]-a[1]);
-  }, [orders]);
+    const groups = { PLAB: {}, BRI: {}, KER: {} };
+    orders
+      .filter(o => o.status !== "Annulée" && o.status !== "Récupérée")
+      .filter(o => adminLocationFilter === "ALL" || locationCode(o.locationId) === adminLocationFilter)
+      .forEach(o => {
+        const code = locationCode(o.locationId);
+        if (!groups[code]) groups[code] = {};
+        o.items.forEach(i => { groups[code][i.name] = (groups[code][i.name] || 0) + i.qty; });
+      });
+    return Object.entries(groups)
+      .map(([code, items]) => ({ code, items: Object.entries(items).sort((a,b)=>b[1]-a[1]) }))
+      .filter(group => group.items.length);
+  }, [orders, adminLocationFilter]);
 
   return (
     <div className="min-h-screen bg-[#070504] text-stone-50">
@@ -368,8 +433,94 @@ const order = { id: await makeOrderCode(locationId, orders), status:"À confirme
           <section id="traiteur" className="mx-auto max-w-7xl px-4 py-12 pb-20"><div className="rounded-[2rem] border border-amber-300/20 bg-gradient-to-br from-stone-900 to-black p-8"><h2 className="text-3xl font-black">Traiteur thaï, sushi & poké bowls</h2><p className="mt-3 max-w-3xl text-stone-300">Mariage, retour de mariage, anniversaire, séminaire, repas d’entreprise. Demandez un devis, Tina vous recontacte.</p><div className="mt-6 grid gap-3 md:grid-cols-2"><input placeholder="Nom" className="rounded-xl border border-white/10 bg-black p-4"/><input placeholder="Téléphone" className="rounded-xl border border-white/10 bg-black p-4"/><input placeholder="Type d’événement" className="rounded-xl border border-white/10 bg-black p-4"/><input placeholder="Nombre de personnes" className="rounded-xl border border-white/10 bg-black p-4"/><textarea placeholder="Votre demande" className="rounded-xl border border-white/10 bg-black p-4 md:col-span-2"/></div><button className="mt-5 rounded-2xl bg-amber-400 px-6 py-4 font-black text-black">Demander un devis</button></div></section>
         </main>
       ) : (
-        <main className="mx-auto max-w-7xl px-4 py-8"><div className="mb-8 flex flex-wrap items-center justify-between gap-4"><div><h1 className="text-4xl font-black">Dashboard Tina</h1><p className="mt-2 text-stone-300">Commandes, confirmations WhatsApp, produits semaine et préparation.</p><p className="mt-2 text-sm text-amber-300">Mode actuel : {appMode}</p><p className="mt-1 text-sm text-stone-400">{notificationStatus}</p></div><button onClick={subscribeToPushNotifications} className="rounded-2xl bg-amber-400 px-5 py-3 font-black text-black"><Lock className="mr-2 inline" size={18}/>Activer notifications</button></div><div className="mb-6 grid gap-3 sm:grid-cols-4">{[["orders","Commandes"],["products","Produits"],["locations","Emplacements"],["settings","Réglages"]].map(([id,label])=><button key={id} onClick={()=>setAdminTab(id)} className={`rounded-2xl p-4 text-left font-black ${adminTab===id ? "bg-amber-400 text-black" : "bg-white/10"}`}>{label}</button>)}</div>
-          {adminTab==="orders" && <div className="grid gap-6 lg:grid-cols-[1fr_360px]"><section className="space-y-4"><div className="rounded-3xl border border-white/10 bg-stone-900 p-5"><h2 className="mb-4 text-2xl font-black">Nouvelles commandes</h2><div className="relative mb-4"><Search className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400" size={18}/><input value={orderSearch} onChange={e=>setOrderSearch(e.target.value)} placeholder="Rechercher commande, nom, téléphone..." className="w-full rounded-2xl border border-white/10 bg-black py-4 pl-12 pr-4"/></div>{visibleOrders.map(order=>{const loc=locations.find(l=>l.id===order.locationId)||locations[0]; const orderTotal=order.items.reduce((s,i)=>s+i.qty*i.price,0); const msg=`Bonjour ${order.customer.firstName}, votre commande ${order.id} est bien reçue pour ${loc.city} (${loc.label}). Paiement sur place. Merci, KRUA PEÈN THAÏ.`; return <div key={order.id} className="mb-4 rounded-3xl border border-white/10 bg-black p-5"><div className="mb-4 flex flex-wrap items-start justify-between gap-3"><div><div className="text-2xl font-black text-amber-300">{order.id}</div><div className="text-lg font-bold">{order.customer.firstName} {order.customer.lastName}</div><div className="text-stone-300">{order.customer.phone}</div></div><span className={`rounded-full px-4 py-2 text-sm font-bold ${order.status==="Confirmée" ? "bg-green-500/20 text-green-300" : order.status==="Annulée" ? "bg-red-500/20 text-red-300" : order.status==="Récupérée" ? "bg-blue-500/20 text-blue-300" : "bg-orange-500/20 text-orange-300"}`}>{order.status}</span></div><div className="rounded-2xl bg-white/[0.04] p-4"><MapPin className="mr-2 inline text-amber-300" size={16}/>{loc.city} • {loc.label} • {loc.hours}</div><div className="my-4 space-y-2">{order.items.map(item=><div key={item.id} className="flex justify-between rounded-xl bg-white/[0.04] px-4 py-3"><span>{item.qty} × {item.name}</span><b>{euro(item.qty*item.price)}</b></div>)}</div>{order.customer.note && <div className="mb-4 rounded-xl bg-amber-400/10 p-3 text-sm text-amber-100">Note : {order.customer.note}</div>}<div className="mb-4 flex justify-between border-t border-white/10 pt-4 text-xl font-black"><span>Total</span><span>{euro(orderTotal)}</span></div><div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5"><a href={`tel:${order.customer.phone}`} className="rounded-2xl bg-white/10 px-4 py-4 text-center font-black"><Phone className="mr-2 inline" size={18}/>Appeler</a><a href={whatsappLink(order.customer.phone,msg)} target="_blank" className="rounded-2xl bg-green-500 px-4 py-4 text-center font-black text-black"><MessageCircle className="mr-2 inline" size={18}/>WhatsApp</a><button onClick={()=>updateOrderStatus(order.id,"Confirmée")} className="rounded-2xl bg-amber-400 px-4 py-4 font-black text-black"><CheckCircle2 className="mr-2 inline" size={18}/>Confirmer</button><button onClick={()=>updateOrderStatus(order.id,"Récupérée")} className="rounded-2xl bg-blue-500 px-4 py-4 font-black"><PackageCheck className="mr-2 inline" size={18}/>Récupérée</button><button onClick={()=>updateOrderStatus(order.id,"Annulée")} className="rounded-2xl bg-red-500/90 px-4 py-4 font-black"><XCircle className="mr-2 inline" size={18}/>Annuler</button></div></div>})}</div></section><aside className="space-y-6"><div className="rounded-3xl border border-amber-300/20 bg-stone-900 p-5"><h2 className="mb-4 flex items-center gap-2 text-2xl font-black"><PackageCheck className="text-amber-300"/>Résumé préparation</h2><div className="space-y-2">{prepSummary.map(([name,qty])=><div key={name} className="flex justify-between rounded-xl bg-black/40 px-4 py-3"><span>{name}</span><b className="text-amber-300">x{qty}</b></div>)}</div></div><div className="rounded-3xl border border-white/10 bg-stone-900 p-5"><h2 className="mb-4 flex items-center gap-2 text-2xl font-black"><Eye className="text-amber-300"/>Règles V1</h2><ul className="space-y-3 text-stone-300"><li>• Précommande jusqu’à la veille 20h</li><li>• Retrait pendant le service, sans créneau</li><li>• Paiement sur place</li><li>• Confirmation par téléphone ou WhatsApp Business</li><li>• Hiboutik reste la caisse séparée</li></ul></div></aside></div>}
+        <main className="mx-auto max-w-7xl px-4 py-8">
+          <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <h1 className="text-4xl font-black">Dashboard Tina</h1>
+              <p className="mt-2 text-stone-300">Commandes, confirmations WhatsApp/SMS, préparation cuisine.</p>
+              <p className="mt-2 text-sm text-amber-300">Mode actuel : {appMode}</p>
+              <p className="mt-1 text-sm text-stone-400">{notificationStatus}</p>
+              <p className="mt-3 inline-flex rounded-full bg-amber-400 px-4 py-2 text-sm font-black text-black">{activeOrdersCount} commande{activeOrdersCount > 1 ? "s" : ""} à traiter</p>
+            </div>
+            <button onClick={subscribeToPushNotifications} className="rounded-2xl bg-amber-400 px-5 py-3 font-black text-black">
+              <Lock className="mr-2 inline" size={18}/>Activer notifications
+            </button>
+          </div>
+
+          <div className="mb-6 grid gap-3 sm:grid-cols-4">
+            {[["orders","Commandes"],["products","Produits"],["locations","Emplacements"],["settings","Réglages"]].map(([id,label])=><button key={id} onClick={()=>setAdminTab(id)} className={`rounded-2xl p-4 text-left font-black ${adminTab===id ? "bg-amber-400 text-black" : "bg-white/10"}`}>{label}</button>)}
+          </div>
+
+          {adminTab === "orders" && (
+            <div className="grid gap-6 lg:grid-cols-[1fr_370px]">
+              <section className="space-y-4">
+                <div className="rounded-3xl border border-white/10 bg-stone-900 p-5">
+                  <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                    <h2 className="text-2xl font-black">Commandes</h2>
+                    <label className="flex items-center gap-2 text-sm text-stone-300"><input type="checkbox" checked={hideDoneOrders} onChange={e=>setHideDoneOrders(e.target.checked)} className="h-5 w-5 accent-amber-400"/> Masquer terminées</label>
+                  </div>
+
+                  <div className="mb-4 grid gap-3 md:grid-cols-2">
+                    <div className="flex gap-2 overflow-x-auto">
+                      {[["ALL","Toutes"],["PLAB","PLAB"],["BRI","BRI"],["KER","KER"]].map(([id,label])=><button key={id} onClick={()=>setAdminLocationFilter(id)} className={`rounded-full px-4 py-3 text-sm font-black ${adminLocationFilter===id ? "bg-amber-400 text-black" : "bg-black"}`}>{label}</button>)}
+                    </div>
+                    <div className="flex gap-2 overflow-x-auto">
+                      {[["ACTIVE","À traiter"],["ALL","Toutes"],["À confirmer","À confirmer"],["Confirmée","Confirmées"],["Récupérée","Récupérées"],["Annulée","Annulées"]].map(([id,label])=><button key={id} onClick={()=>setAdminStatusFilter(id)} className={`rounded-full px-4 py-3 text-sm font-black ${adminStatusFilter===id ? "bg-amber-400 text-black" : "bg-black"}`}>{label}</button>)}
+                    </div>
+                  </div>
+
+                  <div className="relative mb-4">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400" size={18}/>
+                    <input value={orderSearch} onChange={e=>setOrderSearch(e.target.value)} placeholder="Rechercher commande, nom, téléphone..." className="w-full rounded-2xl border border-white/10 bg-black py-4 pl-12 pr-4"/>
+                  </div>
+
+                  {visibleOrders.length === 0 && <div className="rounded-2xl bg-black/40 p-5 text-stone-400">Aucune commande dans ce filtre.</div>}
+
+                  {visibleOrders.map(order=>{
+                    const loc=locations.find(l=>l.id===order.locationId)||locations[0];
+                    const orderTotal=order.items.reduce((s,i)=>s+i.qty*i.price,0);
+                    const whatsMsg=buildWhatsAppMessage(order, loc);
+                    const smsMsg=buildSmsMessage(order, loc);
+                    return <div key={order.id} id={`order-${order.id}`} className="mb-4 rounded-3xl border border-white/10 bg-black p-5">
+                      <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                          <div className="text-2xl font-black text-amber-300">{order.id}</div>
+                          <div className="text-lg font-bold">{order.customer.firstName} {order.customer.lastName}</div>
+                          <div className="text-stone-300">{order.customer.phone}</div>
+                        </div>
+                        <span className={`rounded-full px-4 py-2 text-sm font-bold ${order.status==="Confirmée" ? "bg-green-500/20 text-green-300" : order.status==="Annulée" ? "bg-red-500/20 text-red-300" : order.status==="Récupérée" ? "bg-blue-500/20 text-blue-300" : "bg-orange-500/20 text-orange-300"}`}>{order.status}</span>
+                      </div>
+                      <div className="rounded-2xl bg-white/[0.04] p-4"><MapPin className="mr-2 inline text-amber-300" size={16}/>{loc.city} • {loc.label} • {formatServiceDate(loc)} • {loc.hours}</div>
+                      <div className="my-4 space-y-2">{order.items.map(item=><div key={item.id} className="flex justify-between rounded-xl bg-white/[0.04] px-4 py-3"><span>{item.qty} × {item.name}</span><b>{euro(item.qty*item.price)}</b></div>)}</div>
+                      {order.customer.note && <div className="mb-4 rounded-xl bg-amber-400/10 p-3 text-sm text-amber-100">Note : {order.customer.note}</div>}
+                      <div className="mb-4 flex justify-between border-t border-white/10 pt-4 text-xl font-black"><span>Total</span><span>{euro(orderTotal)}</span></div>
+                      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
+                        <a href={whatsappLink(order.customer.phone, whatsMsg)} target="_blank" rel="noreferrer" onClick={()=>updateOrderStatus(order.id,"Confirmée")} className="rounded-2xl bg-green-500 px-4 py-4 text-center font-black text-black"><MessageCircle className="mr-2 inline" size={18}/>Confirmer WhatsApp</a>
+                        <a href={smsLink(order.customer.phone, smsMsg)} onClick={()=>updateOrderStatus(order.id,"Confirmée")} className="rounded-2xl bg-white/10 px-4 py-4 text-center font-black"><Phone className="mr-2 inline" size={18}/>Confirmer SMS</a>
+                        <a href={`tel:${order.customer.phone}`} className="rounded-2xl bg-white/10 px-4 py-4 text-center font-black"><Phone className="mr-2 inline" size={18}/>Appeler</a>
+                        <button onClick={()=>updateOrderStatus(order.id,"Récupérée")} className="rounded-2xl bg-blue-500 px-4 py-4 font-black"><PackageCheck className="mr-2 inline" size={18}/>Récupérée</button>
+                        <button onClick={()=>updateOrderStatus(order.id,"Annulée")} className="rounded-2xl bg-red-500/90 px-4 py-4 font-black"><XCircle className="mr-2 inline" size={18}/>Annuler</button>
+                      </div>
+                    </div>
+                  })}
+                </div>
+              </section>
+
+              <aside className="space-y-6">
+                <div className="rounded-3xl border border-amber-300/20 bg-stone-900 p-5">
+                  <h2 className="mb-4 flex items-center gap-2 text-2xl font-black"><PackageCheck className="text-amber-300"/>Résumé préparation</h2>
+                  {prepSummary.length === 0 && <div className="rounded-xl bg-black/40 px-4 py-3 text-stone-400">Rien à préparer dans ce filtre.</div>}
+                  <div className="space-y-4">
+                    {prepSummary.map(group=><div key={group.code} className="rounded-2xl bg-black/40 p-4"><div className="mb-3 text-xl font-black text-amber-300">{group.code}</div><div className="space-y-2">{group.items.map(([name,qty])=><div key={name} className="flex justify-between rounded-xl bg-white/[0.04] px-4 py-3"><span>{name}</span><b className="text-amber-300">x{qty}</b></div>)}</div></div>)}
+                  </div>
+                </div>
+                <div className="rounded-3xl border border-white/10 bg-stone-900 p-5">
+                  <h2 className="mb-4 flex items-center gap-2 text-2xl font-black"><Eye className="text-amber-300"/>Règles service</h2>
+                  <ul className="space-y-3 text-stone-300"><li>• Précommande jusqu’à la veille 20h</li><li>• Retrait pendant le service</li><li>• Paiement sur place</li><li>• Confirmation par WhatsApp, SMS ou téléphone</li></ul>
+                </div>
+              </aside>
+            </div>
+          )}
           {adminTab==="products" && <div className="rounded-3xl border border-white/10 bg-stone-900 p-5"><h2 className="mb-4 text-2xl font-black">Produits commandables</h2><p className="mb-5 text-stone-300">Tina coche les produits disponibles cette semaine et peut ajuster les prix.</p><div className="grid gap-3 md:grid-cols-2">{products.map(p=><div key={p.id} className="rounded-2xl bg-black/40 p-4"><div className="mb-3 flex items-start justify-between gap-3"><div><div className="text-sm font-black text-amber-300">{p.code}</div><div className="font-black">{p.name}</div><div className="text-sm text-stone-400">{p.category}</div></div><label className="flex items-center gap-2 text-sm font-bold"><span>{p.available ? "ON" : "OFF"}</span><input type="checkbox" checked={p.available} onChange={()=>updateProduct(p.id,"available",!p.available)} className="h-7 w-7 accent-amber-400"/></label></div><div className="grid gap-2 sm:grid-cols-[1fr_120px]"><input value={p.name} onChange={e=>updateProduct(p.id,"name",e.target.value)} className="rounded-xl border border-white/10 bg-stone-900 p-3"/><input type="number" step="0.1" value={p.price} onChange={e=>updateProduct(p.id,"price",Number(e.target.value))} className="rounded-xl border border-white/10 bg-stone-900 p-3"/></div></div>)}</div></div>}
           {adminTab==="locations" && <div className="rounded-3xl border border-white/10 bg-stone-900 p-5"><h2 className="mb-4 text-2xl font-black">Emplacements & horaires</h2><div className="grid gap-4 md:grid-cols-2">{locations.map(l=><div key={l.id} className="rounded-2xl bg-black/40 p-4"><div className="mb-4 font-black text-amber-300">{l.label}</div><div className="grid gap-3"><input value={l.city} onChange={e=>updateLocation(l.id,"city",e.target.value)} className="rounded-xl border border-white/10 bg-stone-900 p-3"/><input value={l.place} onChange={e=>updateLocation(l.id,"place",e.target.value)} className="rounded-xl border border-white/10 bg-stone-900 p-3"/><input value={l.hours} onChange={e=>updateLocation(l.id,"hours",e.target.value)} className="rounded-xl border border-white/10 bg-stone-900 p-3"/></div></div>)}</div></div>}
           {adminTab==="settings" && <div className="grid gap-6 lg:grid-cols-2"><div className="rounded-3xl border border-white/10 bg-stone-900 p-5"><h2 className="mb-4 text-2xl font-black">Ouverture commandes</h2><button onClick={toggleOrdersOpen} className={`w-full rounded-2xl p-5 text-xl font-black ${ordersOpen ? "bg-green-500 text-black" : "bg-red-500 text-white"}`}>{ordersOpen ? "PRECOMMANDES OUVERTES" : "PRECOMMANDES FERMÉES"}</button></div><div className="rounded-3xl border border-white/10 bg-stone-900 p-5"><h2 className="mb-4 text-2xl font-black">Message accueil</h2><textarea value={siteMessage} onChange={e=>saveSiteMessage(e.target.value)} className="min-h-32 w-full rounded-xl border border-white/10 bg-black p-4"/></div></div>}
