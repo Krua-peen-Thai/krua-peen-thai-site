@@ -353,26 +353,17 @@ const order = { id: await makeOrderCode(locationId, orders), status:"À confirme
   }
 
   function getServiceDate(location) {
-    const dayMap = {
-      Dimanche: 0,
-      Lundi: 1,
-      Mardi: 2,
-      Mercredi: 3,
-      Jeudi: 4,
-      Vendredi: 5,
-      Samedi: 6
-    };
-
+    const dayMap = { Dimanche: 0, Lundi: 1, Mardi: 2, Mercredi: 3, Jeudi: 4, Vendredi: 5, Samedi: 6 };
     const target = dayMap[location?.day] ?? new Date().getDay();
-    const now = new Date();
-    const result = new Date(now);
-
+    const today = new Date();
+    const result = new Date(today);
     result.setHours(0, 0, 0, 0);
-
-    let diff = target - now.getDay();
-    if (diff < 0) diff += 7;
-
-    result.setDate(now.getDate() + diff);
+    let diff = (target - today.getDay() + 7) % 7;
+    const { end } = parseServiceHours(location?.hours);
+    const serviceEndToday = new Date(result);
+    serviceEndToday.setHours(end.hour, end.minute, 0, 0);
+    if (diff === 0 && today > serviceEndToday) diff = 7;
+    result.setDate(today.getDate() + diff);
     return result;
   }
 
@@ -396,22 +387,22 @@ const order = { id: await makeOrderCode(locationId, orders), status:"À confirme
     const now = new Date();
     const { date, endDate } = getServiceWindow(location);
 
-    const preorderClosingDate = new Date(date);
-    preorderClosingDate.setDate(preorderClosingDate.getDate() - 1);
-    preorderClosingDate.setHours(20, 0, 0, 0);
+    const closingDate = new Date(date);
+    closingDate.setDate(closingDate.getDate() - 1);
+    closingDate.setHours(20, 0, 0, 0);
 
-    const dayServiceOpeningDate = new Date(date);
-    dayServiceOpeningDate.setHours(6, 0, 0, 0);
+    const serviceOpenDate = new Date(date);
+    serviceOpenDate.setHours(6, 0, 0, 0);
 
-    if (!ordersOpen) {
+    if (!ordersOpen && !serviceOrdersOpen) {
       return {
         open: false,
         mode: "closed",
-        message: "Les précommandes sont actuellement fermées par Tina."
+        message: "Les commandes sont actuellement fermées par Tina."
       };
     }
 
-    if (now < preorderClosingDate) {
+    if (ordersOpen && now < closingDate) {
       return {
         open: true,
         mode: "preorder",
@@ -419,19 +410,11 @@ const order = { id: await makeOrderCode(locationId, orders), status:"À confirme
       };
     }
 
-    if (serviceOrdersOpen && now >= dayServiceOpeningDate && now <= endDate) {
+    if (serviceOrdersOpen && now >= serviceOpenDate && now <= endDate) {
       return {
         open: true,
         mode: "service",
-        message: "Commande du jour au food truck. Disponibilités selon stock restant. Paiement sur place."
-      };
-    }
-
-    if (now >= dayServiceOpeningDate && now <= endDate) {
-      return {
-        open: false,
-        mode: "service_closed",
-        message: `Les précommandes pour ${location.city} le ${formatServiceDate(location)} sont fermées. Tina aura une sélection disponible au camion pendant le service.`
+        message: "Commande en direct au food truck. Disponibilités selon stock restant. Paiement sur place."
       };
     }
 
@@ -446,7 +429,7 @@ const order = { id: await makeOrderCode(locationId, orders), status:"À confirme
     return {
       open: false,
       mode: "preorder_closed",
-      message: `Les précommandes pour ${location.city} le ${formatServiceDate(location)} sont fermées. Tina pourra ouvrir les commandes du jour à partir de 6h00 si elle le souhaite.`
+      message: `Les précommandes pour ${location.city} sont fermées.`
     };
   }
 
