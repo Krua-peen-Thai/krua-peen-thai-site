@@ -48,7 +48,8 @@ export default async function handler(req, res) {
     const payload = JSON.stringify({
       title: "Nouvelle commande KRUA",
       body: `${orderCode || "Nouvelle commande"} • ${totalText} • ${location || ""}`,
-      url: "/admin"
+      url: "/admin",
+      orderCode: orderCode || null
     });
 
     await Promise.all(
