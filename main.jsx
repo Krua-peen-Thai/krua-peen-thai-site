@@ -372,7 +372,8 @@ const order = { id: await makeOrderCode(locationId, orders), status:"À confirme
     let diff = target - now.getDay();
     if (diff < 0) diff += 7;
 
-    return new Date(result.getTime() + diff * 24 * 60 * 60 * 1000);
+    result.setDate(now.getDate() + diff);
+    return result;
   }
 
   function getServiceWindow(location) {
@@ -393,13 +394,24 @@ const order = { id: await makeOrderCode(locationId, orders), status:"À confirme
 
   function getOrderAvailability(location) {
     const now = new Date();
-    const { date, startDate, endDate } = getServiceWindow(location);
-    const closingDate = new Date(date);
+    const { date, endDate } = getServiceWindow(location);
 
-    closingDate.setDate(closingDate.getDate() - 1);
-    closingDate.setHours(20, 0, 0, 0);
+    const preorderClosingDate = new Date(date);
+    preorderClosingDate.setDate(preorderClosingDate.getDate() - 1);
+    preorderClosingDate.setHours(20, 0, 0, 0);
 
-    if (now < closingDate && ordersOpen) {
+    const dayServiceOpeningDate = new Date(date);
+    dayServiceOpeningDate.setHours(6, 0, 0, 0);
+
+    if (!ordersOpen) {
+      return {
+        open: false,
+        mode: "closed",
+        message: "Les précommandes sont actuellement fermées par Tina."
+      };
+    }
+
+    if (now < preorderClosingDate) {
       return {
         open: true,
         mode: "preorder",
@@ -407,15 +419,15 @@ const order = { id: await makeOrderCode(locationId, orders), status:"À confirme
       };
     }
 
-    if (now >= startDate && now <= endDate && serviceOrdersOpen) {
+    if (serviceOrdersOpen && now >= dayServiceOpeningDate && now <= endDate) {
       return {
         open: true,
         mode: "service",
-        message: "Commande en direct au food truck. Disponibilités selon stock restant. Paiement sur place."
+        message: "Commande du jour au food truck. Disponibilités selon stock restant. Paiement sur place."
       };
     }
 
-    if (now >= startDate && now <= endDate) {
+    if (now >= dayServiceOpeningDate && now <= endDate) {
       return {
         open: false,
         mode: "service_closed",
@@ -431,18 +443,10 @@ const order = { id: await makeOrderCode(locationId, orders), status:"À confirme
       };
     }
 
-    if (!ordersOpen) {
-      return {
-        open: false,
-        mode: "closed",
-        message: "Les précommandes sont actuellement fermées par Tina."
-      };
-    }
-
     return {
       open: false,
       mode: "preorder_closed",
-      message: `Les précommandes pour ${location.city} le ${formatServiceDate(location)} sont fermées.`
+      message: `Les précommandes pour ${location.city} le ${formatServiceDate(location)} sont fermées. Tina pourra ouvrir les commandes du jour à partir de 6h00 si elle le souhaite.`
     };
   }
 
