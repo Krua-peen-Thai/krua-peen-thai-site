@@ -7,6 +7,13 @@ webpush.setVapidDetails(
   process.env.VAPID_PRIVATE_KEY
 );
 
+function euro(value) {
+  return new Intl.NumberFormat("fr-FR", {
+    style: "currency",
+    currency: "EUR"
+  }).format(Number(value || 0));
+}
+
 export default async function handler(req, res) {
   try {
     const supabase = createClient(
@@ -14,7 +21,21 @@ export default async function handler(req, res) {
       process.env.SUPABASE_SERVICE_ROLE_KEY
     );
 
-    const { orderCode, total, location } = req.body || {};
+    const { orderCode, location } = req.body || {};
+
+    let totalText = "0,00 €";
+
+    if (orderCode) {
+      const { data: order } = await supabase
+        .from("orders")
+        .select("total")
+        .eq("code", orderCode)
+        .single();
+
+      if (order?.total !== undefined && order?.total !== null) {
+        totalText = euro(order.total);
+      }
+    }
 
     const { data, error } = await supabase
       .from("push_subscriptions")
@@ -26,7 +47,7 @@ export default async function handler(req, res) {
 
     const payload = JSON.stringify({
       title: "Nouvelle commande KRUA",
-      body: `${orderCode || "Nouvelle commande"} • ${total || "0,00 €"} • ${location || ""}`,
+      body: `${orderCode || "Nouvelle commande"} • ${totalText} • ${location || ""}`,
       url: "/admin"
     });
 
