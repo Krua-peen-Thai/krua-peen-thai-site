@@ -385,11 +385,11 @@ const order = { id: await makeOrderCode(locationId, orders), status:"À confirme
 
   function getOrderAvailability(location) {
     if (!ordersOpen) {
-      return { open:false, mode:"closed", message:"Les précommandes sont actuellement fermées par Tina." };
+      return { open:false, mode:"closed", message:"Les commandes sont actuellement fermées par Tina." };
     }
 
     const now = new Date();
-    const { date, startDate, endDate } = getServiceWindow(location);
+    const { date, endDate } = getServiceWindow(location);
     const closingDate = new Date(date);
     closingDate.setDate(closingDate.getDate() - 1);
     closingDate.setHours(20, 0, 0, 0);
@@ -398,15 +398,24 @@ const order = { id: await makeOrderCode(locationId, orders), status:"À confirme
       return { open:true, mode:"preorder", message:"Précommande ouverte jusqu’à la veille 20h." };
     }
 
-    if (now >= startDate && now <= endDate) {
-      if (serviceOrdersOpen) {
-        return { open:true, mode:"service", message:"Commande en direct au food truck. Disponibilités selon stock restant. Paiement sur place." };
-      }
-      return { open:false, mode:"service_closed", message:`Les précommandes pour ${location.city} le ${formatServiceDate(location)} sont fermées. Tina aura une sélection disponible au camion pendant le service.` };
+    if (now <= endDate && serviceOrdersOpen) {
+      return {
+        open:true,
+        mode:"service",
+        message:"Commandes de dernière minute / pendant service activées par Tina. Disponibilités selon stock restant. Paiement sur place."
+      };
     }
 
     if (now > endDate) {
       return { open:false, mode:"ended", message:`Le service est terminé pour ${location.city}.` };
+    }
+
+    if (serviceOrdersOpen) {
+      return {
+        open:false,
+        mode:"service_waiting",
+        message:`Les commandes pendant service sont activées pour ${location.city}. Elles ouvriront pendant le service (${location.hours}).`
+      };
     }
 
     return { open:false, mode:"preorder_closed", message:`Les précommandes pour ${location.city} le ${formatServiceDate(location)} sont fermées. Tina aura une sélection disponible au camion pendant le service.` };
