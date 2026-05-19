@@ -321,7 +321,7 @@ const order = { id: await makeOrderCode(locationId, orders), status:"À confirme
     }
     await sendOrderNotification(order, total);
     setOrders(old => [order, ...old]); setCart({}); setCustomer({ firstName:"", lastName:"", phone:"", email:"", note:"" });
-    alert(`Demande enregistrée : ${order.id}\nTina confirmera par téléphone ou WhatsApp.`);
+    alert(`Demande enregistrée : ${order.id}\nTina confirmera par téléphone, WhatsApp ou email.`);
   }
 
   async function updateOrderStatus(id, status) {
