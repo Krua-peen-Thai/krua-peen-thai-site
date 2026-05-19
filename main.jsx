@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { createClient } from "@supabase/supabase-js";
-import { ShoppingCart, MapPin, Phone, MessageCircle, Clock, ChefHat, Lock, CheckCircle2, XCircle, PackageCheck, Settings, Eye, CalendarDays, Sparkles, UtensilsCrossed, Search, ChevronDown } from "lucide-react";
+import { ShoppingCart, MapPin, Phone, MessageCircle, Clock, ChefHat, Lock, CheckCircle2, XCircle, PackageCheck, Settings, Eye, CalendarDays, Sparkles, UtensilsCrossed, Search, ChevronDown, Clipboard } from "lucide-react";
 import "./style.css";
 
 const BRAND = { name: "KRUA PEÈN THAÏ", phone: "0670395523", email: "kan-siam@laposte.net", instagram: "@krua_peen_thai", facebook: "KRUA Peèn-Thaï" };
@@ -120,7 +120,16 @@ async function makeOrderCode(locationId, existingOrders = []) {
   readCodes(existingOrders);
   return `${prefix}${String(max + 1).padStart(3, "0")}`;
 }
-function whatsappLink(phone, text) { const normalized = phone.replace(/^0/, "33").replace(/\s/g, ""); return `https://wa.me/${normalized}?text=${encodeURIComponent(text)}`; }
+function normalizePhoneForLinks(phone = "") {
+  const digits = String(phone).replace(/\D/g, "");
+  if (digits.startsWith("33")) return digits;
+  if (digits.startsWith("0")) return `33${digits.slice(1)}`;
+  return digits;
+}
+function whatsappLink(phone, text) {
+  const normalized = normalizePhoneForLinks(phone);
+  return `https://wa.me/${normalized}?text=${encodeURIComponent(text)}`;
+}
 
 function urlBase64ToUint8Array(base64String) {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
@@ -449,8 +458,17 @@ KRUA PEÈN THAÏ`;
   }
 
   function smsLink(phone, text) {
-    const normalized = phone.replace(/\s/g, "");
+    const normalized = String(phone || "").replace(/\s/g, "");
     return `sms:${normalized}?body=${encodeURIComponent(text)}`;
+  }
+
+  async function copyMessageToClipboard(text) {
+    try {
+      await navigator.clipboard.writeText(text);
+      alert("Message copié. Tina peut le coller dans WhatsApp ou SMS.");
+    } catch (error) {
+      alert("Impossible de copier automatiquement. Sélectionne le message depuis WhatsApp/SMS si besoin.");
+    }
   }
 
   const activeOrdersCount = orders.filter(o => o.status === "À confirmer" || o.status === "Confirmée").length;
@@ -575,9 +593,10 @@ KRUA PEÈN THAÏ`;
                       <div className="my-4 space-y-2">{order.items.map(item=><div key={item.id} className="flex justify-between rounded-xl bg-white/[0.04] px-4 py-3"><span>{item.qty} × {item.name}</span><b>{euro(item.qty*item.price)}</b></div>)}</div>
                       {order.customer.note && <div className="mb-4 rounded-xl bg-amber-400/10 p-3 text-sm text-amber-100">Note : {order.customer.note}</div>}
                       <div className="mb-4 flex justify-between border-t border-white/10 pt-4 text-xl font-black"><span>Total</span><span>{euro(orderTotal)}</span></div>
-                      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
+                      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-6">
                         <a href={whatsappLink(order.customer.phone, whatsMsg)} target="_blank" rel="noreferrer" onClick={()=>updateOrderStatus(order.id,"Confirmée")} className="rounded-2xl bg-green-500 px-4 py-4 text-center font-black text-black"><MessageCircle className="mr-2 inline" size={18}/>Confirmer WhatsApp</a>
                         <a href={smsLink(order.customer.phone, smsMsg)} onClick={()=>updateOrderStatus(order.id,"Confirmée")} className="rounded-2xl bg-white/10 px-4 py-4 text-center font-black"><Phone className="mr-2 inline" size={18}/>Confirmer SMS</a>
+                        <button onClick={()=>copyMessageToClipboard(whatsMsg)} className="rounded-2xl bg-white/10 px-4 py-4 text-center font-black"><Clipboard className="mr-2 inline" size={18}/>Copier message</button>
                         <a href={`tel:${order.customer.phone}`} className="rounded-2xl bg-white/10 px-4 py-4 text-center font-black"><Phone className="mr-2 inline" size={18}/>Appeler</a>
                         <button onClick={()=>updateOrderStatus(order.id,"Récupérée")} className="rounded-2xl bg-blue-500 px-4 py-4 font-black"><PackageCheck className="mr-2 inline" size={18}/>Récupérée</button>
                         <button onClick={()=>updateOrderStatus(order.id,"Annulée")} className="rounded-2xl bg-red-500/90 px-4 py-4 font-black"><XCircle className="mr-2 inline" size={18}/>Annuler</button>
