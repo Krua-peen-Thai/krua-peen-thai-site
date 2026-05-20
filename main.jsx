@@ -576,7 +576,7 @@ KRUA PEÈN THAÏ`;
           <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
             <div>
               <h1 className="text-4xl font-black">Dashboard Tina</h1>
-              <p className="mt-2 text-stone-300">Commandes, confirmations WhatsApp/SMS, préparation cuisine.</p>
+              <p className="mt-2 text-stone-300">Commandes, confirmations WhatsApp/SMS/Email, préparation cuisine.</p>
               <p className="mt-2 text-sm text-amber-300">Mode actuel : {appMode}</p>
               <p className="mt-1 text-sm text-stone-400">{notificationStatus}</p>
               <p className="mt-3 inline-flex rounded-full bg-amber-400 px-4 py-2 text-sm font-black text-black">{activeOrdersCount} commande{activeOrdersCount > 1 ? "s" : ""} à traiter</p>
@@ -625,7 +625,7 @@ KRUA PEÈN THAÏ`;
                         <div>
                           <div className="text-2xl font-black text-amber-300">{order.id}</div>
                           <div className="text-lg font-bold">{order.customer.firstName} {order.customer.lastName}</div>
-                          <div className="text-stone-300">{order.customer.phone}</div>{order.customer.email && <div className="text-sm font-bold text-blue-300">📧 {order.customer.email}</div>}
+                          <div className="text-stone-300">{order.customer.phone}</div>{order.customer.email && <div className="text-sm text-stone-400">{order.customer.email}</div>}
                         </div>
                         <span className={`rounded-full px-4 py-2 text-sm font-bold ${order.status==="Confirmée" ? "bg-green-500/20 text-green-300" : order.status==="Annulée" ? "bg-red-500/20 text-red-300" : order.status==="Récupérée" ? "bg-blue-500/20 text-blue-300" : "bg-orange-500/20 text-orange-300"}`}>{order.status}</span>
                       </div>
@@ -633,10 +633,9 @@ KRUA PEÈN THAÏ`;
                       <div className="my-4 space-y-2">{order.items.map(item=><div key={item.id} className="flex justify-between rounded-xl bg-white/[0.04] px-4 py-3"><span>{item.qty} × {item.name}</span><b>{euro(item.qty*item.price)}</b></div>)}</div>
                       {order.customer.note && <div className="mb-4 rounded-xl bg-amber-400/10 p-3 text-sm text-amber-100">Note : {order.customer.note}</div>}
                       <div className="mb-4 flex justify-between border-t border-white/10 pt-4 text-xl font-black"><span>Total</span><span>{euro(orderTotal)}</span></div>
-                      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-7">
+                      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-6">
                         <a href={whatsappLink(order.customer.phone, whatsMsg)} target="_blank" rel="noreferrer" onClick={()=>updateOrderStatus(order.id,"Confirmée")} className="rounded-2xl bg-green-500 px-4 py-4 text-center font-black text-black"><MessageCircle className="mr-2 inline" size={18}/>Confirmer WhatsApp</a>
-                        <a href={smsLink(order.customer.phone, smsMsg)} onClick={()=>updateOrderStatus(order.id,"Confirmée")} className="rounded-2xl bg-white/10 px-4 py-4 text-center font-black"><Phone className="mr-2 inline" size={18}/>Confirmer SMS</a>
-                        <button onClick={()=>sendConfirmationEmail(order, loc)} disabled={!order.customer.email} className="rounded-2xl bg-blue-500 px-4 py-4 text-center font-black text-white disabled:opacity-40"><Mail className="mr-2 inline" size={18}/>{order.customer.email ? "Confirmer Email" : "Pas d’email"}</button>
+                        <a href={smsLink(order.customer.phone, smsMsg)} onClick={()=>updateOrderStatus(order.id,"Confirmée")} className="rounded-2xl bg-white/10 px-4 py-4 text-center font-black"><Phone className="mr-2 inline" size={18}/>Confirmer SMS</a><button onClick={()=>sendConfirmationEmail(order, loc)} disabled={!order.customer.email} className="rounded-2xl bg-amber-400 px-4 py-4 text-center font-black text-black disabled:opacity-40"><Mail className="mr-2 inline" size={18}/>Confirmer Email</button>
                         <button onClick={()=>copyMessageToClipboard(whatsMsg)} className="rounded-2xl bg-white/10 px-4 py-4 text-center font-black"><Clipboard className="mr-2 inline" size={18}/>Copier message</button>
                         <a href={`tel:${order.customer.phone}`} className="rounded-2xl bg-white/10 px-4 py-4 text-center font-black"><Phone className="mr-2 inline" size={18}/>Appeler</a>
                         <button onClick={()=>updateOrderStatus(order.id,"Récupérée")} className="rounded-2xl bg-blue-500 px-4 py-4 font-black"><PackageCheck className="mr-2 inline" size={18}/>Récupérée</button>
