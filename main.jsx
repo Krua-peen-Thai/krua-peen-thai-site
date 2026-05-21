@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { createClient } from "@supabase/supabase-js";
-import { ShoppingCart, MapPin, Phone, MessageCircle, Clock, ChefHat, Lock, CheckCircle2, XCircle, PackageCheck, Settings, Eye, CalendarDays, Sparkles, UtensilsCrossed, Search, ChevronDown, Clipboard, Mail } from "lucide-react";
+import { ShoppingCart, MapPin, Phone, MessageCircle, Clock, ChefHat, Lock, CheckCircle2, XCircle, PackageCheck, Settings, Eye, CalendarDays, Sparkles, UtensilsCrossed, Search, ChevronDown, Clipboard } from "lucide-react";
 import "./style.css";
 
 const BRAND = { name: "KRUA PEÈN THAÏ", phone: "0670395523", email: "kan-siam@laposte.net", instagram: "@krua_peen_thai", facebook: "KRUA Peèn-Thaï" };
@@ -145,8 +145,6 @@ function KruaSite() {
   const [adminTab, setAdminTab] = useState("orders");
   const [ordersOpen, setOrdersOpen] = useState(true);
   const [serviceOrdersOpen, setServiceOrdersOpen] = useState(false);
-  const [sushiOpen, setSushiOpen] = useState(true);
-  const [thaiOpen, setThaiOpen] = useState(true);
   const [siteMessage, setSiteMessage] = useState("Précommandes ouvertes jusqu’à la veille 20h");
   const [products, setProducts] = useState(productsSeed);
   const [locations, setLocations] = useState(initialLocations);
@@ -287,33 +285,13 @@ function KruaSite() {
       if (locationsRes.data?.length) setLocations(locationsRes.data.map(l => ({ id:l.id, city:l.city, label:l.label, place:l.place, day:l.day, hours:l.hours })));
       else await supabase.from("locations").upsert(initialLocations.map(l => ({ ...l, active:true })));
       const setting = settingsRes.data?.[0];
-      if (setting) {
-        setOrdersOpen(setting.orders_open);
-        setServiceOrdersOpen(Boolean(setting.service_orders_open));
-        setSushiOpen(setting.sushi_open !== false);
-        setThaiOpen(setting.thai_open !== false);
-        setSiteMessage(setting.site_message || "Précommandes ouvertes jusqu’à la veille 20h");
-      }
-      else await supabase.from("settings").upsert({ id:"main", orders_open:true, service_orders_open:false, sushi_open:true, thai_open:true, site_message:"Précommandes ouvertes jusqu’à la veille 20h" });
-      if (ordersRes.data?.length) setOrders(ordersRes.data.map(o => ({ id:o.code, dbId:o.id, status:o.status, customer:{ firstName:o.first_name, lastName:o.last_name || "", phone:o.phone, email:o.email || "", note:o.note || "" }, locationId:o.location_id, items:(o.order_items || []).map(item => ({ id:item.product_id, name:item.name, qty:item.qty, price:Number(item.price) })) })));
+      if (setting) { setOrdersOpen(setting.orders_open); setServiceOrdersOpen(Boolean(setting.service_orders_open)); setSiteMessage(setting.site_message || "Précommandes ouvertes jusqu’à la veille 20h"); }
+      else await supabase.from("settings").upsert({ id:"main", orders_open:true, service_orders_open:false, site_message:"Précommandes ouvertes jusqu’à la veille 20h" });
+      if (ordersRes.data?.length) setOrders(ordersRes.data.map(o => ({ id:o.code, dbId:o.id, status:o.status, createdAt:o.created_at, customer:{ firstName:o.first_name, lastName:o.last_name || "", phone:o.phone, email:o.email || "", note:o.note || "" }, locationId:o.location_id, items:(o.order_items || []).map(item => ({ id:item.product_id, name:item.name, qty:item.qty, price:Number(item.price) })) })));
     } catch (e) { console.error(e); setAppMode("Erreur Supabase, mode local"); }
   }
 
-  const sushiCategories = ["Sushis", "Makis", "California", "Sushis spécial", "Crunch", "Makis printemps", "Poké bowls"];
-  const thaiCategories = ["Plats permanents", "Plats de la semaine", "Entrées", "Accompagnements"];
-  function isCategoryOpen(category) {
-    if (sushiCategories.includes(category)) return sushiOpen;
-    if (thaiCategories.includes(category)) return thaiOpen;
-    return true;
-  }
-  const stockMessages = [];
-  if (!sushiOpen && !thaiOpen) {
-    stockMessages.push("🔥 Victime de notre succès ! Les précommandes sont momentanément fermées pour ce service. Retrouvez-nous directement au food truck selon disponibilité.");
-  } else {
-    if (!sushiOpen) stockMessages.push("🍣 Victime de notre succès ! Les réservations Sushis & Poké bowls sont momentanément fermées. Une sélection pourra être disponible directement au food truck selon le stock du jour.");
-    if (!thaiOpen) stockMessages.push("🍜 Victime de notre succès ! Les réservations de plats thaï sont momentanément fermées. Des plats pourront rester disponibles directement au food truck selon le stock du jour.");
-  }
-  const availableProducts = products.filter(p => p.available && isCategoryOpen(p.category));
+  const availableProducts = products.filter(p => p.available);
   const categories = ["Tous", ...categoryOrder.filter(cat => availableProducts.some(p => p.category === cat))];
   const filteredProducts = availableProducts.filter(p => {
     const q = searchTerm.trim().toLowerCase();
@@ -332,7 +310,7 @@ function KruaSite() {
     const orderAvailability = getOrderAvailability(selectedLocation);
     if (!orderAvailability.open) return alert(orderAvailability.message);
     if (!customer.firstName || !customer.phone || cartLines.length === 0) return alert("Merci de remplir prénom, téléphone et panier.");
-const order = { id: await makeOrderCode(locationId, orders), status:"À confirmer", customer, locationId, items: cartLines.map(({id,name,qty,price}) => ({id,name,qty,price})) };
+const order = { id: await makeOrderCode(locationId, orders), status:"À confirmer", createdAt:new Date().toISOString(), customer, locationId, items: cartLines.map(({id,name,qty,price}) => ({id,name,qty,price})) };
     if (supabase) {
       const { data, error } = await supabase.from("orders").insert({ code:order.id, status:order.status, first_name:customer.firstName, last_name:customer.lastName, phone:customer.phone, email:customer.email || null, note:customer.note, location_id:locationId, total }).select().single();
       if (error) return alert("Erreur commande : " + error.message);
@@ -359,41 +337,17 @@ const order = { id: await makeOrderCode(locationId, orders), status:"À confirme
     setLocations(old => old.map(l => l.id === id ? { ...l, [field]: value } : l));
     if (supabase) await supabase.from("locations").update({ [field]: value }).eq("id", id);
   }
-  function settingsPayload(overrides = {}) {
-    return {
-      id: "main",
-      orders_open: ordersOpen,
-      service_orders_open: serviceOrdersOpen,
-      sushi_open: sushiOpen,
-      thai_open: thaiOpen,
-      site_message: siteMessage,
-      ...overrides
-    };
-  }
-
   async function toggleOrdersOpen() {
-    const next = !ordersOpen;
-    setOrdersOpen(next);
-    if (supabase) await supabase.from("settings").upsert(settingsPayload({ orders_open: next }));
+    const next = !ordersOpen; setOrdersOpen(next);
+    if (supabase) await supabase.from("settings").upsert({ id:"main", orders_open:next, service_orders_open:serviceOrdersOpen, site_message:siteMessage });
   }
   async function toggleServiceOrdersOpen() {
-    const next = !serviceOrdersOpen;
-    setServiceOrdersOpen(next);
-    if (supabase) await supabase.from("settings").upsert(settingsPayload({ service_orders_open: next }));
-  }
-  async function toggleSushiOpen() {
-    const next = !sushiOpen;
-    setSushiOpen(next);
-    if (supabase) await supabase.from("settings").upsert(settingsPayload({ sushi_open: next }));
-  }
-  async function toggleThaiOpen() {
-    const next = !thaiOpen;
-    setThaiOpen(next);
-    if (supabase) await supabase.from("settings").upsert(settingsPayload({ thai_open: next }));
+    const next = !serviceOrdersOpen; setServiceOrdersOpen(next);
+    if (supabase) await supabase.from("settings").upsert({ id:"main", orders_open:ordersOpen, service_orders_open:next, site_message:siteMessage });
   }
   async function saveSiteMessage(value) {
     setSiteMessage(value);
-    if (supabase) await supabase.from("settings").upsert(settingsPayload({ site_message: value }));
+    if (supabase) await supabase.from("settings").upsert({ id:"main", orders_open:ordersOpen, service_orders_open:serviceOrdersOpen, site_message:value });
   }
 
   function parseServiceHours(hours = "") {
@@ -449,14 +403,6 @@ const order = { id: await makeOrderCode(locationId, orders), status:"À confirme
     const serviceOpenDate = new Date(date);
     serviceOpenDate.setHours(0, 0, 0, 0);
 
-    if (!sushiOpen && !thaiOpen) {
-      return {
-        open: false,
-        mode: "stock_closed",
-        message: "🔥 Victime de notre succès ! Les précommandes sont momentanément fermées pour ce service. Retrouvez-nous directement au food truck selon disponibilité."
-      };
-    }
-
     if (!ordersOpen && !serviceOrdersOpen) {
       return {
         open: false,
@@ -494,6 +440,127 @@ const order = { id: await makeOrderCode(locationId, orders), status:"À confirme
       mode: "preorder_closed",
       message: `Les précommandes pour ${location.city} sont fermées.`
     };
+  }
+
+  function formatOrderDateTime(value) {
+    const date = value ? new Date(value) : new Date();
+    return date.toLocaleString("fr-FR", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit"
+    });
+  }
+
+  function escapeTicketText(value = "") {
+    return String(value)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
+  function printOrderTicket(order, loc) {
+    const orderTotal = order.items.reduce((s, i) => s + i.qty * i.price, 0);
+    const customerName = `${order.customer.firstName || ""} ${order.customer.lastName || ""}`.trim();
+    const itemsHtml = order.items.map(item => `
+      <div class="line">
+        <div class="item">${item.qty} x ${escapeTicketText(item.name)}</div>
+        <div class="price">${escapeTicketText(euro(item.qty * item.price))}</div>
+      </div>
+    `).join("");
+
+    const noteHtml = order.customer.note
+      ? `<div class="section"><div class="title">NOTE</div><div class="note">${escapeTicketText(order.customer.note).toUpperCase()}</div></div>`
+      : "";
+
+    const emailHtml = order.customer.email
+      ? `<div>${escapeTicketText(order.customer.email)}</div>`
+      : "";
+
+    const html = `
+      <!doctype html>
+      <html>
+        <head>
+          <meta charset="utf-8" />
+          <title>Ticket ${escapeTicketText(order.id)}</title>
+          <style>
+            @page { size: 80mm auto; margin: 4mm; }
+            * { box-sizing: border-box; }
+            body {
+              width: 72mm;
+              margin: 0;
+              font-family: Arial, sans-serif;
+              color: #000;
+              font-size: 12px;
+              line-height: 1.25;
+            }
+            .center { text-align: center; }
+            .brand { font-size: 18px; font-weight: 900; margin-bottom: 6px; }
+            .order { font-size: 20px; font-weight: 900; margin: 8px 0; }
+            .sep { border-top: 1px dashed #000; margin: 8px 0; }
+            .title { font-weight: 900; font-size: 12px; margin-bottom: 2px; }
+            .section { margin: 7px 0; }
+            .big { font-size: 15px; font-weight: 900; }
+            .line { display: flex; justify-content: space-between; gap: 8px; margin: 5px 0; }
+            .item { font-size: 15px; font-weight: 900; flex: 1; }
+            .price { font-size: 12px; white-space: nowrap; }
+            .note { font-size: 15px; font-weight: 900; border: 1px solid #000; padding: 5px; }
+            .total { display: flex; justify-content: space-between; font-size: 16px; font-weight: 900; margin-top: 8px; }
+          </style>
+        </head>
+        <body>
+          <div class="center brand">KRUA PEÈN THAÏ</div>
+          <div class="sep"></div>
+          <div class="center order">${escapeTicketText(order.id)}</div>
+
+          <div class="section">
+            <div class="title">COMMANDÉ LE</div>
+            <div>${escapeTicketText(formatOrderDateTime(order.createdAt))}</div>
+          </div>
+
+          <div class="section">
+            <div class="title">RETRAIT</div>
+            <div class="big">${escapeTicketText((loc.city || "").toUpperCase())}</div>
+            <div>${escapeTicketText(loc.place || "")}</div>
+            <div>${escapeTicketText(formatServiceDate(loc))}</div>
+            <div>${escapeTicketText(loc.hours || "")}</div>
+          </div>
+
+          <div class="section">
+            <div class="title">CLIENT</div>
+            <div class="big">${escapeTicketText(customerName || "Client")}</div>
+            <div>${escapeTicketText(order.customer.phone || "")}</div>
+            ${emailHtml}
+          </div>
+
+          <div class="sep"></div>
+          ${itemsHtml}
+          <div class="sep"></div>
+
+          ${noteHtml}
+
+          <div class="total">
+            <span>TOTAL</span>
+            <span>${escapeTicketText(euro(orderTotal))}</span>
+          </div>
+        </body>
+      </html>
+    `;
+
+    const ticketWindow = window.open("", "_blank", "width=420,height=700");
+    if (!ticketWindow) {
+      alert("Impossible d’ouvrir la fenêtre d’impression. Autorise les pop-ups pour ce site.");
+      return;
+    }
+
+    ticketWindow.document.open();
+    ticketWindow.document.write(html);
+    ticketWindow.document.close();
+    ticketWindow.focus();
+    setTimeout(() => ticketWindow.print(), 400);
   }
 
   function buildWhatsAppMessage(order, loc) {
@@ -619,7 +686,7 @@ KRUA PEÈN THAÏ`;
 
           <section id="carte" className="mx-auto max-w-7xl px-4 py-12"><div className="mb-6 flex items-center gap-3"><UtensilsCrossed className="text-amber-300"/><h2 className="text-3xl font-black">Notre carte & savoir-faire</h2></div><p className="max-w-3xl text-stone-300">Cette partie présente ce que Tina propose. Certains plats thaï changent selon la semaine.</p><div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{showcase.map(item=><div key={item} className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 font-semibold">{item}</div>)}</div></section>
 
-          <section id="commander" className="mx-auto max-w-7xl px-4 py-12"><div className="mb-6 flex items-center gap-3"><ShoppingCart className="text-amber-300"/><h2 className="text-3xl font-black">Commander cette semaine</h2></div>{stockMessages.length > 0 && <div className="mb-6 grid gap-3">{stockMessages.map(msg => <div key={msg} className="rounded-2xl border border-amber-300/30 bg-amber-400/10 p-4 text-sm font-bold text-amber-100">{msg}</div>)}</div>}<div className="mb-6 space-y-4"><div className="flex gap-2 overflow-x-auto pb-2">{categories.map(cat=><button key={cat} onClick={()=>{setCategoryFilter(cat); if(cat!=="Tous") setOpenCategory(cat);}} className={`whitespace-nowrap rounded-full px-4 py-3 text-sm font-bold ${categoryFilter===cat ? "bg-amber-400 text-black" : "bg-white/10"}`}>{cat==="Tous" ? "Tout" : categoryLabels[cat] || cat}</button>)}</div><div className="relative"><Search className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400" size={18}/><input value={searchTerm} onChange={e=>setSearchTerm(e.target.value)} placeholder="Rechercher : saumon, poké, S16..." className="w-full rounded-2xl border border-white/10 bg-stone-900 py-4 pl-12 pr-4"/></div></div><div className="grid gap-6 lg:grid-cols-[1fr_380px]"><div className="space-y-4">{productsByCategory.map(group=>{const isOpen=openCategory===group.category || categoryFilter!=="Tous"; return <div key={group.category} className="overflow-hidden rounded-3xl border border-white/10 bg-stone-950/70"><button onClick={()=>setOpenCategory(isOpen?"":group.category)} className="flex w-full items-center justify-between gap-4 p-5 text-left"><div><h3 className="text-2xl font-black text-amber-200">{categoryLabels[group.category] || group.category}</h3><p className="mt-1 text-sm text-stone-400">{group.items.length} produit{group.items.length>1?"s":""}</p></div><ChevronDown className={`text-amber-300 transition-transform ${isOpen ? "rotate-180" : ""}`}/></button>{isOpen && <div className="grid gap-4 border-t border-white/10 p-5 sm:grid-cols-2">{group.items.map(p=><article key={p.id} className="rounded-3xl border border-white/10 bg-stone-900 p-5"><div className="mb-2 flex items-center justify-between gap-3 text-sm"><span className="font-black text-amber-300">{p.code}</span><span className="rounded-full bg-white/10 px-3 py-1 text-xs text-stone-300">{p.fixed ? "Permanent" : "Cette semaine"}</span></div><h3 className="text-xl font-black">{p.name}</h3><p className="mt-2 min-h-12 text-sm text-stone-300">{p.desc}</p><div className="mt-5 flex items-center justify-between"><span className="text-lg font-black text-amber-300">{euro(p.price)}</span><button disabled={!selectedAvailability.open} onClick={()=>addToCart(p.id)} className="rounded-xl bg-amber-400 px-4 py-3 font-bold text-black disabled:opacity-40">Ajouter</button></div></article>)}</div>}</div>})}</div><aside className="h-fit rounded-3xl border border-amber-300/20 bg-black p-5 shadow-xl"><h3 className="mb-4 text-2xl font-black">Votre commande</h3><label className="text-sm text-stone-300">Lieu de retrait</label><select value={locationId} onChange={e=>setLocationId(e.target.value)} className="mt-2 w-full rounded-xl border border-white/10 bg-stone-900 p-3">{locations.map(l=><option key={l.id} value={l.id}>{l.label} – {l.city}</option>)}</select><div className="mt-3 rounded-xl bg-white/[0.04] p-3 text-sm text-stone-300"><MapPin className="mr-2 inline text-amber-300" size={16}/>{selectedLocation.place} • {selectedLocation.hours}</div>{!selectedAvailability.open && <div className="mt-4 rounded-xl bg-red-950/70 p-4 text-sm font-bold text-red-100">{selectedAvailability.message}</div>}{selectedAvailability.open && selectedAvailability.mode === "service" && <div className="mt-4 rounded-xl bg-green-950/70 p-4 text-sm font-bold text-green-100">{selectedAvailability.message}</div>}<div className="my-5 space-y-3">{cartLines.length===0 && <div className="rounded-xl bg-white/[0.04] p-4 text-stone-400">Panier vide</div>}{cartLines.map(line=><div key={line.id} className="flex items-center justify-between gap-3 rounded-xl bg-white/[0.04] p-3"><div><div className="font-bold">{line.name}</div><div className="text-sm text-stone-400">{line.qty} × {euro(line.price)}</div></div><div className="flex items-center gap-2"><button onClick={()=>removeFromCart(line.id)} className="rounded-lg bg-white/10 px-3 py-2">-</button><button onClick={()=>addToCart(line.id)} className="rounded-lg bg-white/10 px-3 py-2">+</button></div></div>)}</div><div className="mb-5 flex items-center justify-between border-t border-white/10 pt-4 text-xl font-black"><span>Total</span><span className="text-amber-300">{euro(total)}</span></div><div className="grid gap-3"><input placeholder="Prénom *" value={customer.firstName} onChange={e=>setCustomer({...customer, firstName:e.target.value})} className="rounded-xl border border-white/10 bg-stone-900 p-3"/><input placeholder="Nom" value={customer.lastName} onChange={e=>setCustomer({...customer, lastName:e.target.value})} className="rounded-xl border border-white/10 bg-stone-900 p-3"/><input placeholder="Téléphone *" value={customer.phone} onChange={e=>setCustomer({...customer, phone:e.target.value})} className="rounded-xl border border-white/10 bg-stone-900 p-3"/><input placeholder="Email (pour confirmation)" type="email" value={customer.email} onChange={e=>setCustomer({...customer, email:e.target.value})} className="rounded-xl border border-white/10 bg-stone-900 p-3"/><textarea placeholder="Commentaire" value={customer.note} onChange={e=>setCustomer({...customer, note:e.target.value})} className="rounded-xl border border-white/10 bg-stone-900 p-3"/><button disabled={!selectedAvailability.open} onClick={submitOrder} className="rounded-2xl bg-amber-400 px-5 py-4 font-black text-black disabled:opacity-40">{selectedAvailability.open ? "Envoyer la demande" : "Commandes fermées"}</button><p className="text-xs text-stone-400">{selectedAvailability.open ? selectedAvailability.message : selectedAvailability.message}</p></div></aside></div></section>
+          <section id="commander" className="mx-auto max-w-7xl px-4 py-12"><div className="mb-6 flex items-center gap-3"><ShoppingCart className="text-amber-300"/><h2 className="text-3xl font-black">Commander cette semaine</h2></div><div className="mb-6 space-y-4"><div className="flex gap-2 overflow-x-auto pb-2">{categories.map(cat=><button key={cat} onClick={()=>{setCategoryFilter(cat); if(cat!=="Tous") setOpenCategory(cat);}} className={`whitespace-nowrap rounded-full px-4 py-3 text-sm font-bold ${categoryFilter===cat ? "bg-amber-400 text-black" : "bg-white/10"}`}>{cat==="Tous" ? "Tout" : categoryLabels[cat] || cat}</button>)}</div><div className="relative"><Search className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400" size={18}/><input value={searchTerm} onChange={e=>setSearchTerm(e.target.value)} placeholder="Rechercher : saumon, poké, S16..." className="w-full rounded-2xl border border-white/10 bg-stone-900 py-4 pl-12 pr-4"/></div></div><div className="grid gap-6 lg:grid-cols-[1fr_380px]"><div className="space-y-4">{productsByCategory.map(group=>{const isOpen=openCategory===group.category || categoryFilter!=="Tous"; return <div key={group.category} className="overflow-hidden rounded-3xl border border-white/10 bg-stone-950/70"><button onClick={()=>setOpenCategory(isOpen?"":group.category)} className="flex w-full items-center justify-between gap-4 p-5 text-left"><div><h3 className="text-2xl font-black text-amber-200">{categoryLabels[group.category] || group.category}</h3><p className="mt-1 text-sm text-stone-400">{group.items.length} produit{group.items.length>1?"s":""}</p></div><ChevronDown className={`text-amber-300 transition-transform ${isOpen ? "rotate-180" : ""}`}/></button>{isOpen && <div className="grid gap-4 border-t border-white/10 p-5 sm:grid-cols-2">{group.items.map(p=><article key={p.id} className="rounded-3xl border border-white/10 bg-stone-900 p-5"><div className="mb-2 flex items-center justify-between gap-3 text-sm"><span className="font-black text-amber-300">{p.code}</span><span className="rounded-full bg-white/10 px-3 py-1 text-xs text-stone-300">{p.fixed ? "Permanent" : "Cette semaine"}</span></div><h3 className="text-xl font-black">{p.name}</h3><p className="mt-2 min-h-12 text-sm text-stone-300">{p.desc}</p><div className="mt-5 flex items-center justify-between"><span className="text-lg font-black text-amber-300">{euro(p.price)}</span><button disabled={!selectedAvailability.open} onClick={()=>addToCart(p.id)} className="rounded-xl bg-amber-400 px-4 py-3 font-bold text-black disabled:opacity-40">Ajouter</button></div></article>)}</div>}</div>})}</div><aside className="h-fit rounded-3xl border border-amber-300/20 bg-black p-5 shadow-xl"><h3 className="mb-4 text-2xl font-black">Votre commande</h3><label className="text-sm text-stone-300">Lieu de retrait</label><select value={locationId} onChange={e=>setLocationId(e.target.value)} className="mt-2 w-full rounded-xl border border-white/10 bg-stone-900 p-3">{locations.map(l=><option key={l.id} value={l.id}>{l.label} – {l.city}</option>)}</select><div className="mt-3 rounded-xl bg-white/[0.04] p-3 text-sm text-stone-300"><MapPin className="mr-2 inline text-amber-300" size={16}/>{selectedLocation.place} • {selectedLocation.hours}</div>{!selectedAvailability.open && <div className="mt-4 rounded-xl bg-red-950/70 p-4 text-sm font-bold text-red-100">{selectedAvailability.message}</div>}{selectedAvailability.open && selectedAvailability.mode === "service" && <div className="mt-4 rounded-xl bg-green-950/70 p-4 text-sm font-bold text-green-100">{selectedAvailability.message}</div>}<div className="my-5 space-y-3">{cartLines.length===0 && <div className="rounded-xl bg-white/[0.04] p-4 text-stone-400">Panier vide</div>}{cartLines.map(line=><div key={line.id} className="flex items-center justify-between gap-3 rounded-xl bg-white/[0.04] p-3"><div><div className="font-bold">{line.name}</div><div className="text-sm text-stone-400">{line.qty} × {euro(line.price)}</div></div><div className="flex items-center gap-2"><button onClick={()=>removeFromCart(line.id)} className="rounded-lg bg-white/10 px-3 py-2">-</button><button onClick={()=>addToCart(line.id)} className="rounded-lg bg-white/10 px-3 py-2">+</button></div></div>)}</div><div className="mb-5 flex items-center justify-between border-t border-white/10 pt-4 text-xl font-black"><span>Total</span><span className="text-amber-300">{euro(total)}</span></div><div className="grid gap-3"><input placeholder="Prénom *" value={customer.firstName} onChange={e=>setCustomer({...customer, firstName:e.target.value})} className="rounded-xl border border-white/10 bg-stone-900 p-3"/><input placeholder="Nom" value={customer.lastName} onChange={e=>setCustomer({...customer, lastName:e.target.value})} className="rounded-xl border border-white/10 bg-stone-900 p-3"/><input placeholder="Téléphone *" value={customer.phone} onChange={e=>setCustomer({...customer, phone:e.target.value})} className="rounded-xl border border-white/10 bg-stone-900 p-3"/><input placeholder="Email (pour confirmation)" type="email" value={customer.email} onChange={e=>setCustomer({...customer, email:e.target.value})} className="rounded-xl border border-white/10 bg-stone-900 p-3"/><textarea placeholder="Commentaire" value={customer.note} onChange={e=>setCustomer({...customer, note:e.target.value})} className="rounded-xl border border-white/10 bg-stone-900 p-3"/><button disabled={!selectedAvailability.open} onClick={submitOrder} className="rounded-2xl bg-amber-400 px-5 py-4 font-black text-black disabled:opacity-40">{selectedAvailability.open ? "Envoyer la demande" : "Commandes fermées"}</button><p className="text-xs text-stone-400">{selectedAvailability.open ? selectedAvailability.message : selectedAvailability.message}</p></div></aside></div></section>
 
           <section id="lieux" className="mx-auto max-w-7xl px-4 py-12"><div className="mb-6 flex items-center gap-3"><CalendarDays className="text-amber-300"/><h2 className="text-3xl font-black">Où nous trouver</h2></div><div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">{locations.map(l=><div key={l.id} className="rounded-3xl border border-white/10 bg-white/[0.03] p-5"><div className="font-bold text-amber-300">{l.label}</div><div className="mt-2 text-2xl font-black">{l.city}</div><div className="mt-2 text-stone-300">{l.place}</div><div className="mt-4 flex items-center gap-2 text-stone-200"><Clock size={16}/>{l.hours}</div></div>)}</div></section>
 
@@ -630,7 +697,7 @@ KRUA PEÈN THAÏ`;
           <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
             <div>
               <h1 className="text-4xl font-black">Dashboard Tina</h1>
-              <p className="mt-2 text-stone-300">Commandes, confirmations WhatsApp/SMS/Email, préparation cuisine.</p>
+              <p className="mt-2 text-stone-300">Commandes, confirmations WhatsApp/SMS, préparation cuisine.</p>
               <p className="mt-2 text-sm text-amber-300">Mode actuel : {appMode}</p>
               <p className="mt-1 text-sm text-stone-400">{notificationStatus}</p>
               <p className="mt-3 inline-flex rounded-full bg-amber-400 px-4 py-2 text-sm font-black text-black">{activeOrdersCount} commande{activeOrdersCount > 1 ? "s" : ""} à traiter</p>
@@ -687,9 +754,10 @@ KRUA PEÈN THAÏ`;
                       <div className="my-4 space-y-2">{order.items.map(item=><div key={item.id} className="flex justify-between rounded-xl bg-white/[0.04] px-4 py-3"><span>{item.qty} × {item.name}</span><b>{euro(item.qty*item.price)}</b></div>)}</div>
                       {order.customer.note && <div className="mb-4 rounded-xl bg-amber-400/10 p-3 text-sm text-amber-100">Note : {order.customer.note}</div>}
                       <div className="mb-4 flex justify-between border-t border-white/10 pt-4 text-xl font-black"><span>Total</span><span>{euro(orderTotal)}</span></div>
-                      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-6">
+                      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-7">
                         <a href={whatsappLink(order.customer.phone, whatsMsg)} target="_blank" rel="noreferrer" onClick={()=>updateOrderStatus(order.id,"Confirmée")} className="rounded-2xl bg-green-500 px-4 py-4 text-center font-black text-black"><MessageCircle className="mr-2 inline" size={18}/>Confirmer WhatsApp</a>
-                        <a href={smsLink(order.customer.phone, smsMsg)} onClick={()=>updateOrderStatus(order.id,"Confirmée")} className="rounded-2xl bg-white/10 px-4 py-4 text-center font-black"><Phone className="mr-2 inline" size={18}/>Confirmer SMS</a><button onClick={()=>sendConfirmationEmail(order, loc)} disabled={!order.customer.email} className="rounded-2xl bg-amber-400 px-4 py-4 text-center font-black text-black disabled:opacity-40"><Mail className="mr-2 inline" size={18}/>Confirmer Email</button>
+                        <a href={smsLink(order.customer.phone, smsMsg)} onClick={()=>updateOrderStatus(order.id,"Confirmée")} className="rounded-2xl bg-white/10 px-4 py-4 text-center font-black"><Phone className="mr-2 inline" size={18}/>Confirmer SMS</a><button onClick={()=>sendConfirmationEmail(order, loc)} disabled={!order.customer.email} className="rounded-2xl bg-amber-400 px-4 py-4 text-center font-black text-black disabled:opacity-40"><MessageCircle className="mr-2 inline" size={18}/>Confirmer Email</button>
+                        <button onClick={()=>printOrderTicket(order, loc)} className="rounded-2xl bg-white/10 px-4 py-4 text-center font-black">🖨️ Imprimer ticket</button>
                         <button onClick={()=>copyMessageToClipboard(whatsMsg)} className="rounded-2xl bg-white/10 px-4 py-4 text-center font-black"><Clipboard className="mr-2 inline" size={18}/>Copier message</button>
                         <a href={`tel:${order.customer.phone}`} className="rounded-2xl bg-white/10 px-4 py-4 text-center font-black"><Phone className="mr-2 inline" size={18}/>Appeler</a>
                         <button onClick={()=>updateOrderStatus(order.id,"Récupérée")} className="rounded-2xl bg-blue-500 px-4 py-4 font-black"><PackageCheck className="mr-2 inline" size={18}/>Récupérée</button>
@@ -717,7 +785,7 @@ KRUA PEÈN THAÏ`;
           )}
           {adminTab==="products" && <div className="rounded-3xl border border-white/10 bg-stone-900 p-5"><h2 className="mb-4 text-2xl font-black">Produits commandables</h2><p className="mb-5 text-stone-300">Tina coche les produits disponibles cette semaine et peut ajuster les prix.</p><div className="grid gap-3 md:grid-cols-2">{products.map(p=><div key={p.id} className="rounded-2xl bg-black/40 p-4"><div className="mb-3 flex items-start justify-between gap-3"><div><div className="text-sm font-black text-amber-300">{p.code}</div><div className="font-black">{p.name}</div><div className="text-sm text-stone-400">{p.category}</div></div><label className="flex items-center gap-2 text-sm font-bold"><span>{p.available ? "ON" : "OFF"}</span><input type="checkbox" checked={p.available} onChange={()=>updateProduct(p.id,"available",!p.available)} className="h-7 w-7 accent-amber-400"/></label></div><div className="grid gap-2 sm:grid-cols-[1fr_120px]"><input value={p.name} onChange={e=>updateProduct(p.id,"name",e.target.value)} className="rounded-xl border border-white/10 bg-stone-900 p-3"/><input type="number" step="0.1" value={p.price} onChange={e=>updateProduct(p.id,"price",Number(e.target.value))} className="rounded-xl border border-white/10 bg-stone-900 p-3"/></div></div>)}</div></div>}
           {adminTab==="locations" && <div className="rounded-3xl border border-white/10 bg-stone-900 p-5"><h2 className="mb-4 text-2xl font-black">Emplacements & horaires</h2><div className="grid gap-4 md:grid-cols-2">{locations.map(l=><div key={l.id} className="rounded-2xl bg-black/40 p-4"><div className="mb-4 font-black text-amber-300">{l.label}</div><div className="grid gap-3"><input value={l.city} onChange={e=>updateLocation(l.id,"city",e.target.value)} className="rounded-xl border border-white/10 bg-stone-900 p-3"/><input value={l.place} onChange={e=>updateLocation(l.id,"place",e.target.value)} className="rounded-xl border border-white/10 bg-stone-900 p-3"/><input value={l.hours} onChange={e=>updateLocation(l.id,"hours",e.target.value)} className="rounded-xl border border-white/10 bg-stone-900 p-3"/></div></div>)}</div></div>}
-          {adminTab==="settings" && <div className="grid gap-6 lg:grid-cols-2"><div className="rounded-3xl border border-white/10 bg-stone-900 p-5"><h2 className="mb-4 text-2xl font-black">Ouverture commandes</h2><button onClick={toggleOrdersOpen} className={`w-full rounded-2xl p-5 text-xl font-black ${ordersOpen ? "bg-green-500 text-black" : "bg-red-500 text-white"}`}>{ordersOpen ? "PRÉCOMMANDES OUVERTES" : "PRÉCOMMANDES FERMÉES"}</button><button onClick={toggleServiceOrdersOpen} className={`mt-4 w-full rounded-2xl p-5 text-lg font-black ${serviceOrdersOpen ? "bg-amber-400 text-black" : "bg-white/10 text-white"}`}>{serviceOrdersOpen ? "COMMANDES PENDANT SERVICE ACTIVÉES" : "COMMANDES PENDANT SERVICE DÉSACTIVÉES"}</button><p className="mt-3 text-sm text-stone-400">Si activé, les clients peuvent commander pendant le service uniquement. À utiliser seulement si Tina veut surveiller le dashboard en direct.</p><div className="mt-6 rounded-2xl border border-amber-300/20 bg-black/40 p-4"><h3 className="mb-3 text-xl font-black text-amber-300">Stock réservation</h3><button onClick={toggleSushiOpen} className={`w-full rounded-2xl p-5 text-lg font-black ${sushiOpen ? "bg-green-500 text-black" : "bg-red-500 text-white"}`}>{sushiOpen ? "COMMANDES SUSHIS / POKÉ OUVERTES" : "STOP COMMANDES SUSHIS / POKÉ"}</button><button onClick={toggleThaiOpen} className={`mt-4 w-full rounded-2xl p-5 text-lg font-black ${thaiOpen ? "bg-green-500 text-black" : "bg-red-500 text-white"}`}>{thaiOpen ? "COMMANDES PLATS THAÏ OUVERTES" : "STOP COMMANDES PLATS THAÏ"}</button><p className="mt-3 text-sm text-stone-400">Quand Tina stoppe une famille, les produits disparaissent de la réservation et un message “Victime de notre succès” apparaît côté client.</p></div></div><div className="rounded-3xl border border-white/10 bg-stone-900 p-5"><h2 className="mb-4 text-2xl font-black">Message accueil</h2><textarea value={siteMessage} onChange={e=>saveSiteMessage(e.target.value)} className="min-h-32 w-full rounded-xl border border-white/10 bg-black p-4"/></div></div>}
+          {adminTab==="settings" && <div className="grid gap-6 lg:grid-cols-2"><div className="rounded-3xl border border-white/10 bg-stone-900 p-5"><h2 className="mb-4 text-2xl font-black">Ouverture commandes</h2><button onClick={toggleOrdersOpen} className={`w-full rounded-2xl p-5 text-xl font-black ${ordersOpen ? "bg-green-500 text-black" : "bg-red-500 text-white"}`}>{ordersOpen ? "PRÉCOMMANDES OUVERTES" : "PRÉCOMMANDES FERMÉES"}</button><button onClick={toggleServiceOrdersOpen} className={`mt-4 w-full rounded-2xl p-5 text-lg font-black ${serviceOrdersOpen ? "bg-amber-400 text-black" : "bg-white/10 text-white"}`}>{serviceOrdersOpen ? "COMMANDES PENDANT SERVICE ACTIVÉES" : "COMMANDES PENDANT SERVICE DÉSACTIVÉES"}</button><p className="mt-3 text-sm text-stone-400">Si activé, les clients peuvent commander pendant le service uniquement. À utiliser seulement si Tina veut surveiller le dashboard en direct.</p></div><div className="rounded-3xl border border-white/10 bg-stone-900 p-5"><h2 className="mb-4 text-2xl font-black">Message accueil</h2><textarea value={siteMessage} onChange={e=>saveSiteMessage(e.target.value)} className="min-h-32 w-full rounded-xl border border-white/10 bg-black p-4"/></div></div>}
         </main>
       )}
     </div>
