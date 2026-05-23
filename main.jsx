@@ -597,81 +597,129 @@ KRUA PEÈN THAÏ`;
       .replace(/'/g, "&#039;");
   }
 
-  function printKitchenTicket(order, loc) {
+  function eposText(value = "") {
+    return String(value)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&apos;");
+  }
+
+  function normalizeTicketText(value = "") {
+    return String(value)
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/œ/g, "oe")
+      .replace(/Œ/g, "OE")
+      .replace(/æ/g, "ae")
+      .replace(/Æ/g, "AE")
+      .replace(/[•]/g, "-")
+      .replace(/[€]/g, "EUR");
+  }
+
+  function ticketLine(left = "", right = "", width = 42) {
+    const l = normalizeTicketText(left).slice(0, width);
+    const r = normalizeTicketText(right).slice(0, width);
+    const spaces = Math.max(1, width - l.length - r.length);
+    return `${l}${" ".repeat(spaces)}${r}`;
+  }
+
+  function ticketWrap(text = "", width = 42) {
+    const clean = normalizeTicketText(text).trim();
+    if (!clean) return [];
+    const words = clean.split(/\s+/);
+    const lines = [];
+    let line = "";
+    words.forEach((word) => {
+      if (!line) line = word;
+      else if ((line + " " + word).length <= width) line += " " + word;
+      else { lines.push(line); line = word; }
+    });
+    if (line) lines.push(line);
+    return lines;
+  }
+
+  async function printKitchenTicket(order, loc) {
+    const EPSON_URL = "http://192.168.1.100/cgi-bin/epos/service.cgi?devid=local_printer&timeout=10000";
     const orderTotal = order.items.reduce((s, i) => s + i.qty * i.price, 0);
-    const itemsHtml = order.items.map(item => `
-      <div class="line">
-        <span>${escapeHtml(item.qty)} x ${escapeHtml(item.name)}</span>
-        <strong>${escapeHtml(euro(item.qty * item.price))}</strong>
-      </div>
-    `).join("");
+    const sep = "------------------------------------------";
+    const fullName = `${order.customer.firstName || ""} ${order.customer.lastName || ""}`.trim();
 
-    const noteHtml = order.customer.note ? `
-      <div class="sep"></div>
-      <div class="label">NOTE CLIENT</div>
-      <div class="note">${escapeHtml(order.customer.note)}</div>
-    ` : "";
+    let lines = [];
+    lines.push("KRUA PEEN THAI");
+    lines.push("Thai - Sushi - Poke");
+    lines.push(sep);
+    lines.push(order.id);
+    lines.push(sep);
+    lines.push("COMMANDE LE");
+    lines.push(formatDateTime(order.createdAt));
+    lines.push(sep);
+    lines.push("RETRAIT");
+    lines.push(String(loc.city || "").toUpperCase());
+    lines.push(loc.place || "");
+    lines.push(formatServiceDate(loc));
+    lines.push(loc.hours || "");
+    lines.push(sep);
+    lines.push("CLIENT");
+    if (fullName) lines.push(fullName.toUpperCase());
+    if (order.customer.phone) lines.push(order.customer.phone);
+    if (order.customer.email) lines.push(order.customer.email);
+    lines.push(sep);
 
-    const emailHtml = order.customer.email ? `<div>${escapeHtml(order.customer.email)}</div>` : "";
+    order.items.forEach((item) => {
+      const left = `${item.qty} x ${item.name}`;
+      const right = euro(item.qty * item.price);
+      const wrapped = ticketWrap(left, 28);
+      if (wrapped.length <= 1) {
+        lines.push(ticketLine(left, right));
+      } else {
+        lines.push(ticketLine(wrapped[0], right));
+        wrapped.slice(1).forEach(extra => lines.push(`  ${extra}`));
+      }
+    });
 
-    const ticketHtml = `
-      <!doctype html>
-      <html>
-        <head>
-          <meta charset="utf-8" />
-          <title>${escapeHtml(order.id)}</title>
-          <style>
-            @page { size: 80mm auto; margin: 3mm; }
-            body { width: 72mm; margin: 0; font-family: Arial, sans-serif; color: #000; font-size: 13px; }
-            .center { text-align: center; }
-            .brand { font-size: 18px; font-weight: 900; margin-bottom: 6px; }
-            .order { font-size: 18px; font-weight: 900; margin: 8px 0; }
-            .sep { border-top: 1px dashed #000; margin: 8px 0; }
-            .label { font-size: 11px; font-weight: 900; margin-top: 6px; }
-            .big { font-size: 15px; font-weight: 900; text-transform: uppercase; }
-            .line { display: flex; justify-content: space-between; gap: 8px; margin: 5px 0; font-size: 14px; }
-            .line span { font-weight: 900; }
-            .note { font-size: 16px; font-weight: 900; text-transform: uppercase; }
-            .total { display: flex; justify-content: space-between; font-size: 17px; font-weight: 900; }
-          </style>
-        </head>
-        <body>
-          <div class="center brand">KRUA PEÈN THAÏ</div>
-          <div class="center">Thaï • Sushi • Poké</div>
-          <div class="sep"></div>
-          <div class="center order">${escapeHtml(order.id)}</div>
-          <div class="label">COMMANDÉ LE</div>
-          <div>${escapeHtml(formatDateTime(order.createdAt))}</div>
-          <div class="sep"></div>
-          <div class="label">RETRAIT</div>
-          <div class="big">${escapeHtml(loc.city)}</div>
-          <div>${escapeHtml(loc.place)}</div>
-          <div>${escapeHtml(formatServiceDate(loc))}</div>
-          <div>${escapeHtml(loc.hours)}</div>
-          <div class="sep"></div>
-          <div class="label">CLIENT</div>
-          <div class="big">${escapeHtml(`${order.customer.firstName || ""} ${order.customer.lastName || ""}`.trim())}</div>
-          <div>${escapeHtml(order.customer.phone)}</div>
-          ${emailHtml}
-          <div class="sep"></div>
-          ${itemsHtml}
-          ${noteHtml}
-          <div class="sep"></div>
-          <div class="total"><span>TOTAL</span><span>${escapeHtml(euro(orderTotal))}</span></div>
-        </body>
-      </html>
-    `;
-
-    const ticketWindow = window.open("", "PRINT", "width=420,height=700");
-    if (!ticketWindow) {
-      alert("Fenêtre d'impression bloquée. Autorise les pop-ups pour imprimer le ticket.");
-      return;
+    if (order.customer.note) {
+      lines.push(sep);
+      lines.push("NOTE CLIENT");
+      ticketWrap(order.customer.note.toUpperCase(), 42).forEach(line => lines.push(line));
     }
-    ticketWindow.document.open();
-    ticketWindow.document.write(ticketHtml);
-    ticketWindow.document.close();
-    ticketWindow.focus();
-    setTimeout(() => ticketWindow.print(), 300);
+
+    lines.push(sep);
+    lines.push(ticketLine("TOTAL", euro(orderTotal)));
+    lines.push(sep);
+    lines.push("MERCI");
+
+    const textXml = lines.map(line => `<text>${eposText(normalizeTicketText(line))}\n</text>`).join("");
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<epos-print xmlns="http://www.epson-pos.com/schemas/2011/03/epos-print">
+  <text lang="fr" smooth="true" />
+  <align align="center" />
+  <text width="2" height="2">KRUA PEEN THAI\n</text>
+  <text width="1" height="1">Thai - Sushi - Poke\n</text>
+  <align align="left" />
+  ${lines.slice(2).map(line => `<text>${eposText(normalizeTicketText(line))}\n</text>`).join("")}
+  <feed line="3" />
+  <cut type="feed" />
+</epos-print>`;
+
+    try {
+      const response = await fetch(EPSON_URL, {
+        method: "POST",
+        headers: { "Content-Type": "text/xml; charset=UTF-8" },
+        body: xml
+      });
+
+      const resultText = await response.text().catch(() => "");
+      if (!response.ok) throw new Error(`Epson HTTP ${response.status}`);
+      if (resultText && resultText.toLowerCase().includes("error")) {
+        console.warn("Réponse Epson", resultText);
+      }
+      alert("Ticket envoyé à l'Epson.");
+    } catch (error) {
+      console.error("Impression Epson", error);
+      alert("Impossible d'imprimer en direct sur l'Epson. Vérifie que la tablette est sur le WiFi TP-Link et que l'imprimante est allumée. Détail : " + (error.message || error));
+    }
   }
 
   const activeOrdersCount = orders.filter(o => o.status === "À confirmer" || o.status === "Confirmée").length;
