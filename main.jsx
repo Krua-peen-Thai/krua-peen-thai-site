@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { createClient } from "@supabase/supabase-js";
-import { ShoppingCart, MapPin, Phone, MessageCircle, Clock, ChefHat, Lock, CheckCircle2, XCircle, PackageCheck, Settings, Eye, CalendarDays, Sparkles, UtensilsCrossed, Search, ChevronDown } from "lucide-react";
+import { ShoppingCart, MapPin, Phone, MessageCircle, Clock, ChefHat, Lock, CheckCircle2, XCircle, PackageCheck, Settings, Eye, CalendarDays, Sparkles, UtensilsCrossed, Search, ChevronDown, Clipboard } from "lucide-react";
 import "./style.css";
 
 const BRAND = { name: "KRUA PEÈN THAÏ", phone: "0670395523", email: "kan-siam@laposte.net", instagram: "@krua_peen_thai", facebook: "KRUA Peèn-Thaï" };
@@ -86,36 +86,93 @@ const showcase = ["Pad Thaï signature","Currys thaï","Poulet noix de cajou","P
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 const supabase = supabaseUrl && supabaseAnonKey ? createClient(supabaseUrl, supabaseAnonKey) : null;
+const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY;
 
 function euro(value) { return new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" }).format(value || 0); }
-function makeOrderCode(locationId) {
-  const clean = locationId === "KERJ" || locationId === "KERD" ? "KER" : locationId;
-  return `KR-${clean}-${Date.now()}`;
+function locationCode(locationId) {
+  if (locationId === "KERJ" || locationId === "KERD") return "KER";
+  if (locationId === "PLAB") return "PLAB";
+  if (locationId === "BRI") return "BRI";
+  return locationId;
 }
-function whatsappLink(phone, text) { const normalized = phone.replace(/^0/, "33").replace(/\s/g, ""); return `https://wa.me/${normalized}?text=${encodeURIComponent(text)}`; }
+
+async function makeOrderCode(locationId, existingOrders = []) {
+  const clean = locationCode(locationId);
+  const prefix = `KR-${clean}-`;
+  let max = 0;
+
+  const readCodes = (rows = []) => {
+    rows.forEach((row) => {
+      const code = typeof row === "string" ? row : row?.code || row?.id;
+      const match = String(code || "").match(new RegExp(`^${prefix}(\\d{3})$`));
+      if (match) max = Math.max(max, Number(match[1]));
+    });
+  };
+
+  if (supabase) {
+    const { data, error } = await supabase
+      .from("orders")
+      .select("code")
+      .like("code", `${prefix}%`);
+    if (!error) readCodes(data);
+  }
+
+  readCodes(existingOrders);
+  return `${prefix}${String(max + 1).padStart(3, "0")}`;
+}
+function normalizePhoneForLinks(phone = "") {
+  const digits = String(phone).replace(/\D/g, "");
+  if (digits.startsWith("33")) return digits;
+  if (digits.startsWith("0")) return `33${digits.slice(1)}`;
+  return digits;
+}
+function whatsappLink(phone, text) {
+  const normalized = normalizePhoneForLinks(phone);
+  return `https://wa.me/${normalized}?text=${encodeURIComponent(text)}`;
+}
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const rawData = window.atob(base64);
+  return Uint8Array.from([...rawData].map((char) => char.charCodeAt(0)));
+}
 
 function KruaSite() {
-  const ADMIN_PIN = "2580";
+  const ADMIN_PIN = "1468";
   const [view, setView] = useState("site");
   const [adminUnlocked, setAdminUnlocked] = useState(false);
   const [adminTab, setAdminTab] = useState("orders");
   const [ordersOpen, setOrdersOpen] = useState(true);
+  const [serviceOrdersOpen, setServiceOrdersOpen] = useState(false);
+  const [stockBlocks, setStockBlocks] = useState({});
   const [siteMessage, setSiteMessage] = useState("Précommandes ouvertes jusqu’à la veille 20h");
   const [products, setProducts] = useState(productsSeed);
   const [locations, setLocations] = useState(initialLocations);
   const [orders, setOrders] = useState([]);
   const [cart, setCart] = useState({});
   const [locationId, setLocationId] = useState("PLAB");
-  const [customer, setCustomer] = useState({ firstName: "", lastName: "", phone: "", note: "" });
+  const [customer, setCustomer] = useState({ firstName: "", lastName: "", phone: "", email: "", note: "" });
   const [categoryFilter, setCategoryFilter] = useState("Tous");
   const [searchTerm, setSearchTerm] = useState("");
   const [openCategory, setOpenCategory] = useState("Plats de la semaine");
   const [orderSearch, setOrderSearch] = useState("");
   const [appMode, setAppMode] = useState(supabase ? "Connecté à Supabase" : "Mode démo local");
+  const [notificationStatus, setNotificationStatus] = useState("Notifications inactives");
+  const [adminLocationFilter, setAdminLocationFilter] = useState("ALL");
+  const [adminStatusFilter, setAdminStatusFilter] = useState("ACTIVE");
+  const [hideDoneOrders, setHideDoneOrders] = useState(true);
 
   useEffect(() => {
+    const normalizePath = () => window.location.pathname.replace(/\/$/, "");
+
     const openAdmin = () => {
-      if (window.location.hash !== "#admin") return;
+      const isAdminRoute = normalizePath() === "/admin";
+
+      if (!isAdminRoute) {
+        setView("site");
+        return;
+      }
 
       if (window.sessionStorage.getItem("kruaAdminUnlocked") === "true") {
         setAdminUnlocked(true);
@@ -129,15 +186,90 @@ function KruaSite() {
         setAdminUnlocked(true);
         setView("admin");
       } else {
-        window.location.hash = "";
+        window.history.replaceState(null, "", "/");
         setView("site");
       }
     };
 
     openAdmin();
-    window.addEventListener("hashchange", openAdmin);
-    return () => window.removeEventListener("hashchange", openAdmin);
+    window.addEventListener("popstate", openAdmin);
+    return () => window.removeEventListener("popstate", openAdmin);
   }, []);
+
+  useEffect(() => {
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/sw.js").catch((error) => console.error("Service worker", error));
+    }
+  }, []);
+
+  async function subscribeToPushNotifications() {
+    setNotificationStatus("Activation des notifications en cours...");
+    try {
+      if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+        setNotificationStatus("Notifications non supportées sur cet appareil");
+        return;
+      }
+      if (!VAPID_PUBLIC_KEY) {
+        setNotificationStatus("Clé VAPID publique manquante dans Vercel");
+        return;
+      }
+      if (Notification.permission === "denied") {
+        setNotificationStatus("Notifications bloquées dans Android/Chrome. Autorise-les dans les paramètres du site.");
+        return;
+      }
+
+      const permission = await Notification.requestPermission();
+      if (permission !== "granted") {
+        setNotificationStatus("Notifications refusées");
+        return;
+      }
+
+      const registration = await navigator.serviceWorker.ready;
+      let subscription = await registration.pushManager.getSubscription();
+      if (!subscription) {
+        subscription = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+        });
+      }
+
+      const subscriptionJson = subscription.toJSON();
+      const response = await fetch("/api/save-subscription", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          endpoint: subscriptionJson.endpoint,
+          keys: subscriptionJson.keys,
+        }),
+      });
+
+      if (!response.ok) throw new Error(await response.text());
+      setNotificationStatus("Notifications activées sur cette tablette");
+    } catch (error) {
+      console.error(error);
+      setNotificationStatus(`Erreur activation notifications : ${error.message || error}`);
+    }
+  }
+
+  async function sendOrderNotification(order, orderTotal) {
+    try {
+      const loc = locations.find((l) => l.id === order.locationId) || locations[0];
+      await fetch("/api/send-order-notification", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: "Nouvelle commande KRUA",
+          body: `${order.id} · ${loc.city} · ${euro(orderTotal)}`,
+          url: "/admin",
+          orderCode: order.id,
+          location: loc.city,
+          total: euro(orderTotal),
+        }),
+      });
+    } catch (error) {
+      console.error("Notification commande", error);
+    }
+  }
 
   useEffect(() => { if (supabase) loadSupabaseData(); }, []);
 
@@ -154,9 +286,9 @@ function KruaSite() {
       if (locationsRes.data?.length) setLocations(locationsRes.data.map(l => ({ id:l.id, city:l.city, label:l.label, place:l.place, day:l.day, hours:l.hours })));
       else await supabase.from("locations").upsert(initialLocations.map(l => ({ ...l, active:true })));
       const setting = settingsRes.data?.[0];
-      if (setting) { setOrdersOpen(setting.orders_open); setSiteMessage(setting.site_message || "Précommandes ouvertes jusqu’à la veille 20h"); }
-      else await supabase.from("settings").upsert({ id:"main", orders_open:true, site_message:"Précommandes ouvertes jusqu’à la veille 20h" });
-      if (ordersRes.data?.length) setOrders(ordersRes.data.map(o => ({ id:o.code, dbId:o.id, status:o.status, customer:{ firstName:o.first_name, lastName:o.last_name || "", phone:o.phone, note:o.note || "" }, locationId:o.location_id, items:(o.order_items || []).map(item => ({ id:item.product_id, name:item.name, qty:item.qty, price:Number(item.price) })) })));
+      if (setting) { setOrdersOpen(setting.orders_open); setServiceOrdersOpen(Boolean(setting.service_orders_open)); setStockBlocks(setting.stock_blocks || {}); setSiteMessage(setting.site_message || "Précommandes ouvertes jusqu’à la veille 20h"); }
+      else await supabase.from("settings").upsert({ id:"main", orders_open:true, service_orders_open:false, stock_blocks:{}, site_message:"Précommandes ouvertes jusqu’à la veille 20h" });
+      if (ordersRes.data?.length) setOrders(ordersRes.data.map(o => ({ id:o.code, dbId:o.id, createdAt:o.created_at, status:o.status, customer:{ firstName:o.first_name, lastName:o.last_name || "", phone:o.phone, email:o.email || "", note:o.note || "" }, locationId:o.location_id, items:(o.order_items || []).map(item => ({ id:item.product_id, name:item.name, qty:item.qty, price:Number(item.price) })) })));
     } catch (e) { console.error(e); setAppMode("Erreur Supabase, mode local"); }
   }
 
@@ -170,24 +302,30 @@ function KruaSite() {
   const cartLines = useMemo(() => Object.entries(cart).map(([id, qty]) => ({ ...products.find(p => p.id === id), qty })).filter(x => x.id), [cart, products]);
   const total = cartLines.reduce((s, i) => s + i.price * i.qty, 0);
   const selectedLocation = locations.find(l => l.id === locationId) || locations[0];
+  const selectedAvailability = getOrderAvailability(selectedLocation);
 
   function addToCart(id) { setCart(old => ({ ...old, [id]:(old[id] || 0) + 1 })); }
   function removeFromCart(id) { setCart(old => { const n={...old}; n[id]=(n[id]||0)-1; if(n[id]<=0) delete n[id]; return n; }); }
 
   async function submitOrder() {
-    if (!ordersOpen) return alert("Les précommandes sont actuellement fermées.");
+    const orderAvailability = getOrderAvailability(selectedLocation);
+    if (!orderAvailability.open) return alert(orderAvailability.message);
+    const blockedCartLine = cartLines.find(item => isProductBlocked(item));
+    if (blockedCartLine) return alert(`${blockedCartLine.name} est complet à la réservation pour cet emplacement.`);
     if (!customer.firstName || !customer.phone || cartLines.length === 0) return alert("Merci de remplir prénom, téléphone et panier.");
-const order = { id: makeOrderCode(locationId), status:"À confirmer", customer, locationId, items: cartLines.map(({id,name,qty,price}) => ({id,name,qty,price})) };
+const order = { id: await makeOrderCode(locationId, orders), createdAt:new Date().toISOString(), status:"À confirmer", customer, locationId, items: cartLines.map(({id,name,qty,price}) => ({id,name,qty,price})) };
     if (supabase) {
-      const { data, error } = await supabase.from("orders").insert({ code:order.id, status:order.status, first_name:customer.firstName, last_name:customer.lastName, phone:customer.phone, note:customer.note, location_id:locationId, total }).select().single();
+      const { data, error } = await supabase.from("orders").insert({ code:order.id, status:order.status, first_name:customer.firstName, last_name:customer.lastName, phone:customer.phone, email:customer.email || null, note:customer.note, location_id:locationId, total }).select().single();
       if (error) return alert("Erreur commande : " + error.message);
       const lines = order.items.map(item => ({ order_id:data.id, product_id:item.id, name:item.name, qty:item.qty, price:item.price }));
       const linesRes = await supabase.from("order_items").insert(lines);
       if (linesRes.error) return alert("Erreur lignes : " + linesRes.error.message);
       order.dbId = data.id;
+      order.createdAt = data.created_at || order.createdAt;
     }
-    setOrders(old => [order, ...old]); setCart({}); setCustomer({ firstName:"", lastName:"", phone:"", note:"" });
-    alert(`Demande enregistrée : ${order.id}\nTina confirmera par téléphone ou WhatsApp.`);
+    await sendOrderNotification(order, total);
+    setOrders(old => [order, ...old]); setCart({}); setCustomer({ firstName:"", lastName:"", phone:"", email:"", note:"" });
+    alert(`Demande enregistrée : ${order.id}\nTina confirmera par téléphone, WhatsApp ou email.`);
   }
 
   async function updateOrderStatus(id, status) {
@@ -205,22 +343,368 @@ const order = { id: makeOrderCode(locationId), status:"À confirmer", customer, 
   }
   async function toggleOrdersOpen() {
     const next = !ordersOpen; setOrdersOpen(next);
-    if (supabase) await supabase.from("settings").upsert({ id:"main", orders_open:next, site_message:siteMessage });
+    if (supabase) await supabase.from("settings").upsert({ id:"main", orders_open:next, service_orders_open:serviceOrdersOpen, stock_blocks:stockBlocks, site_message:siteMessage });
+  }
+  async function toggleServiceOrdersOpen() {
+    const next = !serviceOrdersOpen; setServiceOrdersOpen(next);
+    if (supabase) await supabase.from("settings").upsert({ id:"main", orders_open:ordersOpen, service_orders_open:next, stock_blocks:stockBlocks, site_message:siteMessage });
   }
   async function saveSiteMessage(value) {
     setSiteMessage(value);
-    if (supabase) await supabase.from("settings").upsert({ id:"main", orders_open:ordersOpen, site_message:value });
+    if (supabase) await supabase.from("settings").upsert({ id:"main", orders_open:ordersOpen, service_orders_open:serviceOrdersOpen, stock_blocks:stockBlocks, site_message:value });
   }
+
+  const blockGroupLabels = {
+    thai: "Plats thaï",
+    sushi: "Sushis & poké bowls"
+  };
+
+  function productBlockGroup(product) {
+    if (!product) return null;
+    if (["Plats permanents", "Plats de la semaine"].includes(product.category)) return "thai";
+    if (["Sushis", "Makis", "California", "Sushis spécial", "Crunch", "Makis printemps", "Poké bowls"].includes(product.category)) return "sushi";
+    return null;
+  }
+
+  function isCategoryBlockedForLocation(product, locId) {
+    const group = productBlockGroup(product);
+    if (!group) return false;
+    const code = locationCode(locId);
+    return Boolean(stockBlocks?.[code]?.[group]);
+  }
+
+  function isProductBlocked(product) {
+    return isCategoryBlockedForLocation(product, locationId);
+  }
+
+  function blockedMessagesForLocation(location) {
+    const code = locationCode(location?.id);
+    const blocks = stockBlocks?.[code] || {};
+    return Object.entries(blockGroupLabels)
+      .filter(([group]) => blocks[group])
+      .map(([group, label]) => ({
+        group,
+        label,
+        text: `${label} complets à la réservation pour ${location?.city || "cet emplacement"}. Une sélection pourra être disponible directement au camion pendant le service, selon le stock du jour.`
+      }));
+  }
+
+  const currentBlockMessages = blockedMessagesForLocation(selectedLocation);
+
+  async function saveStockBlocks(nextBlocks) {
+    setStockBlocks(nextBlocks);
+    if (supabase) {
+      await supabase.from("settings").upsert({
+        id:"main",
+        orders_open:ordersOpen,
+        service_orders_open:serviceOrdersOpen,
+        stock_blocks:nextBlocks,
+        site_message:siteMessage
+      });
+    }
+  }
+
+  async function toggleStockBlockForLocation(code, group) {
+    const current = stockBlocks?.[code]?.[group] || false;
+    const nextBlocks = {
+      ...(stockBlocks || {}),
+      [code]: {
+        ...(stockBlocks?.[code] || {}),
+        [group]: !current
+      }
+    };
+    await saveStockBlocks(nextBlocks);
+  }
+
+  function parseServiceHours(hours = "") {
+    const matches = String(hours).match(/(\d{1,2})h(\d{2})/g) || [];
+    const parse = (value, fallbackHour, fallbackMinute) => {
+      const match = String(value || "").match(/(\d{1,2})h(\d{2})/);
+      return { hour: match ? Number(match[1]) : fallbackHour, minute: match ? Number(match[2]) : fallbackMinute };
+    };
+    const start = parse(matches[0], 8, 0);
+    const end = parse(matches[1], 13, 0);
+    return { start, end };
+  }
+
+  function getServiceDate(location) {
+    const dayMap = { Dimanche: 0, Lundi: 1, Mardi: 2, Mercredi: 3, Jeudi: 4, Vendredi: 5, Samedi: 6 };
+    const target = dayMap[location?.day] ?? new Date().getDay();
+    const today = new Date();
+    const result = new Date(today);
+    result.setHours(0, 0, 0, 0);
+    let diff = (target - today.getDay() + 7) % 7;
+    const { end } = parseServiceHours(location?.hours);
+    const serviceEndToday = new Date(result);
+    serviceEndToday.setHours(end.hour, end.minute, 0, 0);
+    if (diff === 0 && today > serviceEndToday) diff = 7;
+    result.setDate(today.getDate() + diff);
+    return result;
+  }
+
+  function getServiceWindow(location) {
+    const date = getServiceDate(location);
+    const { start, end } = parseServiceHours(location?.hours);
+    const startDate = new Date(date);
+    startDate.setHours(start.hour, start.minute, 0, 0);
+    const endDate = new Date(date);
+    endDate.setHours(end.hour, end.minute, 0, 0);
+    return { date, startDate, endDate };
+  }
+
+  function formatServiceDate(location) {
+    const date = getServiceDate(location);
+    const label = date.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" });
+    return label.charAt(0).toUpperCase() + label.slice(1);
+  }
+
+  function getOrderAvailability(location) {
+    const now = new Date();
+    const { date, endDate } = getServiceWindow(location);
+
+    const closingDate = new Date(date);
+    closingDate.setDate(closingDate.getDate() - 1);
+    closingDate.setHours(20, 0, 0, 0);
+
+    const serviceOpenDate = new Date(date);
+    serviceOpenDate.setHours(0, 0, 0, 0);
+
+    if (!ordersOpen && !serviceOrdersOpen) {
+      return {
+        open: false,
+        mode: "closed",
+        message: "Les commandes sont actuellement fermées par Tina."
+      };
+    }
+
+    if (ordersOpen && now < closingDate) {
+      return {
+        open: true,
+        mode: "preorder",
+        message: "Précommande ouverte jusqu’à la veille 20h."
+      };
+    }
+
+    if (serviceOrdersOpen && now >= serviceOpenDate && now <= endDate) {
+      return {
+        open: true,
+        mode: "service",
+        message: "Commande en direct au food truck. Disponibilités selon stock restant. Paiement sur place."
+      };
+    }
+
+    if (now > endDate) {
+      return {
+        open: false,
+        mode: "ended",
+        message: `Le service est terminé pour ${location.city}.`
+      };
+    }
+
+    return {
+      open: false,
+      mode: "preorder_closed",
+      message: `Les précommandes pour ${location.city} sont fermées.`
+    };
+  }
+
+  function buildWhatsAppMessage(order, loc) {
+    return `Bonjour,
+
+Votre commande ${order.id} est bien confirmée pour ${loc.city} le ${formatServiceDate(loc)}.
+
+Vous pourrez la récupérer pendant le service directement au food truck.
+
+Merci et à très bientôt 🙏🌶️
+KRUA PEÈN THAÏ`;
+  }
+
+  function buildSmsMessage(order, loc) {
+    return `KRUA PEÈN THAÏ : Commande ${order.id} confirmée pour ${loc.city} ${formatServiceDate(loc)}. Retrait pendant le service au food truck. Merci 🌶️`;
+  }
+
+  function smsLink(phone, text) {
+    const normalized = String(phone || "").replace(/\s/g, "");
+    return `sms:${normalized}?body=${encodeURIComponent(text)}`;
+  }
+
+  async function sendConfirmationEmail(order, loc) {
+    if (!order.customer.email) {
+      alert("Aucune adresse email renseignée pour cette commande.");
+      return;
+    }
+
+    try {
+      const orderTotal = order.items.reduce((s, i) => s + i.qty * i.price, 0);
+      const response = await fetch("/api/send-confirmation-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          to: order.customer.email,
+          orderCode: order.id,
+          locationCity: loc.city,
+          serviceDate: formatServiceDate(loc),
+          serviceHours: loc.hours,
+          total: euro(orderTotal),
+          items: order.items.map(item => ({
+            name: item.name,
+            qty: item.qty,
+            price: euro(item.price),
+            lineTotal: euro(item.qty * item.price)
+          }))
+        })
+      });
+
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(result.error || "Erreur envoi email");
+      }
+
+      await updateOrderStatus(order.id, "Confirmée");
+      alert("Email de confirmation envoyé.");
+    } catch (error) {
+      console.error(error);
+      alert("Erreur email : " + (error.message || error));
+    }
+  }
+
+  async function copyMessageToClipboard(text) {
+    try {
+      await navigator.clipboard.writeText(text);
+      alert("Message copié. Tina peut le coller dans WhatsApp ou SMS.");
+    } catch (error) {
+      alert("Impossible de copier automatiquement. Sélectionne le message depuis WhatsApp/SMS si besoin.");
+    }
+  }
+
+  function formatDateTime(value) {
+    const date = value ? new Date(value) : new Date();
+    return date.toLocaleString("fr-FR", {
+      day:"2-digit",
+      month:"2-digit",
+      year:"numeric",
+      hour:"2-digit",
+      minute:"2-digit"
+    });
+  }
+
+  function escapeHtml(value = "") {
+    return String(value)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
+  function printKitchenTicket(order, loc) {
+    const orderTotal = order.items.reduce((s, i) => s + i.qty * i.price, 0);
+    const itemsHtml = order.items.map(item => `
+      <div class="line">
+        <span>${escapeHtml(item.qty)} x ${escapeHtml(item.name)}</span>
+        <strong>${escapeHtml(euro(item.qty * item.price))}</strong>
+      </div>
+    `).join("");
+
+    const noteHtml = order.customer.note ? `
+      <div class="sep"></div>
+      <div class="label">NOTE CLIENT</div>
+      <div class="note">${escapeHtml(order.customer.note)}</div>
+    ` : "";
+
+    const emailHtml = order.customer.email ? `<div>${escapeHtml(order.customer.email)}</div>` : "";
+
+    const ticketHtml = `
+      <!doctype html>
+      <html>
+        <head>
+          <meta charset="utf-8" />
+          <title>${escapeHtml(order.id)}</title>
+          <style>
+            @page { size: 80mm auto; margin: 3mm; }
+            body { width: 72mm; margin: 0; font-family: Arial, sans-serif; color: #000; font-size: 13px; }
+            .center { text-align: center; }
+            .brand { font-size: 18px; font-weight: 900; margin-bottom: 6px; }
+            .order { font-size: 18px; font-weight: 900; margin: 8px 0; }
+            .sep { border-top: 1px dashed #000; margin: 8px 0; }
+            .label { font-size: 11px; font-weight: 900; margin-top: 6px; }
+            .big { font-size: 15px; font-weight: 900; text-transform: uppercase; }
+            .line { display: flex; justify-content: space-between; gap: 8px; margin: 5px 0; font-size: 14px; }
+            .line span { font-weight: 900; }
+            .note { font-size: 16px; font-weight: 900; text-transform: uppercase; }
+            .total { display: flex; justify-content: space-between; font-size: 17px; font-weight: 900; }
+          </style>
+        </head>
+        <body>
+          <div class="center brand">KRUA PEÈN THAÏ</div>
+          <div class="center">Thaï • Sushi • Poké</div>
+          <div class="sep"></div>
+          <div class="center order">${escapeHtml(order.id)}</div>
+          <div class="label">COMMANDÉ LE</div>
+          <div>${escapeHtml(formatDateTime(order.createdAt))}</div>
+          <div class="sep"></div>
+          <div class="label">RETRAIT</div>
+          <div class="big">${escapeHtml(loc.city)}</div>
+          <div>${escapeHtml(loc.place)}</div>
+          <div>${escapeHtml(formatServiceDate(loc))}</div>
+          <div>${escapeHtml(loc.hours)}</div>
+          <div class="sep"></div>
+          <div class="label">CLIENT</div>
+          <div class="big">${escapeHtml(`${order.customer.firstName || ""} ${order.customer.lastName || ""}`.trim())}</div>
+          <div>${escapeHtml(order.customer.phone)}</div>
+          ${emailHtml}
+          <div class="sep"></div>
+          ${itemsHtml}
+          ${noteHtml}
+          <div class="sep"></div>
+          <div class="total"><span>TOTAL</span><span>${escapeHtml(euro(orderTotal))}</span></div>
+        </body>
+      </html>
+    `;
+
+    const ticketWindow = window.open("", "PRINT", "width=420,height=700");
+    if (!ticketWindow) {
+      alert("Fenêtre d'impression bloquée. Autorise les pop-ups pour imprimer le ticket.");
+      return;
+    }
+    ticketWindow.document.open();
+    ticketWindow.document.write(ticketHtml);
+    ticketWindow.document.close();
+    ticketWindow.focus();
+    setTimeout(() => ticketWindow.print(), 300);
+  }
+
+  const activeOrdersCount = orders.filter(o => o.status === "À confirmer" || o.status === "Confirmée").length;
 
   const visibleOrders = useMemo(() => {
     const statusOrder = { "À confirmer":0, "Confirmée":1, "Récupérée":2, "Annulée":3 };
     const q = orderSearch.trim().toLowerCase();
-    return orders.filter(o => !q || [o.id,o.customer.firstName,o.customer.lastName,o.customer.phone,locations.find(l=>l.id===o.locationId)?.city].filter(Boolean).join(" ").toLowerCase().includes(q)).sort((a,b)=>(statusOrder[a.status]??9)-(statusOrder[b.status]??9));
-  }, [orders, orderSearch, locations]);
+    return orders
+      .filter(o => adminLocationFilter === "ALL" || locationCode(o.locationId) === adminLocationFilter)
+      .filter(o => {
+        if (adminStatusFilter === "ACTIVE") return o.status === "À confirmer" || o.status === "Confirmée";
+        if (adminStatusFilter === "ALL") return true;
+        return o.status === adminStatusFilter;
+      })
+      .filter(o => !hideDoneOrders || (o.status !== "Récupérée" && o.status !== "Annulée"))
+      .filter(o => !q || [o.id,o.customer.firstName,o.customer.lastName,o.customer.phone,o.customer.email,locations.find(l=>l.id===o.locationId)?.city].filter(Boolean).join(" ").toLowerCase().includes(q))
+      .sort((a,b)=>(statusOrder[a.status]??9)-(statusOrder[b.status]??9));
+  }, [orders, orderSearch, locations, adminLocationFilter, adminStatusFilter, hideDoneOrders]);
+
   const prepSummary = useMemo(() => {
-    const s = {}; orders.filter(o => o.status !== "Annulée").forEach(o => o.items.forEach(i => { s[i.name]=(s[i.name]||0)+i.qty; }));
-    return Object.entries(s).sort((a,b)=>b[1]-a[1]);
-  }, [orders]);
+    const groups = { PLAB: {}, BRI: {}, KER: {} };
+    orders
+      .filter(o => o.status !== "Annulée" && o.status !== "Récupérée")
+      .filter(o => adminLocationFilter === "ALL" || locationCode(o.locationId) === adminLocationFilter)
+      .forEach(o => {
+        const code = locationCode(o.locationId);
+        if (!groups[code]) groups[code] = {};
+        o.items.forEach(i => { groups[code][i.name] = (groups[code][i.name] || 0) + i.qty; });
+      });
+    return Object.entries(groups)
+      .map(([code, items]) => ({ code, items: Object.entries(items).sort((a,b)=>b[1]-a[1]) }))
+      .filter(group => group.items.length);
+  }, [orders, adminLocationFilter]);
 
   return (
     <div className="min-h-screen bg-[#070504] text-stone-50">
@@ -244,18 +728,140 @@ const order = { id: makeOrderCode(locationId), status:"À confirmer", customer, 
 
           <section id="carte" className="mx-auto max-w-7xl px-4 py-12"><div className="mb-6 flex items-center gap-3"><UtensilsCrossed className="text-amber-300"/><h2 className="text-3xl font-black">Notre carte & savoir-faire</h2></div><p className="max-w-3xl text-stone-300">Cette partie présente ce que Tina propose. Certains plats thaï changent selon la semaine.</p><div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{showcase.map(item=><div key={item} className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 font-semibold">{item}</div>)}</div></section>
 
-          <section id="commander" className="mx-auto max-w-7xl px-4 py-12"><div className="mb-6 flex items-center gap-3"><ShoppingCart className="text-amber-300"/><h2 className="text-3xl font-black">Commander cette semaine</h2></div><div className="mb-6 space-y-4"><div className="flex gap-2 overflow-x-auto pb-2">{categories.map(cat=><button key={cat} onClick={()=>{setCategoryFilter(cat); if(cat!=="Tous") setOpenCategory(cat);}} className={`whitespace-nowrap rounded-full px-4 py-3 text-sm font-bold ${categoryFilter===cat ? "bg-amber-400 text-black" : "bg-white/10"}`}>{cat==="Tous" ? "Tout" : categoryLabels[cat] || cat}</button>)}</div><div className="relative"><Search className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400" size={18}/><input value={searchTerm} onChange={e=>setSearchTerm(e.target.value)} placeholder="Rechercher : saumon, poké, S16..." className="w-full rounded-2xl border border-white/10 bg-stone-900 py-4 pl-12 pr-4"/></div></div><div className="grid gap-6 lg:grid-cols-[1fr_380px]"><div className="space-y-4">{productsByCategory.map(group=>{const isOpen=openCategory===group.category || categoryFilter!=="Tous"; return <div key={group.category} className="overflow-hidden rounded-3xl border border-white/10 bg-stone-950/70"><button onClick={()=>setOpenCategory(isOpen?"":group.category)} className="flex w-full items-center justify-between gap-4 p-5 text-left"><div><h3 className="text-2xl font-black text-amber-200">{categoryLabels[group.category] || group.category}</h3><p className="mt-1 text-sm text-stone-400">{group.items.length} produit{group.items.length>1?"s":""}</p></div><ChevronDown className={`text-amber-300 transition-transform ${isOpen ? "rotate-180" : ""}`}/></button>{isOpen && <div className="grid gap-4 border-t border-white/10 p-5 sm:grid-cols-2">{group.items.map(p=><article key={p.id} className="rounded-3xl border border-white/10 bg-stone-900 p-5"><div className="mb-2 flex items-center justify-between gap-3 text-sm"><span className="font-black text-amber-300">{p.code}</span><span className="rounded-full bg-white/10 px-3 py-1 text-xs text-stone-300">{p.fixed ? "Permanent" : "Cette semaine"}</span></div><h3 className="text-xl font-black">{p.name}</h3><p className="mt-2 min-h-12 text-sm text-stone-300">{p.desc}</p><div className="mt-5 flex items-center justify-between"><span className="text-lg font-black text-amber-300">{euro(p.price)}</span><button disabled={!ordersOpen} onClick={()=>addToCart(p.id)} className="rounded-xl bg-amber-400 px-4 py-3 font-bold text-black disabled:opacity-40">Ajouter</button></div></article>)}</div>}</div>})}</div><aside className="h-fit rounded-3xl border border-amber-300/20 bg-black p-5 shadow-xl"><h3 className="mb-4 text-2xl font-black">Votre commande</h3><label className="text-sm text-stone-300">Lieu de retrait</label><select value={locationId} onChange={e=>setLocationId(e.target.value)} className="mt-2 w-full rounded-xl border border-white/10 bg-stone-900 p-3">{locations.map(l=><option key={l.id} value={l.id}>{l.label} – {l.city}</option>)}</select><div className="mt-3 rounded-xl bg-white/[0.04] p-3 text-sm text-stone-300"><MapPin className="mr-2 inline text-amber-300" size={16}/>{selectedLocation.place} • {selectedLocation.hours}</div><div className="my-5 space-y-3">{cartLines.length===0 && <div className="rounded-xl bg-white/[0.04] p-4 text-stone-400">Panier vide</div>}{cartLines.map(line=><div key={line.id} className="flex items-center justify-between gap-3 rounded-xl bg-white/[0.04] p-3"><div><div className="font-bold">{line.name}</div><div className="text-sm text-stone-400">{line.qty} × {euro(line.price)}</div></div><div className="flex items-center gap-2"><button onClick={()=>removeFromCart(line.id)} className="rounded-lg bg-white/10 px-3 py-2">-</button><button onClick={()=>addToCart(line.id)} className="rounded-lg bg-white/10 px-3 py-2">+</button></div></div>)}</div><div className="mb-5 flex items-center justify-between border-t border-white/10 pt-4 text-xl font-black"><span>Total</span><span className="text-amber-300">{euro(total)}</span></div><div className="grid gap-3"><input placeholder="Prénom *" value={customer.firstName} onChange={e=>setCustomer({...customer, firstName:e.target.value})} className="rounded-xl border border-white/10 bg-stone-900 p-3"/><input placeholder="Nom" value={customer.lastName} onChange={e=>setCustomer({...customer, lastName:e.target.value})} className="rounded-xl border border-white/10 bg-stone-900 p-3"/><input placeholder="Téléphone *" value={customer.phone} onChange={e=>setCustomer({...customer, phone:e.target.value})} className="rounded-xl border border-white/10 bg-stone-900 p-3"/><textarea placeholder="Commentaire" value={customer.note} onChange={e=>setCustomer({...customer, note:e.target.value})} className="rounded-xl border border-white/10 bg-stone-900 p-3"/><button disabled={!ordersOpen} onClick={submitOrder} className="rounded-2xl bg-amber-400 px-5 py-4 font-black text-black disabled:opacity-40">{ordersOpen ? "Envoyer la demande" : "Précommandes fermées"}</button><p className="text-xs text-stone-400">Précommande possible jusqu’à la veille 20h. Paiement sur place. Tina confirme par téléphone ou WhatsApp.</p></div></aside></div></section>
+          <section id="commander" className="mx-auto max-w-7xl px-4 py-12"><div className="mb-6 flex items-center gap-3"><ShoppingCart className="text-amber-300"/><h2 className="text-3xl font-black">Commander cette semaine</h2></div><div className="mb-6 space-y-4"><div className="flex gap-2 overflow-x-auto pb-2">{categories.map(cat=><button key={cat} onClick={()=>{setCategoryFilter(cat); if(cat!=="Tous") setOpenCategory(cat);}} className={`whitespace-nowrap rounded-full px-4 py-3 text-sm font-bold ${categoryFilter===cat ? "bg-amber-400 text-black" : "bg-white/10"}`}>{cat==="Tous" ? "Tout" : categoryLabels[cat] || cat}</button>)}</div><div className="relative"><Search className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400" size={18}/><input value={searchTerm} onChange={e=>setSearchTerm(e.target.value)} placeholder="Rechercher : saumon, poké, S16..." className="w-full rounded-2xl border border-white/10 bg-stone-900 py-4 pl-12 pr-4"/></div></div><div className="grid gap-6 lg:grid-cols-[1fr_380px]"><div className="space-y-4">{productsByCategory.map(group=>{const isOpen=openCategory===group.category || categoryFilter!=="Tous"; return <div key={group.category} className="overflow-hidden rounded-3xl border border-white/10 bg-stone-950/70"><button onClick={()=>setOpenCategory(isOpen?"":group.category)} className="flex w-full items-center justify-between gap-4 p-5 text-left"><div><h3 className="text-2xl font-black text-amber-200">{categoryLabels[group.category] || group.category}</h3><p className="mt-1 text-sm text-stone-400">{group.items.length} produit{group.items.length>1?"s":""}</p></div><ChevronDown className={`text-amber-300 transition-transform ${isOpen ? "rotate-180" : ""}`}/></button>{isOpen && <div className="grid gap-4 border-t border-white/10 p-5 sm:grid-cols-2">{group.items.map(p=><article key={p.id} className="rounded-3xl border border-white/10 bg-stone-900 p-5"><div className="mb-2 flex items-center justify-between gap-3 text-sm"><span className="font-black text-amber-300">{p.code}</span><span className="rounded-full bg-white/10 px-3 py-1 text-xs text-stone-300">{p.fixed ? "Permanent" : "Cette semaine"}</span></div><h3 className="text-xl font-black">{p.name}</h3><p className="mt-2 min-h-12 text-sm text-stone-300">{p.desc}</p><div className="mt-5 flex items-center justify-between"><span className="text-lg font-black text-amber-300">{euro(p.price)}</span><button disabled={!selectedAvailability.open || isProductBlocked(p)} onClick={()=>addToCart(p.id)} className="rounded-xl bg-amber-400 px-4 py-3 font-bold text-black disabled:opacity-40">{isProductBlocked(p) ? "Complet réservation" : "Ajouter"}</button></div></article>)}</div>}</div>})}</div><aside className="h-fit rounded-3xl border border-amber-300/20 bg-black p-5 shadow-xl"><h3 className="mb-4 text-2xl font-black">Votre commande</h3><label className="text-sm text-stone-300">Lieu de retrait</label><select value={locationId} onChange={e=>setLocationId(e.target.value)} className="mt-2 w-full rounded-xl border border-white/10 bg-stone-900 p-3">{locations.map(l=><option key={l.id} value={l.id}>{l.label} – {l.city}</option>)}</select><div className="mt-3 rounded-xl bg-white/[0.04] p-3 text-sm text-stone-300"><MapPin className="mr-2 inline text-amber-300" size={16}/>{selectedLocation.place} • {selectedLocation.hours}</div>{currentBlockMessages.map(block=><div key={block.group} className="mt-4 rounded-xl bg-orange-950/70 p-4 text-sm font-bold text-orange-100">⚠️ {block.text}</div>)}{!selectedAvailability.open && <div className="mt-4 rounded-xl bg-red-950/70 p-4 text-sm font-bold text-red-100">{selectedAvailability.message}</div>}{selectedAvailability.open && selectedAvailability.mode === "service" && <div className="mt-4 rounded-xl bg-green-950/70 p-4 text-sm font-bold text-green-100">{selectedAvailability.message}</div>}<div className="my-5 space-y-3">{cartLines.length===0 && <div className="rounded-xl bg-white/[0.04] p-4 text-stone-400">Panier vide</div>}{cartLines.map(line=><div key={line.id} className="flex items-center justify-between gap-3 rounded-xl bg-white/[0.04] p-3"><div><div className="font-bold">{line.name}</div><div className="text-sm text-stone-400">{line.qty} × {euro(line.price)}</div></div><div className="flex items-center gap-2"><button onClick={()=>removeFromCart(line.id)} className="rounded-lg bg-white/10 px-3 py-2">-</button><button onClick={()=>addToCart(line.id)} className="rounded-lg bg-white/10 px-3 py-2">+</button></div></div>)}</div><div className="mb-5 flex items-center justify-between border-t border-white/10 pt-4 text-xl font-black"><span>Total</span><span className="text-amber-300">{euro(total)}</span></div><div className="grid gap-3"><input placeholder="Prénom *" value={customer.firstName} onChange={e=>setCustomer({...customer, firstName:e.target.value})} className="rounded-xl border border-white/10 bg-stone-900 p-3"/><input placeholder="Nom" value={customer.lastName} onChange={e=>setCustomer({...customer, lastName:e.target.value})} className="rounded-xl border border-white/10 bg-stone-900 p-3"/><input placeholder="Téléphone *" value={customer.phone} onChange={e=>setCustomer({...customer, phone:e.target.value})} className="rounded-xl border border-white/10 bg-stone-900 p-3"/><input placeholder="Email (pour confirmation)" type="email" value={customer.email} onChange={e=>setCustomer({...customer, email:e.target.value})} className="rounded-xl border border-white/10 bg-stone-900 p-3"/><textarea placeholder="Commentaire" value={customer.note} onChange={e=>setCustomer({...customer, note:e.target.value})} className="rounded-xl border border-white/10 bg-stone-900 p-3"/><button disabled={!selectedAvailability.open} onClick={submitOrder} className="rounded-2xl bg-amber-400 px-5 py-4 font-black text-black disabled:opacity-40">{selectedAvailability.open ? "Envoyer la demande" : "Commandes fermées"}</button><p className="text-xs text-stone-400">{selectedAvailability.open ? selectedAvailability.message : selectedAvailability.message}</p></div></aside></div></section>
 
           <section id="lieux" className="mx-auto max-w-7xl px-4 py-12"><div className="mb-6 flex items-center gap-3"><CalendarDays className="text-amber-300"/><h2 className="text-3xl font-black">Où nous trouver</h2></div><div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">{locations.map(l=><div key={l.id} className="rounded-3xl border border-white/10 bg-white/[0.03] p-5"><div className="font-bold text-amber-300">{l.label}</div><div className="mt-2 text-2xl font-black">{l.city}</div><div className="mt-2 text-stone-300">{l.place}</div><div className="mt-4 flex items-center gap-2 text-stone-200"><Clock size={16}/>{l.hours}</div></div>)}</div></section>
 
           <section id="traiteur" className="mx-auto max-w-7xl px-4 py-12 pb-20"><div className="rounded-[2rem] border border-amber-300/20 bg-gradient-to-br from-stone-900 to-black p-8"><h2 className="text-3xl font-black">Traiteur thaï, sushi & poké bowls</h2><p className="mt-3 max-w-3xl text-stone-300">Mariage, retour de mariage, anniversaire, séminaire, repas d’entreprise. Demandez un devis, Tina vous recontacte.</p><div className="mt-6 grid gap-3 md:grid-cols-2"><input placeholder="Nom" className="rounded-xl border border-white/10 bg-black p-4"/><input placeholder="Téléphone" className="rounded-xl border border-white/10 bg-black p-4"/><input placeholder="Type d’événement" className="rounded-xl border border-white/10 bg-black p-4"/><input placeholder="Nombre de personnes" className="rounded-xl border border-white/10 bg-black p-4"/><textarea placeholder="Votre demande" className="rounded-xl border border-white/10 bg-black p-4 md:col-span-2"/></div><button className="mt-5 rounded-2xl bg-amber-400 px-6 py-4 font-black text-black">Demander un devis</button></div></section>
         </main>
       ) : (
-        <main className="mx-auto max-w-7xl px-4 py-8"><div className="mb-8 flex flex-wrap items-center justify-between gap-4"><div><h1 className="text-4xl font-black">Dashboard Tina</h1><p className="mt-2 text-stone-300">Commandes, confirmations WhatsApp, produits semaine et préparation.</p><p className="mt-2 text-sm text-amber-300">Mode actuel : {appMode}</p></div><div className="rounded-2xl bg-amber-400 px-5 py-3 font-black text-black"><Lock className="mr-2 inline" size={18}/>Accès PIN</div></div><div className="mb-6 grid gap-3 sm:grid-cols-4">{[["orders","Commandes"],["products","Produits"],["locations","Emplacements"],["settings","Réglages"]].map(([id,label])=><button key={id} onClick={()=>setAdminTab(id)} className={`rounded-2xl p-4 text-left font-black ${adminTab===id ? "bg-amber-400 text-black" : "bg-white/10"}`}>{label}</button>)}</div>
-          {adminTab==="orders" && <div className="grid gap-6 lg:grid-cols-[1fr_360px]"><section className="space-y-4"><div className="rounded-3xl border border-white/10 bg-stone-900 p-5"><h2 className="mb-4 text-2xl font-black">Nouvelles commandes</h2><div className="relative mb-4"><Search className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400" size={18}/><input value={orderSearch} onChange={e=>setOrderSearch(e.target.value)} placeholder="Rechercher commande, nom, téléphone..." className="w-full rounded-2xl border border-white/10 bg-black py-4 pl-12 pr-4"/></div>{visibleOrders.map(order=>{const loc=locations.find(l=>l.id===order.locationId)||locations[0]; const orderTotal=order.items.reduce((s,i)=>s+i.qty*i.price,0); const msg=`Bonjour ${order.customer.firstName}, votre commande ${order.id} est bien reçue pour ${loc.city} (${loc.label}). Paiement sur place. Merci, KRUA PEÈN THAÏ.`; return <div key={order.id} className="mb-4 rounded-3xl border border-white/10 bg-black p-5"><div className="mb-4 flex flex-wrap items-start justify-between gap-3"><div><div className="text-2xl font-black text-amber-300">{order.id}</div><div className="text-lg font-bold">{order.customer.firstName} {order.customer.lastName}</div><div className="text-stone-300">{order.customer.phone}</div></div><span className={`rounded-full px-4 py-2 text-sm font-bold ${order.status==="Confirmée" ? "bg-green-500/20 text-green-300" : order.status==="Annulée" ? "bg-red-500/20 text-red-300" : order.status==="Récupérée" ? "bg-blue-500/20 text-blue-300" : "bg-orange-500/20 text-orange-300"}`}>{order.status}</span></div><div className="rounded-2xl bg-white/[0.04] p-4"><MapPin className="mr-2 inline text-amber-300" size={16}/>{loc.city} • {loc.label} • {loc.hours}</div><div className="my-4 space-y-2">{order.items.map(item=><div key={item.id} className="flex justify-between rounded-xl bg-white/[0.04] px-4 py-3"><span>{item.qty} × {item.name}</span><b>{euro(item.qty*item.price)}</b></div>)}</div>{order.customer.note && <div className="mb-4 rounded-xl bg-amber-400/10 p-3 text-sm text-amber-100">Note : {order.customer.note}</div>}<div className="mb-4 flex justify-between border-t border-white/10 pt-4 text-xl font-black"><span>Total</span><span>{euro(orderTotal)}</span></div><div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5"><a href={`tel:${order.customer.phone}`} className="rounded-2xl bg-white/10 px-4 py-4 text-center font-black"><Phone className="mr-2 inline" size={18}/>Appeler</a><a href={whatsappLink(order.customer.phone,msg)} target="_blank" className="rounded-2xl bg-green-500 px-4 py-4 text-center font-black text-black"><MessageCircle className="mr-2 inline" size={18}/>WhatsApp</a><button onClick={()=>updateOrderStatus(order.id,"Confirmée")} className="rounded-2xl bg-amber-400 px-4 py-4 font-black text-black"><CheckCircle2 className="mr-2 inline" size={18}/>Confirmer</button><button onClick={()=>updateOrderStatus(order.id,"Récupérée")} className="rounded-2xl bg-blue-500 px-4 py-4 font-black"><PackageCheck className="mr-2 inline" size={18}/>Récupérée</button><button onClick={()=>updateOrderStatus(order.id,"Annulée")} className="rounded-2xl bg-red-500/90 px-4 py-4 font-black"><XCircle className="mr-2 inline" size={18}/>Annuler</button></div></div>})}</div></section><aside className="space-y-6"><div className="rounded-3xl border border-amber-300/20 bg-stone-900 p-5"><h2 className="mb-4 flex items-center gap-2 text-2xl font-black"><PackageCheck className="text-amber-300"/>Résumé préparation</h2><div className="space-y-2">{prepSummary.map(([name,qty])=><div key={name} className="flex justify-between rounded-xl bg-black/40 px-4 py-3"><span>{name}</span><b className="text-amber-300">x{qty}</b></div>)}</div></div><div className="rounded-3xl border border-white/10 bg-stone-900 p-5"><h2 className="mb-4 flex items-center gap-2 text-2xl font-black"><Eye className="text-amber-300"/>Règles V1</h2><ul className="space-y-3 text-stone-300"><li>• Précommande jusqu’à la veille 20h</li><li>• Retrait pendant le service, sans créneau</li><li>• Paiement sur place</li><li>• Confirmation par téléphone ou WhatsApp Business</li><li>• Hiboutik reste la caisse séparée</li></ul></div></aside></div>}
+        <main className="mx-auto max-w-7xl px-4 py-8">
+          <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <h1 className="text-4xl font-black">Dashboard Tina</h1>
+              <p className="mt-2 text-stone-300">Commandes, confirmations WhatsApp/SMS, préparation cuisine.</p>
+              <p className="mt-2 text-sm text-amber-300">Mode actuel : {appMode}</p>
+              <p className="mt-1 text-sm text-stone-400">{notificationStatus}</p>
+              <p className="mt-3 inline-flex rounded-full bg-amber-400 px-4 py-2 text-sm font-black text-black">{activeOrdersCount} commande{activeOrdersCount > 1 ? "s" : ""} à traiter</p>
+            </div>
+            <button onClick={subscribeToPushNotifications} className="rounded-2xl bg-amber-400 px-5 py-3 font-black text-black">
+              <Lock className="mr-2 inline" size={18}/>Activer notifications
+            </button>
+          </div>
+
+          <div className="mb-6 grid gap-3 sm:grid-cols-4">
+            {[["orders","Commandes"],["products","Produits"],["locations","Emplacements"],["settings","Réglages"]].map(([id,label])=><button key={id} onClick={()=>setAdminTab(id)} className={`rounded-2xl p-4 text-left font-black ${adminTab===id ? "bg-amber-400 text-black" : "bg-white/10"}`}>{label}</button>)}
+          </div>
+
+          {adminTab === "orders" && (
+            <div className="grid gap-6 lg:grid-cols-[1fr_370px]">
+              <section className="space-y-4">
+                <div className="rounded-3xl border border-white/10 bg-stone-900 p-5">
+                  <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                    <h2 className="text-2xl font-black">Commandes</h2>
+                    <label className="flex items-center gap-2 text-sm text-stone-300"><input type="checkbox" checked={hideDoneOrders} onChange={e=>setHideDoneOrders(e.target.checked)} className="h-5 w-5 accent-amber-400"/> Masquer terminées</label>
+                  </div>
+
+                  <div className="mb-4 grid gap-3 md:grid-cols-2">
+                    <div className="flex gap-2 overflow-x-auto">
+                      {[["ALL","Toutes"],["PLAB","PLAB"],["BRI","BRI"],["KER","KER"]].map(([id,label])=><button key={id} onClick={()=>setAdminLocationFilter(id)} className={`rounded-full px-4 py-3 text-sm font-black ${adminLocationFilter===id ? "bg-amber-400 text-black" : "bg-black"}`}>{label}</button>)}
+                    </div>
+                    <div className="flex gap-2 overflow-x-auto">
+                      {[["ACTIVE","À traiter"],["ALL","Toutes"],["À confirmer","À confirmer"],["Confirmée","Confirmées"],["Récupérée","Récupérées"],["Annulée","Annulées"]].map(([id,label])=><button key={id} onClick={()=>setAdminStatusFilter(id)} className={`rounded-full px-4 py-3 text-sm font-black ${adminStatusFilter===id ? "bg-amber-400 text-black" : "bg-black"}`}>{label}</button>)}
+                    </div>
+                  </div>
+
+                  <div className="relative mb-4">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400" size={18}/>
+                    <input value={orderSearch} onChange={e=>setOrderSearch(e.target.value)} placeholder="Rechercher commande, nom, téléphone..." className="w-full rounded-2xl border border-white/10 bg-black py-4 pl-12 pr-4"/>
+                  </div>
+
+                  {visibleOrders.length === 0 && <div className="rounded-2xl bg-black/40 p-5 text-stone-400">Aucune commande dans ce filtre.</div>}
+
+                  {visibleOrders.map(order=>{
+                    const loc=locations.find(l=>l.id===order.locationId)||locations[0];
+                    const orderTotal=order.items.reduce((s,i)=>s+i.qty*i.price,0);
+                    const whatsMsg=buildWhatsAppMessage(order, loc);
+                    const smsMsg=buildSmsMessage(order, loc);
+                    return <div key={order.id} id={`order-${order.id}`} className="mb-4 rounded-3xl border border-white/10 bg-black p-5">
+                      <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                          <div className="text-2xl font-black text-amber-300">{order.id}</div>
+                          <div className="text-lg font-bold">{order.customer.firstName} {order.customer.lastName}</div>
+                          <div className="text-stone-300">{order.customer.phone}</div>{order.customer.email && <div className="text-sm text-stone-400">{order.customer.email}</div>}
+                        </div>
+                        <span className={`rounded-full px-4 py-2 text-sm font-bold ${order.status==="Confirmée" ? "bg-green-500/20 text-green-300" : order.status==="Annulée" ? "bg-red-500/20 text-red-300" : order.status==="Récupérée" ? "bg-blue-500/20 text-blue-300" : "bg-orange-500/20 text-orange-300"}`}>{order.status}</span>
+                      </div>
+                      <div className="rounded-2xl bg-white/[0.04] p-4"><MapPin className="mr-2 inline text-amber-300" size={16}/>{loc.city} • {loc.label} • {formatServiceDate(loc)} • {loc.hours}</div>
+                      <div className="my-4 space-y-2">{order.items.map(item=><div key={item.id} className="flex justify-between rounded-xl bg-white/[0.04] px-4 py-3"><span>{item.qty} × {item.name}</span><b>{euro(item.qty*item.price)}</b></div>)}</div>
+                      {order.customer.note && <div className="mb-4 rounded-xl bg-amber-400/10 p-3 text-sm text-amber-100">Note : {order.customer.note}</div>}
+                      <div className="mb-4 flex justify-between border-t border-white/10 pt-4 text-xl font-black"><span>Total</span><span>{euro(orderTotal)}</span></div>
+                      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-7">
+                        <a href={whatsappLink(order.customer.phone, whatsMsg)} target="_blank" rel="noreferrer" onClick={()=>updateOrderStatus(order.id,"Confirmée")} className="rounded-2xl bg-green-500 px-4 py-4 text-center font-black text-black"><MessageCircle className="mr-2 inline" size={18}/>Confirmer WhatsApp</a>
+                        <a href={smsLink(order.customer.phone, smsMsg)} onClick={()=>updateOrderStatus(order.id,"Confirmée")} className="rounded-2xl bg-white/10 px-4 py-4 text-center font-black"><Phone className="mr-2 inline" size={18}/>Confirmer SMS</a><button onClick={()=>sendConfirmationEmail(order, loc)} disabled={!order.customer.email} className="rounded-2xl bg-amber-400 px-4 py-4 text-center font-black text-black disabled:opacity-40"><MessageCircle className="mr-2 inline" size={18}/>Confirmer Email</button>
+                        <button onClick={()=>printKitchenTicket(order, loc)} className="rounded-2xl bg-amber-400 px-4 py-4 text-center font-black text-black">🖨️ Imprimer ticket</button>
+                        <button onClick={()=>copyMessageToClipboard(whatsMsg)} className="rounded-2xl bg-white/10 px-4 py-4 text-center font-black"><Clipboard className="mr-2 inline" size={18}/>Copier message</button>
+                        <a href={`tel:${order.customer.phone}`} className="rounded-2xl bg-white/10 px-4 py-4 text-center font-black"><Phone className="mr-2 inline" size={18}/>Appeler</a>
+                        <button onClick={()=>updateOrderStatus(order.id,"Récupérée")} className="rounded-2xl bg-blue-500 px-4 py-4 font-black"><PackageCheck className="mr-2 inline" size={18}/>Récupérée</button>
+                        <button onClick={()=>updateOrderStatus(order.id,"Annulée")} className="rounded-2xl bg-red-500/90 px-4 py-4 font-black"><XCircle className="mr-2 inline" size={18}/>Annuler</button>
+                      </div>
+                    </div>
+                  })}
+                </div>
+              </section>
+
+              <aside className="space-y-6">
+                <div className="rounded-3xl border border-amber-300/20 bg-stone-900 p-5">
+                  <h2 className="mb-4 flex items-center gap-2 text-2xl font-black"><PackageCheck className="text-amber-300"/>Résumé préparation</h2>
+                  {prepSummary.length === 0 && <div className="rounded-xl bg-black/40 px-4 py-3 text-stone-400">Rien à préparer dans ce filtre.</div>}
+                  <div className="space-y-4">
+                    {prepSummary.map(group=><div key={group.code} className="rounded-2xl bg-black/40 p-4"><div className="mb-3 text-xl font-black text-amber-300">{group.code}</div><div className="space-y-2">{group.items.map(([name,qty])=><div key={name} className="flex justify-between rounded-xl bg-white/[0.04] px-4 py-3"><span>{name}</span><b className="text-amber-300">x{qty}</b></div>)}</div></div>)}
+                  </div>
+                </div>
+                <div className="rounded-3xl border border-white/10 bg-stone-900 p-5">
+                  <h2 className="mb-4 flex items-center gap-2 text-2xl font-black"><Eye className="text-amber-300"/>Règles service</h2>
+                  <ul className="space-y-3 text-stone-300"><li>• Précommande jusqu’à la veille 20h</li><li>• Retrait pendant le service</li><li>• Paiement sur place</li><li>• Confirmation par WhatsApp, SMS ou téléphone</li></ul>
+                </div>
+              </aside>
+            </div>
+          )}
           {adminTab==="products" && <div className="rounded-3xl border border-white/10 bg-stone-900 p-5"><h2 className="mb-4 text-2xl font-black">Produits commandables</h2><p className="mb-5 text-stone-300">Tina coche les produits disponibles cette semaine et peut ajuster les prix.</p><div className="grid gap-3 md:grid-cols-2">{products.map(p=><div key={p.id} className="rounded-2xl bg-black/40 p-4"><div className="mb-3 flex items-start justify-between gap-3"><div><div className="text-sm font-black text-amber-300">{p.code}</div><div className="font-black">{p.name}</div><div className="text-sm text-stone-400">{p.category}</div></div><label className="flex items-center gap-2 text-sm font-bold"><span>{p.available ? "ON" : "OFF"}</span><input type="checkbox" checked={p.available} onChange={()=>updateProduct(p.id,"available",!p.available)} className="h-7 w-7 accent-amber-400"/></label></div><div className="grid gap-2 sm:grid-cols-[1fr_120px]"><input value={p.name} onChange={e=>updateProduct(p.id,"name",e.target.value)} className="rounded-xl border border-white/10 bg-stone-900 p-3"/><input type="number" step="0.1" value={p.price} onChange={e=>updateProduct(p.id,"price",Number(e.target.value))} className="rounded-xl border border-white/10 bg-stone-900 p-3"/></div></div>)}</div></div>}
           {adminTab==="locations" && <div className="rounded-3xl border border-white/10 bg-stone-900 p-5"><h2 className="mb-4 text-2xl font-black">Emplacements & horaires</h2><div className="grid gap-4 md:grid-cols-2">{locations.map(l=><div key={l.id} className="rounded-2xl bg-black/40 p-4"><div className="mb-4 font-black text-amber-300">{l.label}</div><div className="grid gap-3"><input value={l.city} onChange={e=>updateLocation(l.id,"city",e.target.value)} className="rounded-xl border border-white/10 bg-stone-900 p-3"/><input value={l.place} onChange={e=>updateLocation(l.id,"place",e.target.value)} className="rounded-xl border border-white/10 bg-stone-900 p-3"/><input value={l.hours} onChange={e=>updateLocation(l.id,"hours",e.target.value)} className="rounded-xl border border-white/10 bg-stone-900 p-3"/></div></div>)}</div></div>}
-          {adminTab==="settings" && <div className="grid gap-6 lg:grid-cols-2"><div className="rounded-3xl border border-white/10 bg-stone-900 p-5"><h2 className="mb-4 text-2xl font-black">Ouverture commandes</h2><button onClick={toggleOrdersOpen} className={`w-full rounded-2xl p-5 text-xl font-black ${ordersOpen ? "bg-green-500 text-black" : "bg-red-500 text-white"}`}>{ordersOpen ? "PRECOMMANDES OUVERTES" : "PRECOMMANDES FERMÉES"}</button></div><div className="rounded-3xl border border-white/10 bg-stone-900 p-5"><h2 className="mb-4 text-2xl font-black">Message accueil</h2><textarea value={siteMessage} onChange={e=>saveSiteMessage(e.target.value)} className="min-h-32 w-full rounded-xl border border-white/10 bg-black p-4"/></div></div>}
+          {adminTab==="settings" && <div className="grid gap-6 lg:grid-cols-2">
+            <div className="rounded-3xl border border-white/10 bg-stone-900 p-5">
+              <h2 className="mb-4 text-2xl font-black">Ouverture commandes</h2>
+              <button onClick={toggleOrdersOpen} className={`w-full rounded-2xl p-5 text-xl font-black ${ordersOpen ? "bg-green-500 text-black" : "bg-red-500 text-white"}`}>{ordersOpen ? "PRÉCOMMANDES OUVERTES" : "PRÉCOMMANDES FERMÉES"}</button>
+              <button onClick={toggleServiceOrdersOpen} className={`mt-4 w-full rounded-2xl p-5 text-lg font-black ${serviceOrdersOpen ? "bg-amber-400 text-black" : "bg-white/10 text-white"}`}>{serviceOrdersOpen ? "COMMANDES PENDANT SERVICE ACTIVÉES" : "COMMANDES PENDANT SERVICE DÉSACTIVÉES"}</button>
+              <p className="mt-3 text-sm text-stone-400">Si activé, les clients peuvent commander pendant le service uniquement. À utiliser seulement si Tina veut surveiller le dashboard en direct.</p>
+            </div>
+
+            <div className="rounded-3xl border border-white/10 bg-stone-900 p-5">
+              <h2 className="mb-4 text-2xl font-black">Complet à la réservation</h2>
+              <p className="mb-4 text-sm text-stone-400">Désactive une famille de produits pour un emplacement. Le client voit un message clair : sélection possible au camion selon stock.</p>
+              <div className="space-y-4">
+                {[
+                  ["PLAB", "Plabennec"],
+                  ["BRI", "Brignogan"],
+                  ["KER", "Kerlouan"]
+                ].map(([code, label]) => (
+                  <div key={code} className="rounded-2xl bg-black/40 p-4">
+                    <div className="mb-3 text-lg font-black text-amber-300">{label}</div>
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      {Object.entries(blockGroupLabels).map(([group, groupLabel]) => {
+                        const active = Boolean(stockBlocks?.[code]?.[group]);
+                        return <button key={group} onClick={() => toggleStockBlockForLocation(code, group)} className={`rounded-2xl px-4 py-4 text-sm font-black ${active ? "bg-red-500 text-white" : "bg-white/10 text-white"}`}>{active ? `${groupLabel} COMPLETS` : `${groupLabel} ouverts`}</button>;
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-3xl border border-white/10 bg-stone-900 p-5 lg:col-span-2">
+              <h2 className="mb-4 text-2xl font-black">Message accueil</h2>
+              <textarea value={siteMessage} onChange={e=>saveSiteMessage(e.target.value)} className="min-h-32 w-full rounded-xl border border-white/10 bg-black p-4"/>
+            </div>
+          </div>}
         </main>
       )}
     </div>
