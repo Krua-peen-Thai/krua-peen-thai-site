@@ -94,6 +94,25 @@ const productsSeed = [
 
 const showcase = ["Pad Thaï signature","Currys thaï","Poulet noix de cajou","Porc caramel","Pad Kra Pao","Sushis sur commande","Poké bowls","Nems, samoussas, bouchées vapeur","Traiteur mariage, retour de mariage, entreprise"];
 
+const menuVisualCards = [
+  {
+    id: "thai",
+    title: "Spécialités thaïlandaises",
+    subtitle: "Cuisine traditionnelle thaïlandaise maison",
+    text: "Pad Thaï, currys, plats avec riz ou nouilles, entrées à partager.",
+    image: "/cartes/menu-thai.png",
+    category: "Plats avec nouilles"
+  },
+  {
+    id: "sushi",
+    title: "Sushis & Poké bowls",
+    subtitle: "Préparés sur commande pour plus de fraîcheur",
+    text: "Sushis, makis, california, crunch, makis printemps et poké bowls.",
+    image: "/cartes/menu-sushis.png",
+    category: "Sushis"
+  }
+];
+
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 const supabase = supabaseUrl && supabaseAnonKey ? createClient(supabaseUrl, supabaseAnonKey) : null;
@@ -173,6 +192,7 @@ function KruaSite() {
   const [adminLocationFilter, setAdminLocationFilter] = useState("ALL");
   const [adminStatusFilter, setAdminStatusFilter] = useState("ACTIVE");
   const [hideDoneOrders, setHideDoneOrders] = useState(true);
+  const [selectedMenuCard, setSelectedMenuCard] = useState(null);
   const [newProduct, setNewProduct] = useState({ code: "", name: "", category: "Entrées", price: "", desc: "", available: true, fixed: true });
   const [newLocation, setNewLocation] = useState({ city: "", label: "", place: "", day: "Dimanche", hours: "16h30 – 21h30", active: true });
 
@@ -821,6 +841,12 @@ KRUA PEÈN THAÏ`;
       .filter(group => group.items.length);
   }, [orders, adminLocationFilter]);
 
+  function goToMenuCategory(category) {
+    setCategoryFilter("Tous");
+    setOpenCategory(category);
+    setTimeout(() => document.getElementById("commander")?.scrollIntoView({ behavior: "smooth", block: "start" }), 80);
+  }
+
   return (
     <div className="min-h-screen bg-[#070504] text-stone-50">
       <header className="sticky top-0 z-50 border-b border-amber-500/20 bg-black/80 backdrop-blur-xl">
@@ -837,11 +863,54 @@ KRUA PEÈN THAÏ`;
         </div>
       </header>
 
+      {selectedMenuCard && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 p-3">
+          <div className="relative max-h-[95vh] w-full max-w-5xl overflow-hidden rounded-3xl border border-amber-300/30 bg-black shadow-2xl">
+            <div className="flex items-center justify-between gap-3 border-b border-white/10 p-4">
+              <div>
+                <div className="text-xl font-black text-amber-300">{selectedMenuCard.title}</div>
+                <div className="text-sm text-stone-300">Carte complète KRUA PEÈN THAÏ</div>
+              </div>
+              <button onClick={() => setSelectedMenuCard(null)} className="rounded-full bg-white/10 px-4 py-2 font-black">Fermer ✕</button>
+            </div>
+            <div className="max-h-[82vh] overflow-auto bg-black p-3">
+              <img src={selectedMenuCard.image} alt={selectedMenuCard.title} className="mx-auto h-auto w-full max-w-4xl rounded-2xl"/>
+            </div>
+          </div>
+        </div>
+      )}
+
       {view === "site" ? (
         <main>
           <section className="relative overflow-hidden"><div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(245,158,11,.25),transparent_30%),radial-gradient(circle_at_bottom_left,rgba(185,28,28,.24),transparent_30%)]" /><div className="relative mx-auto grid max-w-7xl gap-8 px-4 py-16 md:grid-cols-[1.05fr_.95fr] md:py-24"><div className="flex flex-col justify-center"><div className="mb-4 inline-flex w-fit items-center gap-2 rounded-full border border-amber-300/30 bg-amber-300/10 px-4 py-2 text-sm text-amber-200"><Sparkles size={16}/> {siteMessage}</div><h1 className="text-4xl font-black leading-tight md:text-6xl">Cuisine thaï maison, sushi & poké bowls sur commande</h1><p className="mt-5 max-w-2xl text-lg text-stone-300">Food truck basé à Plabennec, présent dans le Finistère Nord. Retrait pendant le service, paiement sur place, confirmation par Tina.</p><div className="mt-8 flex flex-wrap gap-3"><a href="#commander" className="rounded-2xl bg-amber-400 px-6 py-4 font-bold text-black shadow-lg shadow-amber-500/20">Commander cette semaine</a><a href="#carte" className="rounded-2xl border border-white/20 px-6 py-4 font-bold">Voir notre carte</a><a href="#traiteur" className="rounded-2xl border border-white/20 px-6 py-4 font-bold">Demande traiteur</a></div></div><div className="rounded-[2rem] border border-amber-300/20 bg-gradient-to-br from-stone-900 to-black p-5 shadow-2xl"><div className="rounded-[1.5rem] bg-stone-800 p-6"><div className="mb-3 flex items-center gap-2 text-amber-300"><ChefHat/> Cette semaine chez Tina</div><div className="grid gap-2">{availableProducts.slice(0,6).map(p=><div key={p.id} className="flex items-center justify-between rounded-xl bg-black/40 px-4 py-3"><span>{p.name}</span><span className="font-bold text-amber-300">{euro(p.price)}</span></div>)}</div></div><div className="mt-4 rounded-[1.5rem] border border-white/10 p-6"><div className="text-sm uppercase tracking-widest text-stone-400">Contact commande</div><div className="mt-2 text-2xl font-black">{BRAND.phone.replace(/(\d{2})(?=\d)/g,"$1 ")}</div><div className="mt-3 text-stone-300">WhatsApp Business disponible</div></div></div></div></section>
 
-          <section id="carte" className="mx-auto max-w-7xl px-4 py-12"><div className="mb-6 flex items-center gap-3"><UtensilsCrossed className="text-amber-300"/><h2 className="text-3xl font-black">Notre carte & savoir-faire</h2></div><p className="max-w-3xl text-stone-300">Cette partie présente ce que Tina propose. Certains plats thaï changent selon la semaine.</p><div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{showcase.map(item=><div key={item} className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 font-semibold">{item}</div>)}</div></section>
+          <section id="carte" className="mx-auto max-w-7xl px-4 py-12">
+            <div className="mb-6 flex items-center gap-3">
+              <UtensilsCrossed className="text-amber-300"/>
+              <h2 className="text-3xl font-black">Notre carte</h2>
+            </div>
+            <p className="max-w-3xl text-stone-300">Choisissez votre univers, consultez la carte complète en grand, puis commandez les produits disponibles cette semaine.</p>
+            <div className="mt-8 grid gap-5 md:grid-cols-2">
+              {menuVisualCards.map(card => (
+                <article key={card.id} className="group overflow-hidden rounded-[2rem] border border-amber-300/20 bg-stone-950 shadow-2xl">
+                  <button onClick={() => setSelectedMenuCard(card)} className="relative block h-80 w-full overflow-hidden text-left">
+                    <img src={card.image} alt={card.title} className="h-full w-full object-cover transition duration-500 group-hover:scale-105"/>
+                    <div className="absolute inset-0 bg-gradient-to-t from-black via-black/45 to-transparent"/>
+                    <div className="absolute bottom-0 left-0 right-0 p-6">
+                      <div className="mb-2 inline-flex rounded-full bg-amber-400 px-3 py-1 text-xs font-black text-black">Carte complète</div>
+                      <h3 className="text-3xl font-black text-amber-200">{card.title}</h3>
+                      <p className="mt-2 text-sm font-bold text-white">{card.subtitle}</p>
+                      <p className="mt-2 max-w-md text-sm text-stone-200">{card.text}</p>
+                    </div>
+                  </button>
+                  <div className="grid gap-3 p-5 sm:grid-cols-2">
+                    <button onClick={() => setSelectedMenuCard(card)} className="rounded-2xl border border-amber-300/30 px-4 py-3 font-black text-amber-200">Voir la carte en grand</button>
+                    <button onClick={() => goToMenuCategory(card.category)} className="rounded-2xl bg-amber-400 px-4 py-3 font-black text-black">Commander</button>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </section>
 
           <section id="commander" className="mx-auto max-w-7xl px-4 py-12"><div className="mb-6 flex items-center gap-3"><ShoppingCart className="text-amber-300"/><h2 className="text-3xl font-black">Commander cette semaine</h2></div><div className="mb-6 space-y-4"><div className="flex gap-2 overflow-x-auto pb-2">{categories.map(cat=><button key={cat} onClick={()=>{setCategoryFilter(cat); if(cat!=="Tous") setOpenCategory(cat);}} className={`whitespace-nowrap rounded-full px-4 py-3 text-sm font-bold ${categoryFilter===cat ? "bg-amber-400 text-black" : "bg-white/10"}`}>{cat==="Tous" ? "Tout" : categoryLabels[cat] || cat}</button>)}</div><div className="relative"><Search className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400" size={18}/><input value={searchTerm} onChange={e=>setSearchTerm(e.target.value)} placeholder="Rechercher : saumon, poké, S16..." className="w-full rounded-2xl border border-white/10 bg-stone-900 py-4 pl-12 pr-4"/></div></div><div className="grid gap-6 lg:grid-cols-[1fr_380px]"><div className="space-y-4">{productsByCategory.map(group=>{const isOpen=openCategory===group.category || categoryFilter!=="Tous"; return <div key={group.category} className="overflow-hidden rounded-3xl border border-white/10 bg-stone-950/70"><button onClick={()=>setOpenCategory(isOpen?"":group.category)} className="flex w-full items-center justify-between gap-4 p-5 text-left"><div><h3 className="text-2xl font-black text-amber-200">{categoryLabels[group.category] || group.category}</h3><p className="mt-1 text-sm text-stone-400">{group.items.length} produit{group.items.length>1?"s":""}</p></div><ChevronDown className={`text-amber-300 transition-transform ${isOpen ? "rotate-180" : ""}`}/></button>{isOpen && <div className="grid gap-4 border-t border-white/10 p-5 sm:grid-cols-2">{group.items.map(p=><article key={p.id} className="rounded-3xl border border-white/10 bg-stone-900 p-5"><div className="mb-2 flex items-center justify-between gap-3 text-sm"><span className="font-black text-amber-300">{p.code}</span><span className="rounded-full bg-white/10 px-3 py-1 text-xs text-stone-300">{p.fixed ? "Permanent" : "Cette semaine"}</span></div><h3 className="text-xl font-black">{p.name}</h3><p className="mt-2 min-h-12 text-sm text-stone-300">{p.desc}</p><div className="mt-5 flex items-center justify-between"><span className="text-lg font-black text-amber-300">{euro(p.price)}</span><button disabled={!selectedAvailability.open || isProductBlocked(p)} onClick={()=>addToCart(p.id)} className="rounded-xl bg-amber-400 px-4 py-3 font-bold text-black disabled:opacity-40">{isProductBlocked(p) ? "Complet réservation" : "Ajouter"}</button></div></article>)}</div>}</div>})}</div><aside className="h-fit rounded-3xl border border-amber-300/20 bg-black p-5 shadow-xl"><h3 className="mb-4 text-2xl font-black">Votre commande</h3><label className="text-sm text-stone-300">Lieu de retrait</label><select value={locationId} onChange={e=>setLocationId(e.target.value)} className="mt-2 w-full rounded-xl border border-white/10 bg-stone-900 p-3">{visibleLocations.map(l=><option key={l.id} value={l.id}>{l.label} – {l.city}</option>)}</select><div className="mt-3 rounded-xl bg-white/[0.04] p-3 text-sm text-stone-300"><MapPin className="mr-2 inline text-amber-300" size={16}/>{selectedLocation.place} • {servicePickupText(selectedLocation)}</div>{currentBlockMessages.map(block=><div key={block.group} className="mt-4 rounded-xl bg-orange-950/70 p-4 text-sm font-bold text-orange-100">⚠️ {block.text}</div>)}{!selectedAvailability.open && <div className="mt-4 rounded-xl bg-red-950/70 p-4 text-sm font-bold text-red-100">{selectedAvailability.message}</div>}{selectedAvailability.open && selectedAvailability.mode === "service" && <div className="mt-4 rounded-xl bg-green-950/70 p-4 text-sm font-bold text-green-100">{selectedAvailability.message}</div>}<div className="my-5 space-y-3">{cartLines.length===0 && <div className="rounded-xl bg-white/[0.04] p-4 text-stone-400">Panier vide</div>}{cartLines.map(line=><div key={line.id} className="flex items-center justify-between gap-3 rounded-xl bg-white/[0.04] p-3"><div><div className="font-bold">{line.name}</div><div className="text-sm text-stone-400">{line.qty} × {euro(line.price)}</div></div><div className="flex items-center gap-2"><button onClick={()=>removeFromCart(line.id)} className="rounded-lg bg-white/10 px-3 py-2">-</button><button onClick={()=>addToCart(line.id)} className="rounded-lg bg-white/10 px-3 py-2">+</button></div></div>)}</div>{sushiDiscount > 0 && <div className="mb-3 flex items-center justify-between rounded-xl bg-green-500/10 p-3 text-sm font-black text-green-200"><span>Remise sushis -10%</span><span>-{euro(sushiDiscount)}</span></div>}
               {sushiDiscountBase > 0 && sushiDiscount === 0 && <div className="mb-3 rounded-xl bg-amber-400/10 p-3 text-xs font-bold text-amber-100">🍣 -10% sur les sushis dès 25€ de commande sushi.</div>}
