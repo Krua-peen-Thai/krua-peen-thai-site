@@ -301,7 +301,7 @@ function KruaSite() {
       const setting = settingsRes.data?.[0];
       if (setting) { setOrdersOpen(setting.orders_open); setServiceOrdersOpen(Boolean(setting.service_orders_open)); setStockBlocks(setting.stock_blocks || {}); setSiteMessage(setting.site_message || "Précommandes ouvertes jusqu’à la veille 20h"); }
       else await supabase.from("settings").upsert({ id:"main", orders_open:true, service_orders_open:false, stock_blocks:{}, site_message:"Précommandes ouvertes jusqu’à la veille 20h" });
-      if (ordersRes.data?.length) setOrders(ordersRes.data.map(o => ({ id:o.code, dbId:o.id, createdAt:o.created_at, status:o.status, customer:{ firstName:o.first_name, lastName:o.last_name || "", phone:o.phone, email:o.email || "", note:o.note || "" }, locationId:o.location_id, items:(o.order_items || []).map(item => ({ id:item.product_id, name:item.name, qty:item.qty, price:Number(item.price) })) })));
+      if (ordersRes.data?.length) setOrders(ordersRes.data.map(o => ({ id:o.code, dbId:o.id, createdAt:o.created_at, status:o.status, total:Number(o.total || 0), customer:{ firstName:o.first_name, lastName:o.last_name || "", phone:o.phone, email:o.email || "", note:o.note || "" }, locationId:o.location_id, items:(o.order_items || []).map(item => ({ id:item.product_id, name:item.name, qty:item.qty, price:Number(item.price) })) })));
     } catch (e) { console.error(e); setAppMode("Erreur Supabase, mode local"); }
   }
 
@@ -328,6 +328,19 @@ function KruaSite() {
     return ["Sushis", "Makis", "California", "Sushis spécial", "Crunch", "Makis printemps"].includes(product?.category);
   }
 
+  function orderItemsTotal(order) {
+    return (order?.items || []).reduce((s, i) => s + i.qty * i.price, 0);
+  }
+
+  function orderGrandTotal(order) {
+    if (typeof order?.total === "number" && !Number.isNaN(order.total)) return order.total;
+    return orderItemsTotal(order);
+  }
+
+  function orderDiscountAmount(order) {
+    return Math.max(0, orderItemsTotal(order) - orderGrandTotal(order));
+  }
+
   async function submitOrder() {
     const orderAvailability = getOrderAvailability(selectedLocation);
     if (!orderAvailability.open) return alert(orderAvailability.message);
@@ -335,8 +348,10 @@ function KruaSite() {
     if (blockedCartLine) return alert(`${blockedCartLine.name} est complet à la réservation pour cet emplacement.`);
     if (!customer.firstName || !customer.phone || cartLines.length === 0) return alert("Merci de remplir prénom, téléphone et panier.");
 const orderItems = cartLines.map(({id,name,qty,price}) => ({id,name,qty,price}));
-    if (sushiDiscount > 0) orderItems.push({ id:"discount-sushi-10", name:"Remise sushis -10% dès 25€", qty:1, price:-sushiDiscount });
-    const order = { id: await makeOrderCode(locationId, orders), createdAt:new Date().toISOString(), status:"À confirmer", customer, locationId, items: orderItems };
+    // IMPORTANT : la remise n'est pas insérée dans order_items.
+    // order_items.product_id est lié à products.id, donc une fausse ligne "discount" casse Supabase.
+    // La remise est uniquement enregistrée dans orders.total.
+    const order = { id: await makeOrderCode(locationId, orders), createdAt:new Date().toISOString(), status:"À confirmer", customer, locationId, items: orderItems, total };
     if (supabase) {
       const { data, error } = await supabase.from("orders").insert({ code:order.id, status:order.status, first_name:customer.firstName, last_name:customer.lastName, phone:customer.phone, email:customer.email || null, note:customer.note, location_id:locationId, total }).select().single();
       if (error) return alert("Erreur commande : " + error.message);
@@ -605,38 +620,15 @@ KRUA PEÈN THAÏ`;
       return;
     }
 
-    try {
-      const orderTotal = order.items.reduce((s, i) => s + i.qty * i.price, 0);
-      const response = await fetch("/api/send-confirmation-email", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          to: order.customer.email,
-          orderCode: order.id,
-          locationCity: loc.city,
-          serviceDate: formatServiceDate(loc),
-          serviceHours: servicePickupText(loc),
-          total: euro(orderTotal),
-          items: order.items.map(item => ({
-            name: item.name,
-            qty: item.qty,
-            price: euro(item.price),
-            lineTotal: euro(item.qty * item.price)
-          }))
-        })
-      });
+    const orderTotal = orderGrandTotal(order);
+    const subject = `Confirmation commande ${order.id} - KRUA PEÈN THAÏ`;
+    const itemsText = order.items.map(item => `- ${item.qty} x ${item.name} : ${euro(item.qty * item.price)}`).join("%0D%0A");
+    const discount = orderDiscountAmount(order);
+    const discountText = discount > 0 ? `%0D%0ARemise sushis -10% : -${euro(discount)}` : "";
+    const body = `Bonjour,%0D%0A%0D%0AVotre commande ${order.id} est bien confirmée.%0D%0A%0D%0ARetrait : ${loc.city} - ${formatServiceDate(loc)} - ${servicePickupText(loc)}%0D%0A%0D%0ADétail :%0D%0A${itemsText}${discountText}%0D%0A%0D%0ATotal : ${euro(orderTotal)}%0D%0A%0D%0AMerci et à bientôt,%0D%0AKRUA PEÈN THAÏ`;
 
-      const result = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        throw new Error(result.error || "Erreur envoi email");
-      }
-
-      await updateOrderStatus(order.id, "Confirmée");
-      alert("Email de confirmation envoyé.");
-    } catch (error) {
-      console.error(error);
-      alert("Erreur email : " + (error.message || error));
-    }
+    window.location.href = `mailto:${encodeURIComponent(order.customer.email)}?subject=${encodeURIComponent(subject)}&body=${body}`;
+    await updateOrderStatus(order.id, "Confirmée");
   }
 
   async function copyMessageToClipboard(text) {
@@ -711,86 +703,90 @@ KRUA PEÈN THAÏ`;
     return lines;
   }
 
-  async function printKitchenTicket(order, loc) {
-    const EPSON_URL = "http://192.168.1.100/cgi-bin/epos/service.cgi?devid=local_printer&timeout=10000";
-    const orderTotal = order.items.reduce((s, i) => s + i.qty * i.price, 0);
-    const sep = "------------------------------------------";
+  function printKitchenTicket(order, loc) {
+    const orderTotal = orderGrandTotal(order);
+    const discountAmount = orderDiscountAmount(order);
     const fullName = `${order.customer.firstName || ""} ${order.customer.lastName || ""}`.trim();
+    const itemsHtml = order.items.map(item => `
+      <div class="line"><span>${escapeHtml(`${item.qty} x ${item.name}`)}</span><b>${escapeHtml(euro(item.qty * item.price))}</b></div>
+    `).join("");
+    const discountHtml = discountAmount > 0 ? `<div class="line discount"><span>Remise sushis -10%</span><b>-${escapeHtml(euro(discountAmount))}</b></div>` : "";
+    const noteHtml = order.customer.note ? `<div class="section"><h3>NOTE CLIENT</h3><div class="note">${escapeHtml(order.customer.note).toUpperCase()}</div></div>` : "";
 
-    let lines = [];
-    lines.push("KRUA PEEN THAI");
-    lines.push("Thai - Sushi - Poke");
-    lines.push(sep);
-    lines.push(order.id);
-    lines.push(sep);
-    lines.push("COMMANDE LE");
-    lines.push(formatDateTime(order.createdAt));
-    lines.push(sep);
-    lines.push("RETRAIT");
-    lines.push(String(loc.city || "").toUpperCase());
-    lines.push(loc.place || "");
-    lines.push(formatServiceDate(loc));
-    lines.push(servicePickupText(loc));
-    lines.push(sep);
-    lines.push("CLIENT");
-    if (fullName) lines.push(fullName.toUpperCase());
-    if (order.customer.phone) lines.push(order.customer.phone);
-    if (order.customer.email) lines.push(order.customer.email);
-    lines.push(sep);
+    const html = `<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>Ticket ${escapeHtml(order.id)}</title>
+<style>
+  @page { size: 80mm auto; margin: 4mm; }
+  body { width: 72mm; margin: 0; font-family: Arial, sans-serif; color: #000; font-size: 15px; }
+  .ticket { width: 72mm; }
+  .center { text-align: center; }
+  h1 { font-size: 25px; margin: 0 0 2px; font-weight: 900; }
+  h2 { font-size: 24px; margin: 8px 0; font-weight: 900; text-align: center; }
+  h3 { font-size: 16px; margin: 0 0 4px; font-weight: 900; }
+  .sub { font-size: 14px; margin-bottom: 8px; }
+  .sep { border-top: 1px dashed #000; margin: 8px 0; }
+  .section { margin: 8px 0; }
+  .big { font-size: 20px; font-weight: 900; }
+  .line { display: flex; justify-content: space-between; gap: 8px; margin: 7px 0; font-size: 16px; font-weight: 700; }
+  .line span { flex: 1; }
+  .discount { color: #000; }
+  .total { display: flex; justify-content: space-between; font-size: 24px; font-weight: 900; margin-top: 8px; }
+  .note { font-size: 20px; font-weight: 900; white-space: pre-wrap; }
+  .small { font-size: 13px; }
+  @media print { button { display: none; } }
+</style>
+</head>
+<body>
+  <div class="ticket">
+    <div class="center">
+      <h1>KRUA PEÈN THAÏ</h1>
+      <div class="sub">Thaï • Sushi • Poké</div>
+    </div>
+    <div class="sep"></div>
+    <h2>${escapeHtml(order.id)}</h2>
+    <div class="sep"></div>
+    <div class="section">
+      <h3>COMMANDÉ LE</h3>
+      <div>${escapeHtml(formatDateTime(order.createdAt))}</div>
+    </div>
+    <div class="sep"></div>
+    <div class="section">
+      <h3>RETRAIT</h3>
+      <div class="big">${escapeHtml(String(loc.city || "").toUpperCase())}</div>
+      <div>${escapeHtml(loc.place || "")}</div>
+      <div>${escapeHtml(formatServiceDate(loc))}</div>
+      <div>${escapeHtml(servicePickupText(loc))}</div>
+    </div>
+    <div class="sep"></div>
+    <div class="section">
+      <h3>CLIENT</h3>
+      ${fullName ? `<div class="big">${escapeHtml(fullName.toUpperCase())}</div>` : ""}
+      ${order.customer.phone ? `<div>${escapeHtml(order.customer.phone)}</div>` : ""}
+      ${order.customer.email ? `<div class="small">${escapeHtml(order.customer.email)}</div>` : ""}
+    </div>
+    <div class="sep"></div>
+    <div class="section">${itemsHtml}${discountHtml}</div>
+    ${noteHtml}
+    <div class="sep"></div>
+    <div class="total"><span>TOTAL</span><span>${escapeHtml(euro(orderTotal))}</span></div>
+  </div>
+  <script>
+    window.onload = function(){ setTimeout(function(){ window.print(); }, 300); };
+  </script>
+</body>
+</html>`;
 
-    order.items.forEach((item) => {
-      const left = `${item.qty} x ${item.name}`;
-      const right = euro(item.qty * item.price);
-      const wrapped = ticketWrap(left, 28);
-      if (wrapped.length <= 1) {
-        lines.push(ticketLine(left, right));
-      } else {
-        lines.push(ticketLine(wrapped[0], right));
-        wrapped.slice(1).forEach(extra => lines.push(`  ${extra}`));
-      }
-    });
-
-    if (order.customer.note) {
-      lines.push(sep);
-      lines.push("NOTE CLIENT");
-      ticketWrap(order.customer.note.toUpperCase(), 42).forEach(line => lines.push(line));
+    const printWindow = window.open("", "_blank", "width=420,height=700");
+    if (!printWindow) {
+      alert("Popup bloquée. Autorise les popups pour imprimer le ticket.");
+      return;
     }
-
-    lines.push(sep);
-    lines.push(ticketLine("TOTAL", euro(orderTotal)));
-    lines.push(sep);
-    lines.push("MERCI");
-
-    const textXml = lines.map(line => `<text>${eposText(normalizeTicketText(line))}\n</text>`).join("");
-    const xml = `<?xml version="1.0" encoding="UTF-8"?>
-<epos-print xmlns="http://www.epson-pos.com/schemas/2011/03/epos-print">
-  <text lang="fr" smooth="true" />
-  <align align="center" />
-  <text width="2" height="2">KRUA PEEN THAI\n</text>
-  <text width="1" height="1">Thai - Sushi - Poke\n</text>
-  <align align="left" />
-  ${lines.slice(2).map(line => `<text>${eposText(normalizeTicketText(line))}\n</text>`).join("")}
-  <feed line="3" />
-  <cut type="feed" />
-</epos-print>`;
-
-    try {
-      const response = await fetch(EPSON_URL, {
-        method: "POST",
-        headers: { "Content-Type": "text/xml; charset=UTF-8" },
-        body: xml
-      });
-
-      const resultText = await response.text().catch(() => "");
-      if (!response.ok) throw new Error(`Epson HTTP ${response.status}`);
-      if (resultText && resultText.toLowerCase().includes("error")) {
-        console.warn("Réponse Epson", resultText);
-      }
-      alert("Ticket envoyé à l'Epson.");
-    } catch (error) {
-      console.error("Impression Epson", error);
-      alert("Impossible d'imprimer en direct sur l'Epson. Vérifie que la tablette est sur le WiFi TP-Link et que l'imprimante est allumée. Détail : " + (error.message || error));
-    }
+    printWindow.document.open();
+    printWindow.document.write(html);
+    printWindow.document.close();
   }
 
   const activeOrdersCount = orders.filter(o => o.status === "À confirmer" || o.status === "Confirmée").length;
@@ -901,7 +897,7 @@ KRUA PEÈN THAÏ`;
 
                   {visibleOrders.map(order=>{
                     const loc=locations.find(l=>l.id===order.locationId)||locations[0];
-                    const orderTotal=order.items.reduce((s,i)=>s+i.qty*i.price,0);
+                    const orderTotal=orderGrandTotal(order);
                     const whatsMsg=buildWhatsAppMessage(order, loc);
                     const smsMsg=buildSmsMessage(order, loc);
                     return <div key={order.id} id={`order-${order.id}`} className="mb-4 rounded-3xl border border-white/10 bg-black p-5">
@@ -914,7 +910,7 @@ KRUA PEÈN THAÏ`;
                         <span className={`rounded-full px-4 py-2 text-sm font-bold ${order.status==="Confirmée" ? "bg-green-500/20 text-green-300" : order.status==="Annulée" ? "bg-red-500/20 text-red-300" : order.status==="Récupérée" ? "bg-blue-500/20 text-blue-300" : "bg-orange-500/20 text-orange-300"}`}>{order.status}</span>
                       </div>
                       <div className="rounded-2xl bg-white/[0.04] p-4"><MapPin className="mr-2 inline text-amber-300" size={16}/>{loc.city} • {loc.label} • {formatServiceDate(loc)} • {servicePickupText(loc)}</div>
-                      <div className="my-4 space-y-2">{order.items.map(item=><div key={item.id} className="flex justify-between rounded-xl bg-white/[0.04] px-4 py-3"><span>{item.qty} × {item.name}</span><b>{euro(item.qty*item.price)}</b></div>)}</div>
+                      <div className="my-4 space-y-2">{order.items.map(item=><div key={item.id} className="flex justify-between rounded-xl bg-white/[0.04] px-4 py-3"><span>{item.qty} × {item.name}</span><b>{euro(item.qty*item.price)}</b></div>)}{orderDiscountAmount(order) > 0 && <div className="flex justify-between rounded-xl bg-green-500/10 px-4 py-3 font-black text-green-200"><span>Remise sushis -10%</span><b>-{euro(orderDiscountAmount(order))}</b></div>}</div>
                       {order.customer.note && <div className="mb-4 rounded-xl bg-amber-400/10 p-3 text-sm text-amber-100">Note : {order.customer.note}</div>}
                       <div className="mb-4 flex justify-between border-t border-white/10 pt-4 text-xl font-black"><span>Total</span><span>{euro(orderTotal)}</span></div>
                       <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-7">
