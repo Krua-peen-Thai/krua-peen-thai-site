@@ -894,7 +894,11 @@ KRUA PEÈN THAÏ`;
               {menuVisualCards.map(card => (
                 <article key={card.id} className="group overflow-hidden rounded-[2rem] border border-amber-300/20 bg-stone-950 shadow-2xl">
                   <button onClick={() => setSelectedMenuCard(card)} className="relative block h-80 w-full overflow-hidden text-left">
-                    <img src={card.image} alt={card.title} className="h-full w-full object-cover transition duration-500 group-hover:scale-105"/>
+                    <img
+  src={card.image}
+  alt={card.title}
+  className="h-full w-full object-cover object-[center_15%] transition duration-500 group-hover:scale-105"
+/>
                     <div className="absolute inset-0 bg-gradient-to-t from-black via-black/45 to-transparent"/>
                     <div className="absolute bottom-0 left-0 right-0 p-6">
                       <div className="mb-2 inline-flex rounded-full bg-amber-400 px-3 py-1 text-xs font-black text-black">Carte complète</div>
