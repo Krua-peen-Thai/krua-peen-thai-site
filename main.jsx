@@ -4,44 +4,55 @@ import { createClient } from "@supabase/supabase-js";
 import { ShoppingCart, MapPin, Phone, MessageCircle, Clock, ChefHat, Lock, CheckCircle2, XCircle, PackageCheck, Settings, Eye, CalendarDays, Sparkles, UtensilsCrossed, Search, ChevronDown, Clipboard } from "lucide-react";
 import "./style.css";
 
-const BRAND = { name: "KRUA PEÈN THAÏ", phone: "0670395523", email: "kan-siam@laposte.net", instagram: "@krua_peen_thai", facebook: "KRUA Peèn-Thaï" };
+const BRAND = { name: "KRUA PEÈN THAÏ", phone: "0670395523", email: "kruapeenthai@gmail.com", instagram: "@krua_peen_thai", facebook: "KRUA Peèn-Thaï" };
 
 const initialLocations = [
-  { id: "PLAB", city: "Plabennec", label: "Mardi soir", place: "Devant l’église", day: "Mardi", hours: "16h00 – 20h30" },
-  { id: "KERJ", city: "Kerlouan", label: "Jeudi matin", place: "Place de la mairie", day: "Jeudi", hours: "08h00 – 13h00" },
-  { id: "BRI", city: "Brignogan", label: "Vendredi matin", place: "Place du marché", day: "Vendredi", hours: "08h00 – 13h00" },
-  { id: "KERD", city: "Kerlouan", label: "Dimanche matin", place: "Place de la mairie", day: "Dimanche", hours: "08h00 – 13h00" },
+  { id: "PLAB", city: "Plabennec", label: "Mardi soir", place: "Devant l’église", day: "Mardi", hours: "16h00 – 20h30", active: true },
+  { id: "KERJ", city: "Kerlouan", label: "Jeudi matin", place: "Place de la mairie", day: "Jeudi", hours: "08h00 – 13h00", active: true },
+  { id: "KERD", city: "Kerlouan", label: "Dimanche matin", place: "Place de la mairie", day: "Dimanche", hours: "08h00 – 13h00", active: true },
+  { id: "BRI", city: "Brignogan", label: "Dimanche soir", place: "Devant le camping Slow Village", day: "Dimanche", hours: "16h30 – 21h30", active: true },
 ];
 
-const categoryOrder = ["Plats permanents","Plats de la semaine","Entrées","Sushis","Makis","California","Sushis spécial","Crunch","Makis printemps","Poké bowls","Accompagnements"];
+const categoryOrder = ["Entrées","Accompagnements","Plats avec nouilles","Plats avec riz","Currys","Sushis","Makis","California","Sushis spécial","Crunch","Makis printemps","Poké bowls"];
 const categoryLabels = {
-  "Plats permanents": "🍜 Plats thaï", "Plats de la semaine": "🔥 Cette semaine", "Entrées": "🥟 Entrées",
+  "Entrées": "🥟 Entrées", "Accompagnements": "🍚 Accompagnements",
+  "Plats avec nouilles": "🍜 Plats avec nouilles", "Plats avec riz": "🍚 Plats avec riz", "Currys": "🌶️ Currys",
   "Sushis": "🍣 Sushis", "Makis": "🥒 Makis", "California": "🥑 California", "Sushis spécial": "⭐ Sushis spéciaux",
-  "Crunch": "🔥 Crunch", "Makis printemps": "🌿 Makis printemps", "Poké bowls": "🥗 Poké bowls", "Accompagnements": "🍚 Accompagnements",
+  "Crunch": "🔥 Crunch", "Makis printemps": "🌿 Makis printemps", "Poké bowls": "🥗 Poké bowls",
 };
 
 const productsSeed = [
-  { id: "pad-thai", code: "P1", name: "Pad Thaï", category: "Plats permanents", price: 10.5, available: true, fixed: true, desc: "Nouilles de riz, œuf, soja, cacahuètes, ciboulettes." },
-  { id: "nouilles-sautees", code: "P2", name: "Nouilles sautées", category: "Plats permanents", price: 9.5, available: true, fixed: true, desc: "Nouilles de blé sautées avec légumes." },
-  { id: "poulet-cajou", code: "P6", name: "Poulet aux noix de cajou", category: "Plats de la semaine", price: 9.5, available: true, fixed: false, desc: "Poulet sauté, légumes, noix de cajou. Activable selon la semaine." },
-  { id: "curry-rouge", code: "P9", name: "Curry rouge", category: "Plats de la semaine", price: 9.9, available: true, fixed: false, desc: "Viande, légumes, pâte de curry, lait de coco. Activable selon la semaine." },
-  { id: "porc-caramel", code: "P5", name: "Porc au caramel", category: "Plats de la semaine", price: 9.9, available: false, fixed: false, desc: "Porc mijoté sauce caramélisée maison. Activable selon la semaine." },
-  { id: "pad-kra-pao", code: "P4", name: "Pad Kra Pao", category: "Plats de la semaine", price: 9.5, available: false, fixed: false, desc: "Viande hachée, basilic thaï, oignons. Activable selon la semaine." },
-  { id: "e1", code: "E1", name: "Rouleau de printemps crevettes", category: "Entrées", price: 3.5, available: true, fixed: true, desc: "1 pièce." },
-  { id: "e1-4", code: "E1", name: "Rouleaux de printemps crevettes x4", category: "Entrées", price: 12, available: true, fixed: true, desc: "4 pièces." },
-  { id: "e2", code: "E2", name: "Nem crevettes", category: "Entrées", price: 1.5, available: true, fixed: true, desc: "1 pièce." },
+  { id: "e1", code: "E1", name: "Rouleau de printemps crevette", category: "Entrées", price: 3.5, available: true, fixed: true, desc: "1 pièce." },
+  { id: "e1-4", code: "E1", name: "Rouleaux de printemps crevette x4", category: "Entrées", price: 12, available: true, fixed: true, desc: "4 pièces." },
+  { id: "e2", code: "E2", name: "Nems crevettes", category: "Entrées", price: 1.5, available: true, fixed: true, desc: "1 pièce." },
   { id: "e2-4", code: "E2", name: "Nems crevettes x4", category: "Entrées", price: 5.5, available: true, fixed: true, desc: "4 pièces." },
-  { id: "e3", code: "E3", name: "Nem porc", category: "Entrées", price: 1.3, available: true, fixed: true, desc: "1 pièce." },
+  { id: "e3", code: "E3", name: "Nems porc", category: "Entrées", price: 1.3, available: true, fixed: true, desc: "1 pièce." },
   { id: "e3-4", code: "E3", name: "Nems porc x4", category: "Entrées", price: 5, available: true, fixed: true, desc: "4 pièces." },
-  { id: "e4", code: "E4", name: "Nem légumes", category: "Entrées", price: 1.3, available: true, fixed: true, desc: "1 pièce." },
+  { id: "e4", code: "E4", name: "Nems légumes", category: "Entrées", price: 1.3, available: true, fixed: true, desc: "1 pièce." },
   { id: "e4-4", code: "E4", name: "Nems légumes x4", category: "Entrées", price: 5, available: true, fixed: true, desc: "4 pièces." },
-  { id: "e5", code: "E5", name: "Nem poulet", category: "Entrées", price: 1.3, available: true, fixed: true, desc: "1 pièce." },
+  { id: "e5", code: "E5", name: "Nems poulet", category: "Entrées", price: 1.3, available: true, fixed: true, desc: "1 pièce." },
   { id: "e5-4", code: "E5", name: "Nems poulet x4", category: "Entrées", price: 5, available: true, fixed: true, desc: "4 pièces." },
-  { id: "e6", code: "E6", name: "Samoussa bœuf ou porc basilic thaï", category: "Entrées", price: 1.3, available: true, fixed: true, desc: "1 pièce." },
-  { id: "e6-4", code: "E6", name: "Samoussas bœuf ou porc basilic thaï x4", category: "Entrées", price: 5, available: true, fixed: true, desc: "4 pièces." },
-  { id: "e7", code: "E7", name: "Brochette de poulet pané", category: "Entrées", price: 2, available: true, fixed: true, desc: "1 pièce." },
-  { id: "e8", code: "E8", name: "Bouchée vapeur", category: "Entrées", price: 1, available: true, fixed: true, desc: "Porc ou poulet & crevette. 1 pièce." },
-  { id: "e8-6", code: "E8", name: "Bouchées vapeur x6", category: "Entrées", price: 5.5, available: true, fixed: true, desc: "6 pièces." },
+  { id: "e6", code: "E6", name: "Samoussas bœuf", category: "Entrées", price: 1.3, available: true, fixed: true, desc: "1 pièce." },
+  { id: "e6-4", code: "E6", name: "Samoussas bœuf x4", category: "Entrées", price: 5, available: true, fixed: true, desc: "4 pièces." },
+  { id: "e7", code: "E7", name: "Samoussas porc basilic Thaï", category: "Entrées", price: 1.3, available: true, fixed: true, desc: "1 pièce." },
+  { id: "e7-4", code: "E7", name: "Samoussas porc basilic Thaï x4", category: "Entrées", price: 5, available: true, fixed: true, desc: "4 pièces." },
+  { id: "e8", code: "E8", name: "Brochette de poulet pané", category: "Entrées", price: 2, available: true, fixed: true, desc: "1 pièce." },
+  { id: "e9", code: "E9", name: "Bouchée vapeur poulet & crevette", category: "Entrées", price: 1, available: true, fixed: true, desc: "1 pièce." },
+  { id: "e9-6", code: "E9", name: "Bouchées vapeur poulet & crevette x6", category: "Entrées", price: 5.5, available: true, fixed: true, desc: "6 pièces." },
+  { id: "riz-cantonais", code: "A1", name: "Riz cantonais", category: "Accompagnements", price: 5.5, available: true, fixed: true, desc: "Accompagnement." },
+  { id: "nouilles-sautees-accompagnement", code: "A2", name: "Nouilles sautées", category: "Accompagnements", price: 5.5, available: true, fixed: true, desc: "Accompagnement." },
+  { id: "option-riz-cantonais", code: "OPT", name: "Option riz cantonais", category: "Accompagnements", price: 2.5, available: true, fixed: true, desc: "Remplacer le riz nature par du riz cantonais." },
+  { id: "option-nouilles-sautees", code: "OPT", name: "Option nouilles sautées", category: "Accompagnements", price: 2.5, available: true, fixed: true, desc: "Remplacer le riz nature par des nouilles sautées." },
+  { id: "pad-thai", code: "P1", name: "Pad Thaï", category: "Plats avec nouilles", price: 10.5, available: true, fixed: true, desc: "Nouilles de riz, œuf, soja, cacahuètes, ciboulettes. Au choix : porc, poulet ou crevettes." },
+  { id: "nouilles-sautees", code: "P2", name: "Nouilles sautées", category: "Plats avec nouilles", price: 9.5, available: true, fixed: true, desc: "Nouilles de blé sautées avec légumes. Au choix : porc, poulet ou crevettes." },
+  { id: "pad-nam-man-hoi", code: "P3", name: "Pad Nam Man Hoi", category: "Plats avec riz", price: 9.9, available: true, fixed: false, desc: "Bœuf sauté, sauce huître, oignons, ciboulettes. Au choix : porc, poulet ou crevettes." },
+  { id: "pad-kra-pao", code: "P4", name: "Pad Kra Pao", category: "Plats avec riz", price: 9.5, available: true, fixed: false, desc: "Viande hachée, basilic thaï, oignons. Au choix : porc, poulet ou crevettes." },
+  { id: "porc-caramel", code: "P5", name: "Porc au caramel", category: "Plats avec riz", price: 9.9, available: true, fixed: false, desc: "Porc mijoté sauce caramélisée maison." },
+  { id: "poulet-cajou", code: "P6", name: "Poulet aux noix de cajou", category: "Plats avec riz", price: 9.5, available: true, fixed: false, desc: "Poulet sauté, légumes, noix de cajou." },
+  { id: "pad-phong-curry", code: "P7", name: "Pad Phong Curry", category: "Plats avec riz", price: 9.5, available: true, fixed: false, desc: "Poulet ou crevettes sautés au curry jaune, oignons, ciboulettes." },
+  { id: "curry-panang", code: "P8", name: "Curry Panang", category: "Currys", price: 9.9, available: true, fixed: false, desc: "Viande, légumes, pâte de curry, lait de coco. Au choix : poulet, porc ou crevette." },
+  { id: "curry-rouge", code: "P9", name: "Curry rouge", category: "Currys", price: 9.9, available: true, fixed: false, desc: "Viande, légumes, pâte de curry, lait de coco. Au choix : poulet, porc ou crevette." },
+  { id: "curry-vert", code: "P10", name: "Curry vert", category: "Currys", price: 9.9, available: true, fixed: false, desc: "Viande, légumes, pâte de curry, lait de coco. Au choix : poulet, porc ou crevette." },
   { id: "s1", code: "S1", name: "6 sushis saumon", category: "Sushis", price: 8.5, available: true, fixed: true, desc: "Commande conseillée la veille." },
   { id: "s2", code: "S2", name: "10 sushis saumon", category: "Sushis", price: 15, available: true, fixed: true, desc: "Commande conseillée la veille." },
   { id: "s3", code: "S3", name: "6 sushis crevettes", category: "Sushis", price: 9, available: true, fixed: true, desc: "Commande conseillée la veille." },
@@ -73,7 +84,7 @@ const productsSeed = [
   { id: "s29", code: "S29", name: "Maki printemps thon mayonnaise x8", category: "Makis printemps", price: 7.5, available: true, fixed: true, desc: "8 pièces." },
   { id: "s30", code: "S30", name: "Maki printemps végétarien x8", category: "Makis printemps", price: 7, available: true, fixed: true, desc: "8 pièces." },
   { id: "s31", code: "S31", name: "Maki printemps crevettes fromage x8", category: "Makis printemps", price: 8.5, available: true, fixed: true, desc: "8 pièces." },
-  { id: "s32", code: "S32", name: "Roll saumon fromage x6", category: "Makis printemps", price: 9.5, available: true, fixed: true, desc: "6 pièces." },
+  { id: "s32", code: "S32", name: "6 Roll saumon fromage", category: "Makis printemps", price: 9.5, available: true, fixed: true, desc: "6 pièces." },
   { id: "s33", code: "S33", name: "Poké bowl saumon", category: "Poké bowls", price: 9.5, available: true, fixed: true, desc: "Avocat, concombre, radis, oignons frits." },
   { id: "s34", code: "S34", name: "Poké bowl thon mayonnaise", category: "Poké bowls", price: 9.5, available: true, fixed: true, desc: "Avocat, concombre, radis, oignons frits." },
   { id: "s35", code: "S35", name: "Riz vinaigré", category: "Accompagnements", price: 3.5, available: true, fixed: true, desc: "Accompagnement." },
@@ -162,6 +173,8 @@ function KruaSite() {
   const [adminLocationFilter, setAdminLocationFilter] = useState("ALL");
   const [adminStatusFilter, setAdminStatusFilter] = useState("ACTIVE");
   const [hideDoneOrders, setHideDoneOrders] = useState(true);
+  const [newProduct, setNewProduct] = useState({ code: "", name: "", category: "Entrées", price: "", desc: "", available: true, fixed: true });
+  const [newLocation, setNewLocation] = useState({ city: "", label: "", place: "", day: "Dimanche", hours: "16h30 – 21h30", active: true });
 
   useEffect(() => {
     const normalizePath = () => window.location.pathname.replace(/\/$/, "");
@@ -283,7 +296,7 @@ function KruaSite() {
       ]);
       if (productsRes.data?.length) setProducts(productsRes.data.map(p => ({ id:p.id, code:p.code, name:p.name, category:p.category, price:Number(p.price), available:p.available, fixed:p.fixed, desc:p.description || "" })));
       else await supabase.from("products").upsert(productsSeed.map(p => ({ id:p.id, code:p.code, name:p.name, category:p.category, price:p.price, available:p.available, fixed:p.fixed, description:p.desc })));
-      if (locationsRes.data?.length) setLocations(locationsRes.data.map(l => ({ id:l.id, city:l.city, label:l.label, place:l.place, day:l.day, hours:l.hours })));
+      if (locationsRes.data?.length) setLocations(locationsRes.data.map(l => ({ id:l.id, city:l.city, label:l.label, place:l.place, day:l.day, hours:l.hours, active:l.active !== false })));
       else await supabase.from("locations").upsert(initialLocations.map(l => ({ ...l, active:true })));
       const setting = settingsRes.data?.[0];
       if (setting) { setOrdersOpen(setting.orders_open); setServiceOrdersOpen(Boolean(setting.service_orders_open)); setStockBlocks(setting.stock_blocks || {}); setSiteMessage(setting.site_message || "Précommandes ouvertes jusqu’à la veille 20h"); }
@@ -300,12 +313,20 @@ function KruaSite() {
   });
   const productsByCategory = categoryOrder.map(category => ({ category, items: filteredProducts.filter(p => p.category === category) })).filter(g => g.items.length);
   const cartLines = useMemo(() => Object.entries(cart).map(([id, qty]) => ({ ...products.find(p => p.id === id), qty })).filter(x => x.id), [cart, products]);
-  const total = cartLines.reduce((s, i) => s + i.price * i.qty, 0);
-  const selectedLocation = locations.find(l => l.id === locationId) || locations[0];
+  const cartTotal = cartLines.reduce((s, i) => s + i.price * i.qty, 0);
+  const sushiDiscountBase = cartLines.filter(isSushiDiscountProduct).reduce((s, i) => s + i.price * i.qty, 0);
+  const sushiDiscount = sushiDiscountBase >= 25 ? Math.round(sushiDiscountBase * 0.10 * 100) / 100 : 0;
+  const total = Math.max(0, cartTotal - sushiDiscount);
+  const visibleLocations = locations.filter(l => l.active !== false);
+  const selectedLocation = visibleLocations.find(l => l.id === locationId) || visibleLocations[0] || locations[0];
   const selectedAvailability = getOrderAvailability(selectedLocation);
 
   function addToCart(id) { setCart(old => ({ ...old, [id]:(old[id] || 0) + 1 })); }
   function removeFromCart(id) { setCart(old => { const n={...old}; n[id]=(n[id]||0)-1; if(n[id]<=0) delete n[id]; return n; }); }
+
+  function isSushiDiscountProduct(product) {
+    return ["Sushis", "Makis", "California", "Sushis spécial", "Crunch", "Makis printemps"].includes(product?.category);
+  }
 
   async function submitOrder() {
     const orderAvailability = getOrderAvailability(selectedLocation);
@@ -313,7 +334,9 @@ function KruaSite() {
     const blockedCartLine = cartLines.find(item => isProductBlocked(item));
     if (blockedCartLine) return alert(`${blockedCartLine.name} est complet à la réservation pour cet emplacement.`);
     if (!customer.firstName || !customer.phone || cartLines.length === 0) return alert("Merci de remplir prénom, téléphone et panier.");
-const order = { id: await makeOrderCode(locationId, orders), createdAt:new Date().toISOString(), status:"À confirmer", customer, locationId, items: cartLines.map(({id,name,qty,price}) => ({id,name,qty,price})) };
+const orderItems = cartLines.map(({id,name,qty,price}) => ({id,name,qty,price}));
+    if (sushiDiscount > 0) orderItems.push({ id:"discount-sushi-10", name:"Remise sushis -10% dès 25€", qty:1, price:-sushiDiscount });
+    const order = { id: await makeOrderCode(locationId, orders), createdAt:new Date().toISOString(), status:"À confirmer", customer, locationId, items: orderItems };
     if (supabase) {
       const { data, error } = await supabase.from("orders").insert({ code:order.id, status:order.status, first_name:customer.firstName, last_name:customer.lastName, phone:customer.phone, email:customer.email || null, note:customer.note, location_id:locationId, total }).select().single();
       if (error) return alert("Erreur commande : " + error.message);
@@ -341,6 +364,43 @@ const order = { id: await makeOrderCode(locationId, orders), createdAt:new Date(
     setLocations(old => old.map(l => l.id === id ? { ...l, [field]: value } : l));
     if (supabase) await supabase.from("locations").update({ [field]: value }).eq("id", id);
   }
+
+  function slugify(value = "") {
+    return String(value).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || `item-${Date.now()}`;
+  }
+
+  async function addProductFromDashboard() {
+    if (!newProduct.name || !newProduct.price) return alert("Nom et prix obligatoires.");
+    const product = {
+      id: `${slugify(newProduct.code || newProduct.category)}-${slugify(newProduct.name)}`,
+      code: newProduct.code || "NEW",
+      name: newProduct.name,
+      category: newProduct.category,
+      price: Number(newProduct.price),
+      available: true,
+      fixed: Boolean(newProduct.fixed),
+      desc: newProduct.desc || "Ajouté depuis le dashboard."
+    };
+    setProducts(old => [...old, product]);
+    if (supabase) await supabase.from("products").upsert({ id:product.id, code:product.code, name:product.name, category:product.category, price:product.price, available:product.available, fixed:product.fixed, description:product.desc });
+    setNewProduct({ code:"", name:"", category:"Entrées", price:"", desc:"", available:true, fixed:true });
+  }
+
+  async function addLocationFromDashboard() {
+    if (!newLocation.city || !newLocation.label || !newLocation.hours) return alert("Ville, libellé et horaires obligatoires.");
+    const location = {
+      id: `${slugify(newLocation.city).slice(0,4).toUpperCase()}${Date.now().toString().slice(-3)}`,
+      city:newLocation.city,
+      label:newLocation.label,
+      place:newLocation.place,
+      day:newLocation.day,
+      hours:newLocation.hours,
+      active:true
+    };
+    setLocations(old => [...old, location]);
+    if (supabase) await supabase.from("locations").upsert(location);
+    setNewLocation({ city:"", label:"", place:"", day:"Dimanche", hours:"16h30 – 21h30", active:true });
+  }
   async function toggleOrdersOpen() {
     const next = !ordersOpen; setOrdersOpen(next);
     if (supabase) await supabase.from("settings").upsert({ id:"main", orders_open:next, service_orders_open:serviceOrdersOpen, stock_blocks:stockBlocks, site_message:siteMessage });
@@ -361,7 +421,7 @@ const order = { id: await makeOrderCode(locationId, orders), createdAt:new Date(
 
   function productBlockGroup(product) {
     if (!product) return null;
-    if (["Plats permanents", "Plats de la semaine"].includes(product.category)) return "thai";
+    if (["Plats permanents", "Plats de la semaine", "Plats avec nouilles", "Plats avec riz", "Currys"].includes(product.category)) return "thai";
     if (["Sushis", "Makis", "California", "Sushis spécial", "Crunch", "Makis printemps", "Poké bowls"].includes(product.category)) return "sushi";
     return null;
   }
@@ -449,7 +509,18 @@ const order = { id: await makeOrderCode(locationId, orders), createdAt:new Date(
     startDate.setHours(start.hour, start.minute, 0, 0);
     const endDate = new Date(date);
     endDate.setHours(end.hour, end.minute, 0, 0);
-    return { date, startDate, endDate };
+    const pickupEndDate = new Date(endDate);
+    pickupEndDate.setMinutes(pickupEndDate.getMinutes() - 30);
+    return { date, startDate, endDate, pickupEndDate };
+  }
+
+  function formatTime(date) {
+    return date.toLocaleTimeString("fr-FR", { hour:"2-digit", minute:"2-digit" }).replace(":", "h");
+  }
+
+  function servicePickupText(location) {
+    const { pickupEndDate } = getServiceWindow(location);
+    return `${location?.hours || ""} · retrait max ${formatTime(pickupEndDate)}`;
   }
 
   function formatServiceDate(location) {
@@ -460,7 +531,7 @@ const order = { id: await makeOrderCode(locationId, orders), createdAt:new Date(
 
   function getOrderAvailability(location) {
     const now = new Date();
-    const { date, endDate } = getServiceWindow(location);
+    const { date, endDate, pickupEndDate } = getServiceWindow(location);
 
     const closingDate = new Date(date);
     closingDate.setDate(closingDate.getDate() - 1);
@@ -485,11 +556,11 @@ const order = { id: await makeOrderCode(locationId, orders), createdAt:new Date(
       };
     }
 
-    if (serviceOrdersOpen && now >= serviceOpenDate && now <= endDate) {
+    if (serviceOrdersOpen && now >= serviceOpenDate && now <= pickupEndDate) {
       return {
         open: true,
         mode: "service",
-        message: "Commande en direct au food truck. Disponibilités selon stock restant. Paiement sur place."
+        message: `Commande en direct au food truck. Retrait possible jusqu’à ${formatTime(pickupEndDate)}. Paiement sur place.`
       };
     }
 
@@ -513,14 +584,14 @@ const order = { id: await makeOrderCode(locationId, orders), createdAt:new Date(
 
 Votre commande ${order.id} est bien confirmée pour ${loc.city} le ${formatServiceDate(loc)}.
 
-Vous pourrez la récupérer pendant le service directement au food truck.
+Vous pourrez la récupérer pendant le service directement au food truck. Retrait max : ${formatTime(getServiceWindow(loc).pickupEndDate)}.
 
 Merci et à très bientôt 🙏🌶️
 KRUA PEÈN THAÏ`;
   }
 
   function buildSmsMessage(order, loc) {
-    return `KRUA PEÈN THAÏ : Commande ${order.id} confirmée pour ${loc.city} ${formatServiceDate(loc)}. Retrait pendant le service au food truck. Merci 🌶️`;
+    return `KRUA PEÈN THAÏ : Commande ${order.id} confirmée pour ${loc.city} ${formatServiceDate(loc)}. Retrait max ${formatTime(getServiceWindow(loc).pickupEndDate)} au food truck. Merci 🌶️`;
   }
 
   function smsLink(phone, text) {
@@ -544,7 +615,7 @@ KRUA PEÈN THAÏ`;
           orderCode: order.id,
           locationCity: loc.city,
           serviceDate: formatServiceDate(loc),
-          serviceHours: loc.hours,
+          serviceHours: servicePickupText(loc),
           total: euro(orderTotal),
           items: order.items.map(item => ({
             name: item.name,
@@ -659,7 +730,7 @@ KRUA PEÈN THAÏ`;
     lines.push(String(loc.city || "").toUpperCase());
     lines.push(loc.place || "");
     lines.push(formatServiceDate(loc));
-    lines.push(loc.hours || "");
+    lines.push(servicePickupText(loc));
     lines.push(sep);
     lines.push("CLIENT");
     if (fullName) lines.push(fullName.toUpperCase());
@@ -776,9 +847,11 @@ KRUA PEÈN THAÏ`;
 
           <section id="carte" className="mx-auto max-w-7xl px-4 py-12"><div className="mb-6 flex items-center gap-3"><UtensilsCrossed className="text-amber-300"/><h2 className="text-3xl font-black">Notre carte & savoir-faire</h2></div><p className="max-w-3xl text-stone-300">Cette partie présente ce que Tina propose. Certains plats thaï changent selon la semaine.</p><div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{showcase.map(item=><div key={item} className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 font-semibold">{item}</div>)}</div></section>
 
-          <section id="commander" className="mx-auto max-w-7xl px-4 py-12"><div className="mb-6 flex items-center gap-3"><ShoppingCart className="text-amber-300"/><h2 className="text-3xl font-black">Commander cette semaine</h2></div><div className="mb-6 space-y-4"><div className="flex gap-2 overflow-x-auto pb-2">{categories.map(cat=><button key={cat} onClick={()=>{setCategoryFilter(cat); if(cat!=="Tous") setOpenCategory(cat);}} className={`whitespace-nowrap rounded-full px-4 py-3 text-sm font-bold ${categoryFilter===cat ? "bg-amber-400 text-black" : "bg-white/10"}`}>{cat==="Tous" ? "Tout" : categoryLabels[cat] || cat}</button>)}</div><div className="relative"><Search className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400" size={18}/><input value={searchTerm} onChange={e=>setSearchTerm(e.target.value)} placeholder="Rechercher : saumon, poké, S16..." className="w-full rounded-2xl border border-white/10 bg-stone-900 py-4 pl-12 pr-4"/></div></div><div className="grid gap-6 lg:grid-cols-[1fr_380px]"><div className="space-y-4">{productsByCategory.map(group=>{const isOpen=openCategory===group.category || categoryFilter!=="Tous"; return <div key={group.category} className="overflow-hidden rounded-3xl border border-white/10 bg-stone-950/70"><button onClick={()=>setOpenCategory(isOpen?"":group.category)} className="flex w-full items-center justify-between gap-4 p-5 text-left"><div><h3 className="text-2xl font-black text-amber-200">{categoryLabels[group.category] || group.category}</h3><p className="mt-1 text-sm text-stone-400">{group.items.length} produit{group.items.length>1?"s":""}</p></div><ChevronDown className={`text-amber-300 transition-transform ${isOpen ? "rotate-180" : ""}`}/></button>{isOpen && <div className="grid gap-4 border-t border-white/10 p-5 sm:grid-cols-2">{group.items.map(p=><article key={p.id} className="rounded-3xl border border-white/10 bg-stone-900 p-5"><div className="mb-2 flex items-center justify-between gap-3 text-sm"><span className="font-black text-amber-300">{p.code}</span><span className="rounded-full bg-white/10 px-3 py-1 text-xs text-stone-300">{p.fixed ? "Permanent" : "Cette semaine"}</span></div><h3 className="text-xl font-black">{p.name}</h3><p className="mt-2 min-h-12 text-sm text-stone-300">{p.desc}</p><div className="mt-5 flex items-center justify-between"><span className="text-lg font-black text-amber-300">{euro(p.price)}</span><button disabled={!selectedAvailability.open || isProductBlocked(p)} onClick={()=>addToCart(p.id)} className="rounded-xl bg-amber-400 px-4 py-3 font-bold text-black disabled:opacity-40">{isProductBlocked(p) ? "Complet réservation" : "Ajouter"}</button></div></article>)}</div>}</div>})}</div><aside className="h-fit rounded-3xl border border-amber-300/20 bg-black p-5 shadow-xl"><h3 className="mb-4 text-2xl font-black">Votre commande</h3><label className="text-sm text-stone-300">Lieu de retrait</label><select value={locationId} onChange={e=>setLocationId(e.target.value)} className="mt-2 w-full rounded-xl border border-white/10 bg-stone-900 p-3">{locations.map(l=><option key={l.id} value={l.id}>{l.label} – {l.city}</option>)}</select><div className="mt-3 rounded-xl bg-white/[0.04] p-3 text-sm text-stone-300"><MapPin className="mr-2 inline text-amber-300" size={16}/>{selectedLocation.place} • {selectedLocation.hours}</div>{currentBlockMessages.map(block=><div key={block.group} className="mt-4 rounded-xl bg-orange-950/70 p-4 text-sm font-bold text-orange-100">⚠️ {block.text}</div>)}{!selectedAvailability.open && <div className="mt-4 rounded-xl bg-red-950/70 p-4 text-sm font-bold text-red-100">{selectedAvailability.message}</div>}{selectedAvailability.open && selectedAvailability.mode === "service" && <div className="mt-4 rounded-xl bg-green-950/70 p-4 text-sm font-bold text-green-100">{selectedAvailability.message}</div>}<div className="my-5 space-y-3">{cartLines.length===0 && <div className="rounded-xl bg-white/[0.04] p-4 text-stone-400">Panier vide</div>}{cartLines.map(line=><div key={line.id} className="flex items-center justify-between gap-3 rounded-xl bg-white/[0.04] p-3"><div><div className="font-bold">{line.name}</div><div className="text-sm text-stone-400">{line.qty} × {euro(line.price)}</div></div><div className="flex items-center gap-2"><button onClick={()=>removeFromCart(line.id)} className="rounded-lg bg-white/10 px-3 py-2">-</button><button onClick={()=>addToCart(line.id)} className="rounded-lg bg-white/10 px-3 py-2">+</button></div></div>)}</div><div className="mb-5 flex items-center justify-between border-t border-white/10 pt-4 text-xl font-black"><span>Total</span><span className="text-amber-300">{euro(total)}</span></div><div className="grid gap-3"><input placeholder="Prénom *" value={customer.firstName} onChange={e=>setCustomer({...customer, firstName:e.target.value})} className="rounded-xl border border-white/10 bg-stone-900 p-3"/><input placeholder="Nom" value={customer.lastName} onChange={e=>setCustomer({...customer, lastName:e.target.value})} className="rounded-xl border border-white/10 bg-stone-900 p-3"/><input placeholder="Téléphone *" value={customer.phone} onChange={e=>setCustomer({...customer, phone:e.target.value})} className="rounded-xl border border-white/10 bg-stone-900 p-3"/><input placeholder="Email (pour confirmation)" type="email" value={customer.email} onChange={e=>setCustomer({...customer, email:e.target.value})} className="rounded-xl border border-white/10 bg-stone-900 p-3"/><textarea placeholder="Commentaire" value={customer.note} onChange={e=>setCustomer({...customer, note:e.target.value})} className="rounded-xl border border-white/10 bg-stone-900 p-3"/><button disabled={!selectedAvailability.open} onClick={submitOrder} className="rounded-2xl bg-amber-400 px-5 py-4 font-black text-black disabled:opacity-40">{selectedAvailability.open ? "Envoyer la demande" : "Commandes fermées"}</button><p className="text-xs text-stone-400">{selectedAvailability.open ? selectedAvailability.message : selectedAvailability.message}</p></div></aside></div></section>
+          <section id="commander" className="mx-auto max-w-7xl px-4 py-12"><div className="mb-6 flex items-center gap-3"><ShoppingCart className="text-amber-300"/><h2 className="text-3xl font-black">Commander cette semaine</h2></div><div className="mb-6 space-y-4"><div className="flex gap-2 overflow-x-auto pb-2">{categories.map(cat=><button key={cat} onClick={()=>{setCategoryFilter(cat); if(cat!=="Tous") setOpenCategory(cat);}} className={`whitespace-nowrap rounded-full px-4 py-3 text-sm font-bold ${categoryFilter===cat ? "bg-amber-400 text-black" : "bg-white/10"}`}>{cat==="Tous" ? "Tout" : categoryLabels[cat] || cat}</button>)}</div><div className="relative"><Search className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400" size={18}/><input value={searchTerm} onChange={e=>setSearchTerm(e.target.value)} placeholder="Rechercher : saumon, poké, S16..." className="w-full rounded-2xl border border-white/10 bg-stone-900 py-4 pl-12 pr-4"/></div></div><div className="grid gap-6 lg:grid-cols-[1fr_380px]"><div className="space-y-4">{productsByCategory.map(group=>{const isOpen=openCategory===group.category || categoryFilter!=="Tous"; return <div key={group.category} className="overflow-hidden rounded-3xl border border-white/10 bg-stone-950/70"><button onClick={()=>setOpenCategory(isOpen?"":group.category)} className="flex w-full items-center justify-between gap-4 p-5 text-left"><div><h3 className="text-2xl font-black text-amber-200">{categoryLabels[group.category] || group.category}</h3><p className="mt-1 text-sm text-stone-400">{group.items.length} produit{group.items.length>1?"s":""}</p></div><ChevronDown className={`text-amber-300 transition-transform ${isOpen ? "rotate-180" : ""}`}/></button>{isOpen && <div className="grid gap-4 border-t border-white/10 p-5 sm:grid-cols-2">{group.items.map(p=><article key={p.id} className="rounded-3xl border border-white/10 bg-stone-900 p-5"><div className="mb-2 flex items-center justify-between gap-3 text-sm"><span className="font-black text-amber-300">{p.code}</span><span className="rounded-full bg-white/10 px-3 py-1 text-xs text-stone-300">{p.fixed ? "Permanent" : "Cette semaine"}</span></div><h3 className="text-xl font-black">{p.name}</h3><p className="mt-2 min-h-12 text-sm text-stone-300">{p.desc}</p><div className="mt-5 flex items-center justify-between"><span className="text-lg font-black text-amber-300">{euro(p.price)}</span><button disabled={!selectedAvailability.open || isProductBlocked(p)} onClick={()=>addToCart(p.id)} className="rounded-xl bg-amber-400 px-4 py-3 font-bold text-black disabled:opacity-40">{isProductBlocked(p) ? "Complet réservation" : "Ajouter"}</button></div></article>)}</div>}</div>})}</div><aside className="h-fit rounded-3xl border border-amber-300/20 bg-black p-5 shadow-xl"><h3 className="mb-4 text-2xl font-black">Votre commande</h3><label className="text-sm text-stone-300">Lieu de retrait</label><select value={locationId} onChange={e=>setLocationId(e.target.value)} className="mt-2 w-full rounded-xl border border-white/10 bg-stone-900 p-3">{visibleLocations.map(l=><option key={l.id} value={l.id}>{l.label} – {l.city}</option>)}</select><div className="mt-3 rounded-xl bg-white/[0.04] p-3 text-sm text-stone-300"><MapPin className="mr-2 inline text-amber-300" size={16}/>{selectedLocation.place} • {servicePickupText(selectedLocation)}</div>{currentBlockMessages.map(block=><div key={block.group} className="mt-4 rounded-xl bg-orange-950/70 p-4 text-sm font-bold text-orange-100">⚠️ {block.text}</div>)}{!selectedAvailability.open && <div className="mt-4 rounded-xl bg-red-950/70 p-4 text-sm font-bold text-red-100">{selectedAvailability.message}</div>}{selectedAvailability.open && selectedAvailability.mode === "service" && <div className="mt-4 rounded-xl bg-green-950/70 p-4 text-sm font-bold text-green-100">{selectedAvailability.message}</div>}<div className="my-5 space-y-3">{cartLines.length===0 && <div className="rounded-xl bg-white/[0.04] p-4 text-stone-400">Panier vide</div>}{cartLines.map(line=><div key={line.id} className="flex items-center justify-between gap-3 rounded-xl bg-white/[0.04] p-3"><div><div className="font-bold">{line.name}</div><div className="text-sm text-stone-400">{line.qty} × {euro(line.price)}</div></div><div className="flex items-center gap-2"><button onClick={()=>removeFromCart(line.id)} className="rounded-lg bg-white/10 px-3 py-2">-</button><button onClick={()=>addToCart(line.id)} className="rounded-lg bg-white/10 px-3 py-2">+</button></div></div>)}</div>{sushiDiscount > 0 && <div className="mb-3 flex items-center justify-between rounded-xl bg-green-500/10 p-3 text-sm font-black text-green-200"><span>Remise sushis -10%</span><span>-{euro(sushiDiscount)}</span></div>}
+              {sushiDiscountBase > 0 && sushiDiscount === 0 && <div className="mb-3 rounded-xl bg-amber-400/10 p-3 text-xs font-bold text-amber-100">🍣 -10% sur les sushis dès 25€ de commande sushi.</div>}
+              <div className="mb-5 flex items-center justify-between border-t border-white/10 pt-4 text-xl font-black"><span>Total</span><span className="text-amber-300">{euro(total)}</span></div><div className="grid gap-3"><input placeholder="Prénom *" value={customer.firstName} onChange={e=>setCustomer({...customer, firstName:e.target.value})} className="rounded-xl border border-white/10 bg-stone-900 p-3"/><input placeholder="Nom" value={customer.lastName} onChange={e=>setCustomer({...customer, lastName:e.target.value})} className="rounded-xl border border-white/10 bg-stone-900 p-3"/><input placeholder="Téléphone *" value={customer.phone} onChange={e=>setCustomer({...customer, phone:e.target.value})} className="rounded-xl border border-white/10 bg-stone-900 p-3"/><input placeholder="Email (pour confirmation)" type="email" value={customer.email} onChange={e=>setCustomer({...customer, email:e.target.value})} className="rounded-xl border border-white/10 bg-stone-900 p-3"/><textarea placeholder="Commentaire" value={customer.note} onChange={e=>setCustomer({...customer, note:e.target.value})} className="rounded-xl border border-white/10 bg-stone-900 p-3"/><button disabled={!selectedAvailability.open} onClick={submitOrder} className="rounded-2xl bg-amber-400 px-5 py-4 font-black text-black disabled:opacity-40">{selectedAvailability.open ? "Envoyer la demande" : "Commandes fermées"}</button><p className="text-xs text-stone-400">{selectedAvailability.open ? selectedAvailability.message : selectedAvailability.message}</p></div></aside></div></section>
 
-          <section id="lieux" className="mx-auto max-w-7xl px-4 py-12"><div className="mb-6 flex items-center gap-3"><CalendarDays className="text-amber-300"/><h2 className="text-3xl font-black">Où nous trouver</h2></div><div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">{locations.map(l=><div key={l.id} className="rounded-3xl border border-white/10 bg-white/[0.03] p-5"><div className="font-bold text-amber-300">{l.label}</div><div className="mt-2 text-2xl font-black">{l.city}</div><div className="mt-2 text-stone-300">{l.place}</div><div className="mt-4 flex items-center gap-2 text-stone-200"><Clock size={16}/>{l.hours}</div></div>)}</div></section>
+          <section id="lieux" className="mx-auto max-w-7xl px-4 py-12"><div className="mb-6 flex items-center gap-3"><CalendarDays className="text-amber-300"/><h2 className="text-3xl font-black">Où nous trouver</h2></div><div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">{visibleLocations.map(l=><div key={l.id} className="rounded-3xl border border-white/10 bg-white/[0.03] p-5"><div className="font-bold text-amber-300">{l.label}</div><div className="mt-2 text-2xl font-black">{l.city}</div><div className="mt-2 text-stone-300">{l.place}</div><div className="mt-4 flex items-center gap-2 text-stone-200"><Clock size={16}/>{servicePickupText(l)}</div></div>)}</div></section>
 
           <section id="traiteur" className="mx-auto max-w-7xl px-4 py-12 pb-20"><div className="rounded-[2rem] border border-amber-300/20 bg-gradient-to-br from-stone-900 to-black p-8"><h2 className="text-3xl font-black">Traiteur thaï, sushi & poké bowls</h2><p className="mt-3 max-w-3xl text-stone-300">Mariage, retour de mariage, anniversaire, séminaire, repas d’entreprise. Demandez un devis, Tina vous recontacte.</p><div className="mt-6 grid gap-3 md:grid-cols-2"><input placeholder="Nom" className="rounded-xl border border-white/10 bg-black p-4"/><input placeholder="Téléphone" className="rounded-xl border border-white/10 bg-black p-4"/><input placeholder="Type d’événement" className="rounded-xl border border-white/10 bg-black p-4"/><input placeholder="Nombre de personnes" className="rounded-xl border border-white/10 bg-black p-4"/><textarea placeholder="Votre demande" className="rounded-xl border border-white/10 bg-black p-4 md:col-span-2"/></div><button className="mt-5 rounded-2xl bg-amber-400 px-6 py-4 font-black text-black">Demander un devis</button></div></section>
         </main>
@@ -840,7 +913,7 @@ KRUA PEÈN THAÏ`;
                         </div>
                         <span className={`rounded-full px-4 py-2 text-sm font-bold ${order.status==="Confirmée" ? "bg-green-500/20 text-green-300" : order.status==="Annulée" ? "bg-red-500/20 text-red-300" : order.status==="Récupérée" ? "bg-blue-500/20 text-blue-300" : "bg-orange-500/20 text-orange-300"}`}>{order.status}</span>
                       </div>
-                      <div className="rounded-2xl bg-white/[0.04] p-4"><MapPin className="mr-2 inline text-amber-300" size={16}/>{loc.city} • {loc.label} • {formatServiceDate(loc)} • {loc.hours}</div>
+                      <div className="rounded-2xl bg-white/[0.04] p-4"><MapPin className="mr-2 inline text-amber-300" size={16}/>{loc.city} • {loc.label} • {formatServiceDate(loc)} • {servicePickupText(loc)}</div>
                       <div className="my-4 space-y-2">{order.items.map(item=><div key={item.id} className="flex justify-between rounded-xl bg-white/[0.04] px-4 py-3"><span>{item.qty} × {item.name}</span><b>{euro(item.qty*item.price)}</b></div>)}</div>
                       {order.customer.note && <div className="mb-4 rounded-xl bg-amber-400/10 p-3 text-sm text-amber-100">Note : {order.customer.note}</div>}
                       <div className="mb-4 flex justify-between border-t border-white/10 pt-4 text-xl font-black"><span>Total</span><span>{euro(orderTotal)}</span></div>
@@ -873,8 +946,8 @@ KRUA PEÈN THAÏ`;
               </aside>
             </div>
           )}
-          {adminTab==="products" && <div className="rounded-3xl border border-white/10 bg-stone-900 p-5"><h2 className="mb-4 text-2xl font-black">Produits commandables</h2><p className="mb-5 text-stone-300">Tina coche les produits disponibles cette semaine et peut ajuster les prix.</p><div className="grid gap-3 md:grid-cols-2">{products.map(p=><div key={p.id} className="rounded-2xl bg-black/40 p-4"><div className="mb-3 flex items-start justify-between gap-3"><div><div className="text-sm font-black text-amber-300">{p.code}</div><div className="font-black">{p.name}</div><div className="text-sm text-stone-400">{p.category}</div></div><label className="flex items-center gap-2 text-sm font-bold"><span>{p.available ? "ON" : "OFF"}</span><input type="checkbox" checked={p.available} onChange={()=>updateProduct(p.id,"available",!p.available)} className="h-7 w-7 accent-amber-400"/></label></div><div className="grid gap-2 sm:grid-cols-[1fr_120px]"><input value={p.name} onChange={e=>updateProduct(p.id,"name",e.target.value)} className="rounded-xl border border-white/10 bg-stone-900 p-3"/><input type="number" step="0.1" value={p.price} onChange={e=>updateProduct(p.id,"price",Number(e.target.value))} className="rounded-xl border border-white/10 bg-stone-900 p-3"/></div></div>)}</div></div>}
-          {adminTab==="locations" && <div className="rounded-3xl border border-white/10 bg-stone-900 p-5"><h2 className="mb-4 text-2xl font-black">Emplacements & horaires</h2><div className="grid gap-4 md:grid-cols-2">{locations.map(l=><div key={l.id} className="rounded-2xl bg-black/40 p-4"><div className="mb-4 font-black text-amber-300">{l.label}</div><div className="grid gap-3"><input value={l.city} onChange={e=>updateLocation(l.id,"city",e.target.value)} className="rounded-xl border border-white/10 bg-stone-900 p-3"/><input value={l.place} onChange={e=>updateLocation(l.id,"place",e.target.value)} className="rounded-xl border border-white/10 bg-stone-900 p-3"/><input value={l.hours} onChange={e=>updateLocation(l.id,"hours",e.target.value)} className="rounded-xl border border-white/10 bg-stone-900 p-3"/></div></div>)}</div></div>}
+          {adminTab==="products" && <div className="rounded-3xl border border-white/10 bg-stone-900 p-5"><h2 className="mb-4 text-2xl font-black">Produits commandables</h2><p className="mb-5 text-stone-300">Tina coche les produits disponibles, ajuste les prix et peut ajouter un nouveau produit sans refaire le code.</p><div className="mb-5 rounded-2xl bg-black/40 p-4"><h3 className="mb-3 font-black text-amber-300">Ajouter un produit</h3><div className="grid gap-2 md:grid-cols-[90px_1fr_180px_120px]"><input placeholder="Code" value={newProduct.code} onChange={e=>setNewProduct({...newProduct, code:e.target.value})} className="rounded-xl border border-white/10 bg-stone-900 p-3"/><input placeholder="Nom du produit" value={newProduct.name} onChange={e=>setNewProduct({...newProduct, name:e.target.value})} className="rounded-xl border border-white/10 bg-stone-900 p-3"/><select value={newProduct.category} onChange={e=>setNewProduct({...newProduct, category:e.target.value})} className="rounded-xl border border-white/10 bg-stone-900 p-3">{categoryOrder.map(cat=><option key={cat} value={cat}>{cat}</option>)}</select><input placeholder="Prix" type="number" step="0.1" value={newProduct.price} onChange={e=>setNewProduct({...newProduct, price:e.target.value})} className="rounded-xl border border-white/10 bg-stone-900 p-3"/></div><textarea placeholder="Description" value={newProduct.desc} onChange={e=>setNewProduct({...newProduct, desc:e.target.value})} className="mt-2 min-h-20 w-full rounded-xl border border-white/10 bg-stone-900 p-3"/><button onClick={addProductFromDashboard} className="mt-3 rounded-xl bg-amber-400 px-4 py-3 font-black text-black">+ Ajouter le produit</button></div><div className="grid gap-3 md:grid-cols-2">{products.map(p=><div key={p.id} className="rounded-2xl bg-black/40 p-4"><div className="mb-3 flex items-start justify-between gap-3"><div><div className="text-sm font-black text-amber-300">{p.code}</div><div className="font-black">{p.name}</div><div className="text-sm text-stone-400">{p.category}</div></div><label className="flex items-center gap-2 text-sm font-bold"><span>{p.available ? "ON" : "OFF"}</span><input type="checkbox" checked={p.available} onChange={()=>updateProduct(p.id,"available",!p.available)} className="h-7 w-7 accent-amber-400"/></label></div><div className="grid gap-2 sm:grid-cols-[1fr_120px]"><input value={p.name} onChange={e=>updateProduct(p.id,"name",e.target.value)} className="rounded-xl border border-white/10 bg-stone-900 p-3"/><input type="number" step="0.1" value={p.price} onChange={e=>updateProduct(p.id,"price",Number(e.target.value))} className="rounded-xl border border-white/10 bg-stone-900 p-3"/></div><textarea value={p.desc} onChange={e=>updateProduct(p.id,"desc",e.target.value)} className="mt-2 min-h-16 w-full rounded-xl border border-white/10 bg-stone-900 p-3 text-sm"/></div>)}</div></div>}
+          {adminTab==="locations" && <div className="rounded-3xl border border-white/10 bg-stone-900 p-5"><h2 className="mb-4 text-2xl font-black">Emplacements & horaires</h2><p className="mb-5 text-stone-300">Le dernier retrait est calculé automatiquement 30 min avant la fermeture.</p><div className="mb-5 rounded-2xl bg-black/40 p-4"><h3 className="mb-3 font-black text-amber-300">Ajouter un emplacement</h3><div className="grid gap-2 md:grid-cols-5"><input placeholder="Label ex : Dimanche soir" value={newLocation.label} onChange={e=>setNewLocation({...newLocation, label:e.target.value})} className="rounded-xl border border-white/10 bg-stone-900 p-3"/><input placeholder="Ville" value={newLocation.city} onChange={e=>setNewLocation({...newLocation, city:e.target.value})} className="rounded-xl border border-white/10 bg-stone-900 p-3"/><input placeholder="Lieu" value={newLocation.place} onChange={e=>setNewLocation({...newLocation, place:e.target.value})} className="rounded-xl border border-white/10 bg-stone-900 p-3"/><select value={newLocation.day} onChange={e=>setNewLocation({...newLocation, day:e.target.value})} className="rounded-xl border border-white/10 bg-stone-900 p-3">{["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche"].map(day=><option key={day}>{day}</option>)}</select><input placeholder="16h30 – 21h30" value={newLocation.hours} onChange={e=>setNewLocation({...newLocation, hours:e.target.value})} className="rounded-xl border border-white/10 bg-stone-900 p-3"/></div><button onClick={addLocationFromDashboard} className="mt-3 rounded-xl bg-amber-400 px-4 py-3 font-black text-black">+ Ajouter l’emplacement</button></div><div className="grid gap-4 md:grid-cols-2">{locations.map(l=><div key={l.id} className="rounded-2xl bg-black/40 p-4"><div className="mb-4 flex items-center justify-between gap-3"><div className="font-black text-amber-300">{l.label}</div><label className="flex items-center gap-2 text-sm font-bold"><span>{l.active === false ? "Masqué" : "Visible"}</span><input type="checkbox" checked={l.active !== false} onChange={()=>updateLocation(l.id,"active",!(l.active !== false))} className="h-6 w-6 accent-amber-400"/></label></div><div className="grid gap-3"><input value={l.label} onChange={e=>updateLocation(l.id,"label",e.target.value)} className="rounded-xl border border-white/10 bg-stone-900 p-3"/><input value={l.city} onChange={e=>updateLocation(l.id,"city",e.target.value)} className="rounded-xl border border-white/10 bg-stone-900 p-3"/><input value={l.place} onChange={e=>updateLocation(l.id,"place",e.target.value)} className="rounded-xl border border-white/10 bg-stone-900 p-3"/><select value={l.day} onChange={e=>updateLocation(l.id,"day",e.target.value)} className="rounded-xl border border-white/10 bg-stone-900 p-3">{["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche"].map(day=><option key={day}>{day}</option>)}</select><input value={l.hours} onChange={e=>updateLocation(l.id,"hours",e.target.value)} className="rounded-xl border border-white/10 bg-stone-900 p-3"/><div className="rounded-xl bg-amber-400/10 p-3 text-sm font-bold text-amber-100">Dernier retrait client : {formatTime(getServiceWindow(l).pickupEndDate)}</div></div></div>)}</div></div>}
           {adminTab==="settings" && <div className="grid gap-6 lg:grid-cols-2">
             <div className="rounded-3xl border border-white/10 bg-stone-900 p-5">
               <h2 className="mb-4 text-2xl font-black">Ouverture commandes</h2>
