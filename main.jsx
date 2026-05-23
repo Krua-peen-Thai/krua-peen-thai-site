@@ -140,8 +140,11 @@ async function makeOrderCode(locationId, existingOrders = []) {
   };
 
   if (supabase) {
-    const { data, error } = await supabase.rpc("next_order_code", { p_location_id: locationId });
-    if (!error && data) return data;
+    const { data, error } = await supabase
+      .from("orders")
+      .select("code")
+      .like("code", `${prefix}%`);
+    if (!error) readCodes(data);
   }
 
   readCodes(existingOrders);
@@ -165,15 +168,10 @@ function urlBase64ToUint8Array(base64String) {
   return Uint8Array.from([...rawData].map((char) => char.charCodeAt(0)));
 }
 
-const ADMIN_EMAIL = "kruapeenthai@gmail.com";
-
 function KruaSite() {
+  const ADMIN_PIN = "1468";
   const [view, setView] = useState("site");
   const [adminUnlocked, setAdminUnlocked] = useState(false);
-  const [adminSession, setAdminSession] = useState(null);
-  const [adminEmail, setAdminEmail] = useState(ADMIN_EMAIL);
-  const [adminPassword, setAdminPassword] = useState("");
-  const [authStatus, setAuthStatus] = useState("");
   const [adminTab, setAdminTab] = useState("orders");
   const [ordersOpen, setOrdersOpen] = useState(true);
   const [serviceOrdersOpen, setServiceOrdersOpen] = useState(false);
@@ -199,35 +197,36 @@ function KruaSite() {
   const [newLocation, setNewLocation] = useState({ city: "", label: "", place: "", day: "Dimanche", hours: "16h30 – 21h30", active: true });
 
   useEffect(() => {
-    if (!supabase) {
-      setAdminUnlocked(false);
-      setAuthStatus("Supabase n'est pas configuré. Vérifie VITE_SUPABASE_URL et VITE_SUPABASE_ANON_KEY dans Vercel.");
-      return;
-    }
+    const normalizePath = () => window.location.pathname.replace(/\/$/, "");
 
-    const applyAdminSession = (session) => {
-      const email = session?.user?.email?.toLowerCase() || "";
-      const isTina = email === ADMIN_EMAIL.toLowerCase();
-      setAdminSession(session || null);
-      setAdminUnlocked(Boolean(session && isTina));
-      if (session && isTina) loadSupabaseData();
-      if (session && !isTina) {
-        setAuthStatus("Compte non autorisé pour le dashboard Tina.");
-        supabase.auth.signOut();
+    const openAdmin = () => {
+      const isAdminRoute = normalizePath() === "/admin";
+
+      if (!isAdminRoute) {
+        setView("site");
+        return;
+      }
+
+      if (window.sessionStorage.getItem("kruaAdminUnlocked") === "true") {
+        setAdminUnlocked(true);
+        setView("admin");
+        return;
+      }
+
+      const pin = window.prompt("Code PIN Dashboard Tina");
+      if (pin === ADMIN_PIN) {
+        window.sessionStorage.setItem("kruaAdminUnlocked", "true");
+        setAdminUnlocked(true);
+        setView("admin");
+      } else {
+        window.history.replaceState(null, "", "/");
+        setView("site");
       }
     };
 
-    supabase.auth.getSession().then(({ data }) => applyAdminSession(data?.session));
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => applyAdminSession(session));
-    return () => listener?.subscription?.unsubscribe?.();
-  }, []);
-
-  useEffect(() => {
-    const normalizePath = () => window.location.pathname.replace(/\/$/, "");
-    const syncRoute = () => setView(normalizePath() === "/admin" ? "admin" : "site");
-    syncRoute();
-    window.addEventListener("popstate", syncRoute);
-    return () => window.removeEventListener("popstate", syncRoute);
+    openAdmin();
+    window.addEventListener("popstate", openAdmin);
+    return () => window.removeEventListener("popstate", openAdmin);
   }, []);
 
   useEffect(() => {
@@ -235,40 +234,6 @@ function KruaSite() {
       navigator.serviceWorker.register("/sw.js").catch((error) => console.error("Service worker", error));
     }
   }, []);
-
-  async function loginAdmin(event) {
-    event.preventDefault();
-    setAuthStatus("Connexion en cours...");
-    if (!supabase) {
-      setAuthStatus("Supabase n'est pas configuré.");
-      return;
-    }
-    const email = adminEmail.trim().toLowerCase();
-    if (email !== ADMIN_EMAIL.toLowerCase()) {
-      setAuthStatus("Seul le compte Tina est autorisé sur ce dashboard.");
-      return;
-    }
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password: adminPassword });
-    if (error) {
-      setAuthStatus("Erreur connexion : " + error.message);
-      return;
-    }
-    setAdminSession(data?.session || null);
-    setAdminUnlocked(true);
-    setAdminPassword("");
-    setAuthStatus("Connecté au dashboard Tina.");
-    await loadSupabaseData();
-  }
-
-  async function logoutAdmin() {
-    if (supabase) await supabase.auth.signOut();
-    setAdminSession(null);
-    setAdminUnlocked(false);
-    setAdminPassword("");
-    setAuthStatus("Déconnecté.");
-    window.history.replaceState(null, "", "/");
-    setView("site");
-  }
 
   async function subscribeToPushNotifications() {
     setNotificationStatus("Activation des notifications en cours...");
@@ -408,13 +373,28 @@ const orderItems = cartLines.map(({id,name,qty,price}) => ({id,name,qty,price}))
     // La remise est uniquement enregistrée dans orders.total.
     const order = { id: await makeOrderCode(locationId, orders), createdAt:new Date().toISOString(), status:"À confirmer", customer, locationId, items: orderItems, total };
     if (supabase) {
-      const { data, error } = await supabase.from("orders").insert({ code:order.id, status:order.status, first_name:customer.firstName, last_name:customer.lastName, phone:customer.phone, email:customer.email || null, note:customer.note, location_id:locationId, total }).select().single();
-      if (error) return alert("Erreur commande : " + error.message);
-      const lines = order.items.map(item => ({ order_id:data.id, product_id:item.id, name:item.name, qty:item.qty, price:item.price }));
-      const linesRes = await supabase.from("order_items").insert(lines);
-      if (linesRes.error) return alert("Erreur lignes : " + linesRes.error.message);
-      order.dbId = data.id;
-      order.createdAt = data.created_at || order.createdAt;
+      const response = await fetch("/api/create-order", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          code: order.id,
+          status: order.status,
+          firstName: customer.firstName,
+          lastName: customer.lastName,
+          phone: customer.phone,
+          email: customer.email || null,
+          note: customer.note,
+          locationId,
+          total,
+          items: order.items
+        })
+      });
+
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) return alert("Erreur commande : " + (result.error || "création impossible"));
+
+      order.dbId = result.id;
+      order.createdAt = result.created_at || order.createdAt;
     }
     await sendOrderNotification(order, total);
     setOrders(old => [order, ...old]); setCart({}); setCustomer({ firstName:"", lastName:"", phone:"", email:"", note:"" });
@@ -959,37 +939,6 @@ KRUA PEÈN THAÏ`;
 
           <section id="traiteur" className="mx-auto max-w-7xl px-4 py-12 pb-20"><div className="rounded-[2rem] border border-amber-300/20 bg-gradient-to-br from-stone-900 to-black p-8"><h2 className="text-3xl font-black">Traiteur thaï, sushi & poké bowls</h2><p className="mt-3 max-w-3xl text-stone-300">Mariage, retour de mariage, anniversaire, séminaire, repas d’entreprise. Demandez un devis, Tina vous recontacte.</p><div className="mt-6 grid gap-3 md:grid-cols-2"><input placeholder="Nom" className="rounded-xl border border-white/10 bg-black p-4"/><input placeholder="Téléphone" className="rounded-xl border border-white/10 bg-black p-4"/><input placeholder="Type d’événement" className="rounded-xl border border-white/10 bg-black p-4"/><input placeholder="Nombre de personnes" className="rounded-xl border border-white/10 bg-black p-4"/><textarea placeholder="Votre demande" className="rounded-xl border border-white/10 bg-black p-4 md:col-span-2"/></div><button className="mt-5 rounded-2xl bg-amber-400 px-6 py-4 font-black text-black">Demander un devis</button></div></section>
         </main>
-      ) : !adminUnlocked ? (
-        <main className="mx-auto flex min-h-[70vh] max-w-xl items-center px-4 py-12">
-          <form onSubmit={loginAdmin} className="w-full rounded-[2rem] border border-amber-300/20 bg-stone-900 p-6 shadow-2xl">
-            <div className="mb-5 flex items-center gap-3 text-amber-300">
-              <Lock size={28}/>
-              <div>
-                <h1 className="text-3xl font-black text-white">Connexion Tina</h1>
-                <p className="text-sm text-stone-300">Dashboard privé KRUA PEÈN THAÏ</p>
-              </div>
-            </div>
-            <label className="text-sm font-bold text-stone-300">Email admin</label>
-            <input
-              type="email"
-              value={adminEmail}
-              onChange={e => setAdminEmail(e.target.value)}
-              className="mt-2 w-full rounded-2xl border border-white/10 bg-black p-4"
-              autoComplete="username"
-            />
-            <label className="mt-4 block text-sm font-bold text-stone-300">Mot de passe</label>
-            <input
-              type="password"
-              value={adminPassword}
-              onChange={e => setAdminPassword(e.target.value)}
-              className="mt-2 w-full rounded-2xl border border-white/10 bg-black p-4"
-              autoComplete="current-password"
-            />
-            {authStatus && <div className="mt-4 rounded-2xl bg-black/50 p-3 text-sm text-amber-100">{authStatus}</div>}
-            <button type="submit" className="mt-5 w-full rounded-2xl bg-amber-400 px-5 py-4 font-black text-black">Connexion dashboard</button>
-            <button type="button" onClick={() => { window.history.replaceState(null, "", "/"); setView("site"); }} className="mt-3 w-full rounded-2xl border border-white/10 px-5 py-3 font-black text-white">Retour site client</button>
-          </form>
-        </main>
       ) : (
         <main className="mx-auto max-w-7xl px-4 py-8">
           <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
@@ -1000,14 +949,9 @@ KRUA PEÈN THAÏ`;
               <p className="mt-1 text-sm text-stone-400">{notificationStatus}</p>
               <p className="mt-3 inline-flex rounded-full bg-amber-400 px-4 py-2 text-sm font-black text-black">{activeOrdersCount} commande{activeOrdersCount > 1 ? "s" : ""} à traiter</p>
             </div>
-            <div className="flex flex-wrap gap-2">
-              <button onClick={subscribeToPushNotifications} className="rounded-2xl bg-amber-400 px-5 py-3 font-black text-black">
-                <Lock className="mr-2 inline" size={18}/>Activer notifications
-              </button>
-              <button onClick={logoutAdmin} className="rounded-2xl border border-white/10 bg-white/10 px-5 py-3 font-black text-white">
-                Déconnexion
-              </button>
-            </div>
+            <button onClick={subscribeToPushNotifications} className="rounded-2xl bg-amber-400 px-5 py-3 font-black text-black">
+              <Lock className="mr-2 inline" size={18}/>Activer notifications
+            </button>
           </div>
 
           <div className="mb-6 grid gap-3 sm:grid-cols-4">
