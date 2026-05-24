@@ -931,7 +931,7 @@ KRUA PEÈN THAÏ`;
     setTimeout(() => document.getElementById("commander")?.scrollIntoView({ behavior: "smooth", block: "start" }), 80);
   }
 
-  const asset = (name) => `/krua-assets/${name}`;
+  const asset = (name) => `/${name}`;
 
   const thaiEntreeRows = [
     { label: "Rouleau de printemps crevette", ids: ["e1", "e1-4"] },
