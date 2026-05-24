@@ -195,6 +195,10 @@ function KruaSite() {
   const [selectedMenuCard, setSelectedMenuCard] = useState(null);
   const [newProduct, setNewProduct] = useState({ code: "", name: "", category: "Entrées", price: "", desc: "", available: true, fixed: true });
   const [newLocation, setNewLocation] = useState({ city: "", label: "", place: "", day: "Dimanche", hours: "16h30 – 21h30", active: true });
+  const [loginEmail, setLoginEmail] = useState(BRAND.email);
+  const [loginPassword, setLoginPassword] = useState("");
+  const [loginError, setLoginError] = useState("");
+  const [authLoading, setAuthLoading] = useState(false);
 
 useEffect(() => {
   const normalizePath = () => window.location.pathname.replace(/\/$/, "");
@@ -208,25 +212,90 @@ useEffect(() => {
     }
 
     if (!supabase) {
-      alert("Supabase non configuré");
-      window.history.replaceState(null, "", "/");
+      setLoginError("Supabase n'est pas configuré.");
+      setView("login");
       return;
     }
 
-    const { data } = await supabase.auth.getSession();
+    const { data, error } = await supabase.auth.getSession();
 
-    if (data.session) {
+    if (error) {
+      console.error("Session Supabase", error);
+      setLoginError("Impossible de vérifier la session admin.");
+      setView("login");
+      return;
+    }
+
+    if (data.session?.user?.email === BRAND.email) {
       setAdminUnlocked(true);
       setView("admin");
+      loadSupabaseData();
     } else {
+      setAdminUnlocked(false);
       setView("login");
     }
   };
 
   openAdmin();
+
+  const { data: authListener } = supabase?.auth?.onAuthStateChange((_event, session) => {
+    const isAdminRoute = normalizePath() === "/admin";
+    if (!isAdminRoute) return;
+
+    if (session?.user?.email === BRAND.email) {
+      setAdminUnlocked(true);
+      setView("admin");
+      loadSupabaseData();
+    } else {
+      setAdminUnlocked(false);
+      setView("login");
+    }
+  }) || { data: { subscription: null } };
+
   window.addEventListener("popstate", openAdmin);
-  return () => window.removeEventListener("popstate", openAdmin);
+  return () => {
+    window.removeEventListener("popstate", openAdmin);
+    authListener?.subscription?.unsubscribe?.();
+  };
 }, []);
+
+  async function signInAdmin(event) {
+    event?.preventDefault?.();
+    setLoginError("");
+    setAuthLoading(true);
+
+    try {
+      if (!supabase) throw new Error("Supabase non configuré.");
+
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: loginEmail.trim(),
+        password: loginPassword,
+      });
+
+      if (error) throw error;
+      if (data.user?.email !== BRAND.email) {
+        await supabase.auth.signOut();
+        throw new Error("Ce compte n'est pas autorisé pour le dashboard Tina.");
+      }
+
+      window.history.replaceState(null, "", "/admin");
+      setAdminUnlocked(true);
+      setView("admin");
+      setLoginPassword("");
+      await loadSupabaseData();
+    } catch (error) {
+      setLoginError(error.message || "Connexion impossible.");
+    } finally {
+      setAuthLoading(false);
+    }
+  }
+
+  async function signOutAdmin() {
+    if (supabase) await supabase.auth.signOut();
+    setAdminUnlocked(false);
+    setView("site");
+    window.history.replaceState(null, "", "/");
+  }
 
   useEffect(() => {
     if ("serviceWorker" in navigator) {
@@ -937,6 +1006,47 @@ KRUA PEÈN THAÏ`;
           <section id="lieux" className="mx-auto max-w-7xl px-4 py-12"><div className="mb-6 flex items-center gap-3"><CalendarDays className="text-amber-300"/><h2 className="text-3xl font-black">Où nous trouver</h2></div><div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">{visibleLocations.map(l=><div key={l.id} className="rounded-3xl border border-white/10 bg-white/[0.03] p-5"><div className="font-bold text-amber-300">{l.label}</div><div className="mt-2 text-2xl font-black">{l.city}</div><div className="mt-2 text-stone-300">{l.place}</div><div className="mt-4 flex items-center gap-2 text-stone-200"><Clock size={16}/>{servicePickupText(l)}</div></div>)}</div></section>
 
           <section id="traiteur" className="mx-auto max-w-7xl px-4 py-12 pb-20"><div className="rounded-[2rem] border border-amber-300/20 bg-gradient-to-br from-stone-900 to-black p-8"><h2 className="text-3xl font-black">Traiteur thaï, sushi & poké bowls</h2><p className="mt-3 max-w-3xl text-stone-300">Mariage, retour de mariage, anniversaire, séminaire, repas d’entreprise. Demandez un devis, Tina vous recontacte.</p><div className="mt-6 grid gap-3 md:grid-cols-2"><input placeholder="Nom" className="rounded-xl border border-white/10 bg-black p-4"/><input placeholder="Téléphone" className="rounded-xl border border-white/10 bg-black p-4"/><input placeholder="Type d’événement" className="rounded-xl border border-white/10 bg-black p-4"/><input placeholder="Nombre de personnes" className="rounded-xl border border-white/10 bg-black p-4"/><textarea placeholder="Votre demande" className="rounded-xl border border-white/10 bg-black p-4 md:col-span-2"/></div><button className="mt-5 rounded-2xl bg-amber-400 px-6 py-4 font-black text-black">Demander un devis</button></div></section>
+        </main>
+      ) : view === "login" ? (
+        <main className="mx-auto flex min-h-[80vh] items-center justify-center px-4 py-12">
+          <form onSubmit={signInAdmin} className="w-full max-w-md rounded-[2rem] border border-amber-300/20 bg-stone-950 p-6 shadow-2xl">
+            <div className="mb-6 flex items-center gap-3">
+              <Lock className="text-amber-300"/>
+              <div>
+                <h1 className="text-3xl font-black text-amber-200">Dashboard Tina</h1>
+                <p className="text-sm text-stone-400">Connexion admin sécurisée</p>
+              </div>
+            </div>
+
+            <label className="mb-2 block text-sm font-bold text-stone-300">Email admin</label>
+            <input
+              type="email"
+              value={loginEmail}
+              onChange={e => setLoginEmail(e.target.value)}
+              className="mb-4 w-full rounded-2xl border border-white/10 bg-black p-4"
+              autoComplete="username"
+            />
+
+            <label className="mb-2 block text-sm font-bold text-stone-300">Mot de passe</label>
+            <input
+              type="password"
+              value={loginPassword}
+              onChange={e => setLoginPassword(e.target.value)}
+              className="mb-4 w-full rounded-2xl border border-white/10 bg-black p-4"
+              autoComplete="current-password"
+              placeholder="Mot de passe Supabase"
+            />
+
+            {loginError && <div className="mb-4 rounded-2xl bg-red-950/70 p-4 text-sm font-bold text-red-100">{loginError}</div>}
+
+            <button disabled={authLoading} className="w-full rounded-2xl bg-amber-400 px-6 py-4 font-black text-black disabled:opacity-50">
+              {authLoading ? "Connexion..." : "Se connecter"}
+            </button>
+
+            <button type="button" onClick={() => { setView("site"); window.history.replaceState(null, "", "/"); }} className="mt-3 w-full rounded-2xl border border-white/10 px-6 py-3 font-bold text-stone-200">
+              Retour site client
+            </button>
+          </form>
         </main>
       ) : (
         <main className="mx-auto max-w-7xl px-4 py-8">
