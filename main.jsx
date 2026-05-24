@@ -169,7 +169,7 @@ function urlBase64ToUint8Array(base64String) {
 }
 
 function KruaSite() {
-  const ADMIN_PIN = "1468";
+
   const [view, setView] = useState("site");
   const [adminUnlocked, setAdminUnlocked] = useState(false);
   const [adminTab, setAdminTab] = useState("orders");
@@ -196,38 +196,37 @@ function KruaSite() {
   const [newProduct, setNewProduct] = useState({ code: "", name: "", category: "Entrées", price: "", desc: "", available: true, fixed: true });
   const [newLocation, setNewLocation] = useState({ city: "", label: "", place: "", day: "Dimanche", hours: "16h30 – 21h30", active: true });
 
-  useEffect(() => {
-    const normalizePath = () => window.location.pathname.replace(/\/$/, "");
+useEffect(() => {
+  const normalizePath = () => window.location.pathname.replace(/\/$/, "");
 
-    const openAdmin = () => {
-      const isAdminRoute = normalizePath() === "/admin";
+  const openAdmin = async () => {
+    const isAdminRoute = normalizePath() === "/admin";
 
-      if (!isAdminRoute) {
-        setView("site");
-        return;
-      }
+    if (!isAdminRoute) {
+      setView("site");
+      return;
+    }
 
-      if (window.sessionStorage.getItem("kruaAdminUnlocked") === "true") {
-        setAdminUnlocked(true);
-        setView("admin");
-        return;
-      }
+    if (!supabase) {
+      alert("Supabase non configuré");
+      window.history.replaceState(null, "", "/");
+      return;
+    }
 
-      const pin = window.prompt("Code PIN Dashboard Tina");
-      if (pin === ADMIN_PIN) {
-        window.sessionStorage.setItem("kruaAdminUnlocked", "true");
-        setAdminUnlocked(true);
-        setView("admin");
-      } else {
-        window.history.replaceState(null, "", "/");
-        setView("site");
-      }
-    };
+    const { data } = await supabase.auth.getSession();
 
-    openAdmin();
-    window.addEventListener("popstate", openAdmin);
-    return () => window.removeEventListener("popstate", openAdmin);
-  }, []);
+    if (data.session) {
+      setAdminUnlocked(true);
+      setView("admin");
+    } else {
+      setView("login");
+    }
+  };
+
+  openAdmin();
+  window.addEventListener("popstate", openAdmin);
+  return () => window.removeEventListener("popstate", openAdmin);
+}, []);
 
   useEffect(() => {
     if ("serviceWorker" in navigator) {
