@@ -185,7 +185,7 @@ function KruaSite() {
   const [customer, setCustomer] = useState({ firstName: "", lastName: "", phone: "", email: "", note: "" });
   const [categoryFilter, setCategoryFilter] = useState("Tous");
   const [searchTerm, setSearchTerm] = useState("");
-  const [openCategory, setOpenCategory] = useState("Plats de la semaine");
+  const [openCategory, setOpenCategory] = useState("Entrées");
   const [orderSearch, setOrderSearch] = useState("");
   const [appMode, setAppMode] = useState(supabase ? "Connecté à Supabase" : "Mode démo local");
   const [notificationStatus, setNotificationStatus] = useState("Notifications inactives");
@@ -398,8 +398,37 @@ useEffect(() => {
   const categories = ["Tous", ...categoryOrder.filter(cat => availableProducts.some(p => p.category === cat))];
   const filteredProducts = availableProducts.filter(p => {
     const q = searchTerm.trim().toLowerCase();
-    return (categoryFilter === "Tous" || p.category === categoryFilter) && (!q || p.name.toLowerCase().includes(q) || (p.code || "").toLowerCase().includes(q));
+    return !q || p.name.toLowerCase().includes(q) || (p.code || "").toLowerCase().includes(q) || (p.category || "").toLowerCase().includes(q);
   });
+
+  const orderUniverses = [
+    {
+      id: "thai",
+      icon: "🇹🇭",
+      title: "Spécialités thaïlandaises",
+      subtitle: "Entrées, plats avec nouilles, riz et currys",
+      description: "La cuisine thaï de Tina, pensée pour les plats de la semaine et les retraits au food truck.",
+      categories: ["Entrées", "Accompagnements", "Plats avec nouilles", "Plats avec riz", "Currys"],
+    },
+    {
+      id: "sushi",
+      icon: "🍣",
+      title: "Sushis & Poké bowls",
+      subtitle: "Sushis, makis, california, crunch et poké",
+      description: "Précommande conseillée pour garantir le choix et la fraîcheur.",
+      categories: ["Sushis", "Makis", "California", "Sushis spécial", "Crunch", "Makis printemps", "Poké bowls"],
+    },
+  ];
+
+  const productsByUniverse = orderUniverses
+    .map(universe => ({
+      ...universe,
+      groups: universe.categories
+        .map(category => ({ category, items: filteredProducts.filter(p => p.category === category) }))
+        .filter(group => group.items.length),
+    }))
+    .filter(universe => universe.groups.length);
+
   const productsByCategory = categoryOrder.map(category => ({ category, items: filteredProducts.filter(p => p.category === category) })).filter(g => g.items.length);
   const cartLines = useMemo(() => Object.entries(cart).map(([id, qty]) => ({ ...products.find(p => p.id === id), qty })).filter(x => x.id), [cart, products]);
   const cartTotal = cartLines.reduce((s, i) => s + i.price * i.qty, 0);
@@ -933,17 +962,23 @@ KRUA PEÈN THAÏ`;
   }
 
   return (
-    <div className="min-h-screen bg-[#070504] text-stone-50">
+    <div className="min-h-screen max-w-full overflow-x-hidden bg-[#070504] text-stone-50">
+      <style>{`
+        html, body, #root { max-width: 100%; overflow-x: hidden; }
+        * { box-sizing: border-box; }
+        img, video, canvas, svg { max-width: 100%; }
+        input, textarea, select, button { max-width: 100%; }
+      `}</style>
       <header className="sticky top-0 z-50 border-b border-amber-500/20 bg-black/80 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
-          <button onClick={() => setView("site")} className="text-left"><div className="text-xl font-black tracking-wide text-amber-300">{BRAND.name}</div><div className="text-xs text-stone-300">Thaï • Sushi • Poké • Traiteur</div></button>
-     <nav className="flex items-center gap-2 text-sm">
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3">
+          <button onClick={() => setView("site")} className="min-w-0 text-left"><div className="truncate text-lg font-black tracking-wide text-amber-300 sm:text-xl">{BRAND.name}</div><div className="text-xs text-stone-300">Thaï • Sushi • Poké • Traiteur</div></button>
+     <nav className="flex min-w-0 flex-wrap items-center gap-2 text-xs sm:text-sm">
   <button
     onClick={() => {
       setView("site");
       window.history.replaceState(null, "", "/");
     }}
-    className="rounded-full bg-amber-400 px-4 py-2 text-black"
+    className="rounded-full bg-amber-400 px-3 py-2 text-black sm:px-4"
   >
     Site client
   </button>
@@ -958,7 +993,7 @@ KRUA PEÈN THAÏ`;
         setView("login");
         window.history.replaceState(null, "", "/admin");
       }}
-      className="rounded-full bg-red-600 px-4 py-2 text-white font-bold"
+      className="rounded-full bg-red-600 px-3 py-2 font-bold text-white sm:px-4"
     >
       Déconnexion Tina
     </button>
@@ -968,7 +1003,7 @@ KRUA PEÈN THAÏ`;
       </header>
 
       {selectedMenuCard && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 p-3">
+        <div className="fixed inset-0 z-[100] flex max-w-full items-center justify-center overflow-x-hidden bg-black/90 p-3">
           <div className="relative max-h-[95vh] w-full max-w-5xl overflow-hidden rounded-3xl border border-amber-300/30 bg-black shadow-2xl">
             <div className="flex items-center justify-between gap-3 border-b border-white/10 p-4">
               <div>
@@ -986,9 +1021,9 @@ KRUA PEÈN THAÏ`;
 
       {view === "site" ? (
         <main>
-          <section className="relative overflow-hidden"><div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(245,158,11,.25),transparent_30%),radial-gradient(circle_at_bottom_left,rgba(185,28,28,.24),transparent_30%)]" /><div className="relative mx-auto grid max-w-7xl gap-8 px-4 py-16 md:grid-cols-[1.05fr_.95fr] md:py-24"><div className="flex flex-col justify-center"><div className="mb-4 inline-flex w-fit items-center gap-2 rounded-full border border-amber-300/30 bg-amber-300/10 px-4 py-2 text-sm text-amber-200"><Sparkles size={16}/> {siteMessage}</div><h1 className="text-4xl font-black leading-tight md:text-6xl">Cuisine thaï maison, sushi & poké bowls sur commande</h1><p className="mt-5 max-w-2xl text-lg text-stone-300">Food truck basé à Plabennec, présent dans le Finistère Nord. Retrait pendant le service, paiement sur place, confirmation par Tina.</p><div className="mt-8 flex flex-wrap gap-3"><a href="#commander" className="rounded-2xl bg-amber-400 px-6 py-4 font-bold text-black shadow-lg shadow-amber-500/20">Commander cette semaine</a><a href="#carte" className="rounded-2xl border border-white/20 px-6 py-4 font-bold">Voir notre carte</a><a href="#traiteur" className="rounded-2xl border border-white/20 px-6 py-4 font-bold">Demande traiteur</a></div></div><div className="rounded-[2rem] border border-amber-300/20 bg-gradient-to-br from-stone-900 to-black p-5 shadow-2xl"><div className="rounded-[1.5rem] bg-stone-800 p-6"><div className="mb-3 flex items-center gap-2 text-amber-300"><ChefHat/> Cette semaine chez Tina</div><div className="grid gap-2">{availableProducts.slice(0,6).map(p=><div key={p.id} className="flex items-center justify-between rounded-xl bg-black/40 px-4 py-3"><span>{p.name}</span><span className="font-bold text-amber-300">{euro(p.price)}</span></div>)}</div></div><div className="mt-4 rounded-[1.5rem] border border-white/10 p-6"><div className="text-sm uppercase tracking-widest text-stone-400">Contact commande</div><div className="mt-2 text-2xl font-black">{BRAND.phone.replace(/(\d{2})(?=\d)/g,"$1 ")}</div><div className="mt-3 text-stone-300">WhatsApp Business disponible</div></div></div></div></section>
+          <section className="relative max-w-full overflow-hidden"><div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(245,158,11,.25),transparent_30%),radial-gradient(circle_at_bottom_left,rgba(185,28,28,.24),transparent_30%)]" /><div className="relative mx-auto grid max-w-7xl min-w-0 gap-8 px-4 py-16 md:grid-cols-[1.05fr_.95fr] md:py-24"><div className="flex flex-col justify-center"><div className="mb-4 inline-flex w-fit items-center gap-2 rounded-full border border-amber-300/30 bg-amber-300/10 px-4 py-2 text-sm text-amber-200"><Sparkles size={16}/> {siteMessage}</div><h1 className="text-4xl font-black leading-tight md:text-6xl">Cuisine thaï maison, sushi & poké bowls sur commande</h1><p className="mt-5 max-w-2xl text-lg text-stone-300">Food truck basé à Plabennec, présent dans le Finistère Nord. Retrait pendant le service, paiement sur place, confirmation par Tina.</p><div className="mt-8 flex max-w-full flex-wrap gap-3"><a href="#commander" className="rounded-2xl bg-amber-400 px-6 py-4 font-bold text-black shadow-lg shadow-amber-500/20">Commander cette semaine</a><a href="#carte" className="rounded-2xl border border-white/20 px-6 py-4 font-bold">Voir notre carte</a><a href="#traiteur" className="rounded-2xl border border-white/20 px-6 py-4 font-bold">Demande traiteur</a></div></div><div className="rounded-[2rem] border border-amber-300/20 bg-gradient-to-br from-stone-900 to-black p-5 shadow-2xl"><div className="rounded-[1.5rem] bg-stone-800 p-6"><div className="mb-3 flex items-center gap-2 text-amber-300"><ChefHat/> Cette semaine chez Tina</div><div className="grid gap-2">{availableProducts.slice(0,6).map(p=><div key={p.id} className="flex items-center justify-between rounded-xl bg-black/40 px-4 py-3"><span>{p.name}</span><span className="font-bold text-amber-300">{euro(p.price)}</span></div>)}</div></div><div className="mt-4 rounded-[1.5rem] border border-white/10 p-6"><div className="text-sm uppercase tracking-widest text-stone-400">Contact commande</div><div className="mt-2 text-2xl font-black">{BRAND.phone.replace(/(\d{2})(?=\d)/g,"$1 ")}</div><div className="mt-3 text-stone-300">WhatsApp Business disponible</div></div></div></div></section>
 
-          <section id="carte" className="mx-auto max-w-7xl px-4 py-12">
+          <section id="carte" className="mx-auto max-w-7xl overflow-x-hidden px-4 py-12">
             <div className="mb-6 flex items-center gap-3">
               <UtensilsCrossed className="text-amber-300"/>
               <h2 className="text-3xl font-black">Notre carte</h2>
@@ -1020,14 +1055,14 @@ KRUA PEÈN THAÏ`;
             </div>
           </section>
 
-          <section id="commander" className="relative mx-auto max-w-7xl px-4 py-12">
+          <section id="commander" className="relative mx-auto max-w-7xl overflow-x-hidden px-4 py-12">
             <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
               <div>
                 <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-amber-300/30 bg-amber-300/10 px-4 py-2 text-sm font-bold text-amber-200">
                   <ShoppingCart size={16}/> Commande en ligne
                 </div>
                 <h2 className="text-3xl font-black md:text-5xl">Commander cette semaine</h2>
-                <p className="mt-3 max-w-2xl text-stone-300">Choisissez l’emplacement, ajoutez vos plats, puis Tina confirme la commande. Paiement sur place au food truck.</p>
+                <p className="mt-3 max-w-2xl text-stone-300">Deux univers clairs : spécialités thaïlandaises d’un côté, sushis & poké bowls de l’autre. Paiement sur place au food truck.</p>
               </div>
               <div className="rounded-3xl border border-amber-300/20 bg-amber-400/10 p-4 text-sm font-bold text-amber-100 md:max-w-sm">
                 🍣 -10% automatique sur les sushis dès 25€ de commande sushi.
@@ -1035,68 +1070,89 @@ KRUA PEÈN THAÏ`;
             </div>
 
             <div className="mb-6 grid gap-4 lg:grid-cols-[1fr_380px]">
-              <div className="space-y-4">
-                <div className="sticky top-[72px] z-30 rounded-3xl border border-white/10 bg-[#070504]/95 p-3 shadow-2xl shadow-black/40 backdrop-blur-xl">
-                  <div className="flex gap-2 overflow-x-auto pb-1">
-                    {categories.map(cat => (
-                      <button key={cat} onClick={() => { setCategoryFilter(cat); if (cat !== "Tous") setOpenCategory(cat); }} className={`whitespace-nowrap rounded-2xl px-4 py-3 text-sm font-black transition ${categoryFilter===cat ? "bg-amber-400 text-black shadow-lg shadow-amber-500/20" : "bg-white/10 text-white hover:bg-white/15"}`}>
-                        {cat === "Tous" ? "Tout" : categoryLabels[cat] || cat}
-                      </button>
-                    ))}
+              <div className="min-w-0 space-y-5">
+                <div className="sticky top-[72px] z-30 max-w-full overflow-hidden rounded-3xl border border-white/10 bg-[#070504]/95 p-3 shadow-2xl shadow-black/40 backdrop-blur-xl">
+                  <div className="grid min-w-0 gap-2 sm:grid-cols-2">
+                    <a href="#univers-thai" className="min-w-0 rounded-2xl bg-white/10 px-4 py-3 text-sm font-black text-white hover:bg-white/15">🇹🇭 Spécialités thaï</a>
+                    <a href="#univers-sushi" className="min-w-0 rounded-2xl bg-white/10 px-4 py-3 text-sm font-black text-white hover:bg-white/15">🍣 Sushis & poké</a>
                   </div>
                   <div className="relative mt-3">
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400" size={18}/>
-                    <input value={searchTerm} onChange={e=>setSearchTerm(e.target.value)} placeholder="Rechercher : saumon, poké, S16..." className="w-full rounded-2xl border border-white/10 bg-stone-900 py-4 pl-12 pr-4 outline-none ring-amber-300/30 focus:ring-4" />
+                    <input value={searchTerm} onChange={e=>setSearchTerm(e.target.value)} placeholder="Rechercher : pad thaï, saumon, poké, S16..." className="w-full rounded-2xl border border-white/10 bg-stone-900 py-4 pl-12 pr-4 outline-none ring-amber-300/30 focus:ring-4" />
                   </div>
                 </div>
 
-                {productsByCategory.map(group => {
-                  const isOpen = openCategory === group.category || categoryFilter !== "Tous";
-                  return (
-                    <section key={group.category} className="overflow-hidden rounded-[2rem] border border-white/10 bg-stone-950/80 shadow-xl">
-                      <button onClick={()=>setOpenCategory(isOpen ? "" : group.category)} className="flex w-full items-center justify-between gap-4 p-5 text-left">
-                        <div>
-                          <h3 className="text-2xl font-black text-amber-200">{categoryLabels[group.category] || group.category}</h3>
-                          <p className="mt-1 text-sm text-stone-400">{group.items.length} produit{group.items.length>1 ? "s" : ""}</p>
+                {productsByUniverse.map(universe => (
+                  <section id={`univers-${universe.id}`} key={universe.id} className="min-w-0 overflow-hidden rounded-[2rem] border border-amber-300/20 bg-gradient-to-br from-stone-950 to-black shadow-2xl shadow-black/30">
+                    <div className="border-b border-white/10 bg-white/[0.03] p-5 md:p-6">
+                      <div className="flex min-w-0 items-start gap-4">
+                        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-amber-400 text-2xl shadow-lg shadow-amber-500/20">{universe.icon}</div>
+                        <div className="min-w-0">
+                          <h3 className="break-words text-2xl font-black text-amber-200 md:text-3xl">{universe.title}</h3>
+                          <p className="mt-1 break-words text-sm font-bold text-stone-100">{universe.subtitle}</p>
+                          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-stone-400">{universe.description}</p>
                         </div>
-                        <ChevronDown className={`text-amber-300 transition-transform ${isOpen ? "rotate-180" : ""}`}/>
-                      </button>
-                      {isOpen && (
-                        <div className="grid gap-4 border-t border-white/10 p-4 sm:grid-cols-2 xl:grid-cols-3">
-                          {group.items.map(p => {
-                            const qty = cart[p.id] || 0;
-                            const blocked = isProductBlocked(p);
-                            return (
-                              <article key={p.id} className="group relative overflow-hidden rounded-[1.7rem] border border-white/10 bg-gradient-to-br from-stone-900 to-black p-5 transition hover:-translate-y-0.5 hover:border-amber-300/30 hover:shadow-2xl hover:shadow-amber-950/20">
-                                <div className="mb-4 flex items-start justify-between gap-3">
-                                  <div className="inline-flex rounded-full bg-amber-400 px-3 py-1 text-xs font-black text-black">{p.code}</div>
-                                  <div className="rounded-full bg-white/10 px-3 py-1 text-xs font-bold text-stone-300">{p.fixed ? "Permanent" : "Cette semaine"}</div>
-                                </div>
-                                <h4 className="text-xl font-black leading-tight">{p.name}</h4>
-                                <p className="mt-3 min-h-14 text-sm leading-relaxed text-stone-300">{p.desc}</p>
-                                <div className="mt-5 flex items-center justify-between gap-3">
-                                  <div className="text-2xl font-black text-amber-300">{euro(p.price)}</div>
-                                  {qty > 0 ? (
-                                    <div className="flex items-center rounded-2xl bg-white/10 p-1">
-                                      <button onClick={()=>removeFromCart(p.id)} className="h-10 w-10 rounded-xl bg-black/60 text-xl font-black">−</button>
-                                      <div className="w-10 text-center text-lg font-black">{qty}</div>
-                                      <button onClick={()=>addToCart(p.id)} className="h-10 w-10 rounded-xl bg-amber-400 text-xl font-black text-black">+</button>
-                                    </div>
-                                  ) : (
-                                    <button disabled={!selectedAvailability.open || blocked} onClick={()=>addToCart(p.id)} className="rounded-2xl bg-amber-400 px-5 py-3 font-black text-black disabled:cursor-not-allowed disabled:opacity-40">
-                                      {blocked ? "Complet" : "Ajouter"}
-                                    </button>
-                                  )}
-                                </div>
-                                {blocked && <div className="mt-3 rounded-xl bg-orange-950/70 p-3 text-xs font-bold text-orange-100">Complet à la réservation pour cet emplacement.</div>}
-                              </article>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </section>
-                  );
-                })}
+                      </div>
+                      <div className="mt-4 flex max-w-full gap-2 overflow-x-auto overscroll-x-contain pb-1">
+                        {universe.groups.map(group => (
+                          <button key={group.category} onClick={() => setOpenCategory(openCategory === group.category ? "" : group.category)} className={`whitespace-nowrap rounded-2xl px-4 py-3 text-xs font-black transition ${openCategory === group.category ? "bg-amber-400 text-black" : "bg-white/10 text-stone-100 hover:bg-white/15"}`}>
+                            {categoryLabels[group.category] || group.category}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="space-y-4 p-4 md:p-5">
+                      {universe.groups.map(group => {
+                        const isOpen = openCategory === group.category || searchTerm.trim().length > 0;
+                        return (
+                          <section key={group.category} className="min-w-0 overflow-hidden rounded-[1.6rem] border border-white/10 bg-black/35">
+                            <button onClick={()=>setOpenCategory(isOpen && !searchTerm.trim() ? "" : group.category)} className="flex w-full items-center justify-between gap-4 p-5 text-left">
+                              <div className="min-w-0">
+                                <h4 className="break-words text-xl font-black text-amber-200">{categoryLabels[group.category] || group.category}</h4>
+                                <p className="mt-1 text-sm text-stone-400">{group.items.length} produit{group.items.length>1 ? "s" : ""}</p>
+                              </div>
+                              <ChevronDown className={`shrink-0 text-amber-300 transition-transform ${isOpen ? "rotate-180" : ""}`}/>
+                            </button>
+                            {isOpen && (
+                              <div className="grid min-w-0 gap-4 border-t border-white/10 p-4 sm:grid-cols-2 xl:grid-cols-3">
+                                {group.items.map(p => {
+                                  const qty = cart[p.id] || 0;
+                                  const blocked = isProductBlocked(p);
+                                  return (
+                                    <article key={p.id} className="group relative min-w-0 overflow-hidden rounded-[1.7rem] border border-white/10 bg-gradient-to-br from-stone-900 to-black p-5 transition hover:-translate-y-0.5 hover:border-amber-300/30 hover:shadow-2xl hover:shadow-amber-950/20">
+                                      <div className="mb-4 flex items-start justify-between gap-3">
+                                        <div className="inline-flex rounded-full bg-amber-400 px-3 py-1 text-xs font-black text-black">{p.code}</div>
+                                        <div className="rounded-full bg-white/10 px-3 py-1 text-xs font-bold text-stone-300">{p.fixed ? "Permanent" : "Cette semaine"}</div>
+                                      </div>
+                                      <h5 className="break-words text-xl font-black leading-tight">{p.name}</h5>
+                                      <p className="mt-3 min-h-14 text-sm leading-relaxed text-stone-300">{p.desc}</p>
+                                      <div className="mt-5 flex items-center justify-between gap-3">
+                                        <div className="text-2xl font-black text-amber-300">{euro(p.price)}</div>
+                                        {qty > 0 ? (
+                                          <div className="flex items-center rounded-2xl bg-white/10 p-1">
+                                            <button onClick={()=>removeFromCart(p.id)} className="h-10 w-10 rounded-xl bg-black/60 text-xl font-black">−</button>
+                                            <div className="w-10 text-center text-lg font-black">{qty}</div>
+                                            <button onClick={()=>addToCart(p.id)} className="h-10 w-10 rounded-xl bg-amber-400 text-xl font-black text-black">+</button>
+                                          </div>
+                                        ) : (
+                                          <button disabled={!selectedAvailability.open || blocked} onClick={()=>addToCart(p.id)} className="rounded-2xl bg-amber-400 px-5 py-3 font-black text-black disabled:cursor-not-allowed disabled:opacity-40">
+                                            {blocked ? "Complet" : "Ajouter"}
+                                          </button>
+                                        )}
+                                      </div>
+                                      {blocked && <div className="mt-3 rounded-xl bg-orange-950/70 p-3 text-xs font-bold text-orange-100">Complet à la réservation pour cet emplacement.</div>}
+                                    </article>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </section>
+                        );
+                      })}
+                    </div>
+                  </section>
+                ))}
               </div>
 
               <aside className="hidden h-fit lg:sticky lg:top-28 lg:block">
@@ -1113,7 +1169,7 @@ KRUA PEÈN THAÏ`;
                   {selectedAvailability.open && selectedAvailability.mode === "service" && <div className="mt-4 rounded-2xl bg-green-950/70 p-4 text-sm font-bold text-green-100">{selectedAvailability.message}</div>}
                   <div className="my-5 space-y-3">
                     {cartLines.length===0 && <div className="rounded-2xl bg-white/[0.04] p-5 text-center text-stone-400">Panier vide</div>}
-                    {cartLines.map(line=><div key={line.id} className="rounded-2xl bg-white/[0.04] p-3"><div className="flex items-start justify-between gap-3"><div><div className="font-black">{line.name}</div><div className="text-sm text-stone-400">{line.qty} × {euro(line.price)}</div></div><div className="font-black text-amber-300">{euro(line.qty * line.price)}</div></div><div className="mt-3 flex w-fit items-center rounded-xl bg-black/50 p-1"><button onClick={()=>removeFromCart(line.id)} className="h-9 w-9 rounded-lg bg-white/10 text-lg font-black">−</button><div className="w-10 text-center font-black">{line.qty}</div><button onClick={()=>addToCart(line.id)} className="h-9 w-9 rounded-lg bg-amber-400 text-lg font-black text-black">+</button></div></div>)}
+                    {cartLines.map(line=><div key={line.id} className="rounded-2xl bg-white/[0.04] p-3"><div className="flex items-start justify-between gap-3"><div><div className="break-words font-black">{line.name}</div><div className="text-sm text-stone-400">{line.qty} × {euro(line.price)}</div></div><div className="font-black text-amber-300">{euro(line.qty * line.price)}</div></div><div className="mt-3 flex w-fit items-center rounded-xl bg-black/50 p-1"><button onClick={()=>removeFromCart(line.id)} className="h-9 w-9 rounded-lg bg-white/10 text-lg font-black">−</button><div className="w-10 text-center font-black">{line.qty}</div><button onClick={()=>addToCart(line.id)} className="h-9 w-9 rounded-lg bg-amber-400 text-lg font-black text-black">+</button></div></div>)}
                   </div>
                   {sushiDiscount > 0 && <div className="mb-3 flex items-center justify-between rounded-2xl bg-green-500/10 p-4 text-sm font-black text-green-200"><span>Remise sushis -10%</span><span>-{euro(sushiDiscount)}</span></div>}
                   {sushiDiscountBase > 0 && sushiDiscount === 0 && <div className="mb-3 rounded-2xl bg-amber-400/10 p-4 text-xs font-bold text-amber-100">🍣 Encore {euro(Math.max(0,25-sushiDiscountBase))} de sushis pour obtenir -10%.</div>}
@@ -1131,25 +1187,36 @@ KRUA PEÈN THAÏ`;
               </aside>
             </div>
             {cartLines.length > 0 && (
-              <button onClick={()=>setCartDrawerOpen(true)} className="fixed bottom-4 left-4 right-4 z-50 flex items-center justify-between rounded-3xl bg-amber-400 px-5 py-4 font-black text-black shadow-2xl shadow-black/60 lg:hidden"><span>🛒 Voir mon panier ({cartLines.reduce((s,i)=>s+i.qty,0)})</span><span>{euro(total)}</span></button>
+              <button onClick={()=>setCartDrawerOpen(true)} className="fixed inset-x-3 bottom-4 z-50 flex max-w-[calc(100vw-1.5rem)] items-center justify-between rounded-3xl bg-amber-400 px-4 py-4 font-black text-black shadow-2xl shadow-black/60 lg:hidden"><span>🛒 Voir mon panier ({cartLines.reduce((s,i)=>s+i.qty,0)})</span><span>{euro(total)}</span></button>
             )}
             {cartDrawerOpen && (
-              <div className="fixed inset-0 z-[120] bg-black/80 lg:hidden">
-                <div className="absolute bottom-0 left-0 right-0 max-h-[92vh] overflow-auto rounded-t-[2rem] border-t border-amber-300/30 bg-[#070504] p-5 shadow-2xl">
+              <div className="fixed inset-0 z-[120] max-w-full overflow-x-hidden bg-black/80 lg:hidden">
+                <div className="absolute inset-x-0 bottom-0 max-h-[92vh] w-full max-w-full overflow-y-auto overflow-x-hidden rounded-t-[2rem] border-t border-amber-300/30 bg-[#070504] p-4 shadow-2xl">
                   <div className="mb-4 flex items-center justify-between"><div><div className="text-sm font-bold text-amber-300">KRUA PEÈN THAÏ</div><h3 className="text-2xl font-black">Votre panier</h3></div><button onClick={()=>setCartDrawerOpen(false)} className="rounded-full bg-white/10 px-4 py-2 font-black">Fermer ✕</button></div>
                   <label className="text-sm font-bold text-stone-300">Lieu de retrait</label>
                   <select value={locationId} onChange={e=>setLocationId(e.target.value)} className="mt-2 w-full rounded-2xl border border-white/10 bg-stone-900 p-4 font-bold">{visibleLocations.map(l=><option key={l.id} value={l.id}>{l.label} – {l.city}</option>)}</select>
                   <div className="mt-3 rounded-2xl bg-white/[0.04] p-4 text-sm text-stone-300"><MapPin className="mr-2 inline text-amber-300" size={16}/>{selectedLocation.place} • {servicePickupText(selectedLocation)}</div>
-                  <div className="my-5 space-y-3">{cartLines.map(line=><div key={line.id} className="rounded-2xl bg-white/[0.04] p-3"><div className="flex items-start justify-between gap-3"><div><div className="font-black">{line.name}</div><div className="text-sm text-stone-400">{line.qty} × {euro(line.price)}</div></div><div className="font-black text-amber-300">{euro(line.qty * line.price)}</div></div><div className="mt-3 flex w-fit items-center rounded-xl bg-black/50 p-1"><button onClick={()=>removeFromCart(line.id)} className="h-9 w-9 rounded-lg bg-white/10 text-lg font-black">−</button><div className="w-10 text-center font-black">{line.qty}</div><button onClick={()=>addToCart(line.id)} className="h-9 w-9 rounded-lg bg-amber-400 text-lg font-black text-black">+</button></div></div>)}</div>
+                  {currentBlockMessages.map(block=><div key={block.group} className="mt-4 rounded-2xl bg-orange-950/70 p-4 text-sm font-bold text-orange-100">⚠️ {block.text}</div>)}
+                  {!selectedAvailability.open && <div className="mt-4 rounded-2xl bg-red-950/70 p-4 text-sm font-bold text-red-100">{selectedAvailability.message}</div>}
+                  {selectedAvailability.open && selectedAvailability.mode === "service" && <div className="mt-4 rounded-2xl bg-green-950/70 p-4 text-sm font-bold text-green-100">{selectedAvailability.message}</div>}
+                  <div className="my-5 space-y-3">{cartLines.map(line=><div key={line.id} className="rounded-2xl bg-white/[0.04] p-3"><div className="flex items-start justify-between gap-3"><div><div className="break-words font-black">{line.name}</div><div className="text-sm text-stone-400">{line.qty} × {euro(line.price)}</div></div><div className="font-black text-amber-300">{euro(line.qty * line.price)}</div></div><div className="mt-3 flex w-fit items-center rounded-xl bg-black/50 p-1"><button onClick={()=>removeFromCart(line.id)} className="h-9 w-9 rounded-lg bg-white/10 text-lg font-black">−</button><div className="w-10 text-center font-black">{line.qty}</div><button onClick={()=>addToCart(line.id)} className="h-9 w-9 rounded-lg bg-amber-400 text-lg font-black text-black">+</button></div></div>)}</div>
                   {sushiDiscount > 0 && <div className="mb-3 flex items-center justify-between rounded-2xl bg-green-500/10 p-4 text-sm font-black text-green-200"><span>Remise sushis -10%</span><span>-{euro(sushiDiscount)}</span></div>}
                   <div className="mb-5 flex items-center justify-between border-t border-white/10 pt-4 text-2xl font-black"><span>Total</span><span className="text-amber-300">{euro(total)}</span></div>
-                  <div className="grid gap-3"><input placeholder="Prénom *" value={customer.firstName} onChange={e=>setCustomer({...customer, firstName:e.target.value})} className="rounded-2xl border border-white/10 bg-stone-900 p-4"/><input placeholder="Nom" value={customer.lastName} onChange={e=>setCustomer({...customer, lastName:e.target.value})} className="rounded-2xl border border-white/10 bg-stone-900 p-4"/><input placeholder="Téléphone *" value={customer.phone} onChange={e=>setCustomer({...customer, phone:e.target.value})} className="rounded-2xl border border-white/10 bg-stone-900 p-4"/><input placeholder="Email (optionnel)" type="email" value={customer.email} onChange={e=>setCustomer({...customer, email:e.target.value})} className="rounded-2xl border border-white/10 bg-stone-900 p-4"/><textarea placeholder="Commentaire" value={customer.note} onChange={e=>setCustomer({...customer, note:e.target.value})} className="rounded-2xl border border-white/10 bg-stone-900 p-4"/><button disabled={!selectedAvailability.open || cartLines.length === 0} onClick={submitOrder} className="rounded-2xl bg-amber-400 px-5 py-5 text-lg font-black text-black disabled:opacity-40">{selectedAvailability.open ? "Envoyer la demande" : "Commandes fermées"}</button><p className="pb-4 text-xs text-stone-400">{selectedAvailability.message}</p></div>
+                  <div className="grid gap-3">
+                    <input placeholder="Prénom *" value={customer.firstName} onChange={e=>setCustomer({...customer, firstName:e.target.value})} className="rounded-2xl border border-white/10 bg-stone-900 p-4"/>
+                    <input placeholder="Nom" value={customer.lastName} onChange={e=>setCustomer({...customer, lastName:e.target.value})} className="rounded-2xl border border-white/10 bg-stone-900 p-4"/>
+                    <input placeholder="Téléphone *" value={customer.phone} onChange={e=>setCustomer({...customer, phone:e.target.value})} className="rounded-2xl border border-white/10 bg-stone-900 p-4"/>
+                    <input placeholder="Email (optionnel)" type="email" value={customer.email} onChange={e=>setCustomer({...customer, email:e.target.value})} className="rounded-2xl border border-white/10 bg-stone-900 p-4"/>
+                    <textarea placeholder="Commentaire" value={customer.note} onChange={e=>setCustomer({...customer, note:e.target.value})} className="rounded-2xl border border-white/10 bg-stone-900 p-4"/>
+                    <button disabled={!selectedAvailability.open || cartLines.length === 0} onClick={submitOrder} className="rounded-2xl bg-amber-400 px-5 py-5 text-lg font-black text-black disabled:opacity-40">{selectedAvailability.open ? "Envoyer la demande" : "Commandes fermées"}</button>
+                    <p className="pb-16 text-xs text-stone-400">{selectedAvailability.message}</p>
+                  </div>
                 </div>
               </div>
             )}
           </section>
 
-          <section id="lieux" className="mx-auto max-w-7xl px-4 py-12"><div className="mb-6 flex items-center gap-3"><CalendarDays className="text-amber-300"/><h2 className="text-3xl font-black">Où nous trouver</h2></div><div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">{visibleLocations.map(l=><div key={l.id} className="rounded-3xl border border-white/10 bg-white/[0.03] p-5"><div className="font-bold text-amber-300">{l.label}</div><div className="mt-2 text-2xl font-black">{l.city}</div><div className="mt-2 text-stone-300">{l.place}</div><div className="mt-4 flex items-center gap-2 text-stone-200"><Clock size={16}/>{servicePickupText(l)}</div></div>)}</div></section>
+          <section id="lieux" className="mx-auto max-w-7xl overflow-x-hidden px-4 py-12"><div className="mb-6 flex items-center gap-3"><CalendarDays className="text-amber-300"/><h2 className="text-3xl font-black">Où nous trouver</h2></div><div className="grid min-w-0 gap-4 md:grid-cols-2 lg:grid-cols-4">{visibleLocations.map(l=><div key={l.id} className="rounded-3xl border border-white/10 bg-white/[0.03] p-5"><div className="font-bold text-amber-300">{l.label}</div><div className="mt-2 text-2xl font-black">{l.city}</div><div className="mt-2 text-stone-300">{l.place}</div><div className="mt-4 flex items-center gap-2 text-stone-200"><Clock size={16}/>{servicePickupText(l)}</div></div>)}</div></section>
 
           <section id="traiteur" className="mx-auto max-w-7xl px-4 py-12 pb-28 lg:pb-20"><div className="rounded-[2rem] border border-amber-300/20 bg-gradient-to-br from-stone-900 to-black p-8"><h2 className="text-3xl font-black">Traiteur thaï, sushi & poké bowls</h2><p className="mt-3 max-w-3xl text-stone-300">Mariage, retour de mariage, anniversaire, séminaire, repas d’entreprise. Demandez un devis, Tina vous recontacte.</p><div className="mt-6 grid gap-3 md:grid-cols-2"><input placeholder="Nom" className="rounded-xl border border-white/10 bg-black p-4"/><input placeholder="Téléphone" className="rounded-xl border border-white/10 bg-black p-4"/><input placeholder="Type d’événement" className="rounded-xl border border-white/10 bg-black p-4"/><input placeholder="Nombre de personnes" className="rounded-xl border border-white/10 bg-black p-4"/><textarea placeholder="Votre demande" className="rounded-xl border border-white/10 bg-black p-4 md:col-span-2"/></div><button className="mt-5 rounded-2xl bg-amber-400 px-6 py-4 font-black text-black">Demander un devis</button></div></section>
         </main>
