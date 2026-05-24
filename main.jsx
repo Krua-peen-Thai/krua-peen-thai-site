@@ -113,6 +113,18 @@ const menuVisualCards = [
   }
 ];
 
+
+function normalizeProductCategory(product = {}) {
+  const id = product.id;
+  if (id === "option-riz-cantonais" || id === "option-nouilles-sautees") return "Plats avec riz";
+  if (id === "s35" || id === "s36" || id === "s37") return "Accompagnements sushi";
+  return product.category;
+}
+
+function normalizeProduct(product = {}) {
+  return { ...product, category: normalizeProductCategory(product) };
+}
+
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 const supabase = supabaseUrl && supabaseAnonKey ? createClient(supabaseUrl, supabaseAnonKey) : null;
@@ -177,7 +189,7 @@ function KruaSite() {
   const [serviceOrdersOpen, setServiceOrdersOpen] = useState(false);
   const [stockBlocks, setStockBlocks] = useState({});
   const [siteMessage, setSiteMessage] = useState("Précommandes ouvertes jusqu’à la veille 20h");
-  const [products, setProducts] = useState(productsSeed);
+  const [products, setProducts] = useState(productsSeed.map(normalizeProduct));
   const [locations, setLocations] = useState(initialLocations);
   const [orders, setOrders] = useState([]);
   const [cart, setCart] = useState({});
@@ -383,7 +395,7 @@ useEffect(() => {
         supabase.from("settings").select("*"),
         supabase.from("orders").select("*, order_items(*)").order("created_at", { ascending: false }),
       ]);
-      if (productsRes.data?.length) setProducts(productsRes.data.map(p => ({ id:p.id, code:p.code, name:p.name, category:p.category, price:Number(p.price), available:p.available, fixed:p.fixed, desc:p.description || "" })));
+      if (productsRes.data?.length) setProducts(productsRes.data.map(p => normalizeProduct({ id:p.id, code:p.code, name:p.name, category:p.category, price:Number(p.price), available:p.available, fixed:p.fixed, desc:p.description || "" })));
       else await supabase.from("products").upsert(productsSeed.map(p => ({ id:p.id, code:p.code, name:p.name, category:p.category, price:p.price, available:p.available, fixed:p.fixed, description:p.desc })));
       if (locationsRes.data?.length) setLocations(locationsRes.data.map(l => ({ id:l.id, city:l.city, label:l.label, place:l.place, day:l.day, hours:l.hours, active:l.active !== false })));
       else await supabase.from("locations").upsert(initialLocations.map(l => ({ ...l, active:true })));
@@ -394,7 +406,7 @@ useEffect(() => {
     } catch (e) { console.error(e); setAppMode("Erreur Supabase, mode local"); }
   }
 
-  const availableProducts = products.filter(p => p.available);
+  const availableProducts = products.map(normalizeProduct).filter(p => p.available);
   const displayProducts = products;
   const categories = ["Tous", ...categoryOrder.filter(cat => displayProducts.some(p => p.category === cat))];
   const filteredProducts = displayProducts.filter(p => {
