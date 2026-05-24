@@ -931,7 +931,7 @@ KRUA PEÈN THAÏ`;
     setTimeout(() => document.getElementById("commander")?.scrollIntoView({ behavior: "smooth", block: "start" }), 80);
   }
 
-  const asset = (name) => `/${name}`;
+  const asset = (name) => `/krua-v2/${name}`;
 
   const thaiEntreeRows = [
     { label: "Rouleau de printemps crevette", ids: ["e1", "e1-4"] },
@@ -993,13 +993,22 @@ KRUA PEÈN THAÏ`;
 
   function productImage(product) {
     if (!product) return asset("pad-thai.png");
-    const name = product.name.toLowerCase();
-    if (product.category === "Sushis" || product.category === "Makis" || product.category === "California" || product.category === "Crunch" || product.category === "Makis printemps") return asset("hero-sushi.jpg");
-    if (product.category === "Poké bowls") return asset("poke-bowl.png");
+    const name = String(product.name || "").toLowerCase();
+    const category = String(product.category || "");
+
+    if (category === "Poké bowls" || name.includes("poké") || name.includes("poke")) return asset("poke-bowl.png");
+    if (category === "Sushis spécial" || name.includes("sandwich") || name.includes("dragon")) return asset("sandwich-sushi.jpg");
+    if (["Sushis", "Makis", "California", "Crunch", "Makis printemps"].includes(category)) return asset("hero-sushi.jpg");
+    if (name.includes("riz vinaigr") || name.includes("tartare") || name.includes("salade de chou")) return asset("hero-sushi.jpg");
+
     if (name.includes("bouch")) return asset("bouchees.jpg");
     if (name.includes("nem")) return asset("nems.jpg");
-    if (name.includes("samoussa") || name.includes("brochette") || product.category === "Entrées") return asset("entrees-mix.png");
-    if (name.includes("curry")) return asset("pad-thai.png");
+    if (name.includes("samoussa") || name.includes("brochette") || category === "Entrées") return asset("entrees-mix.png");
+
+    if (name.includes("riz cantonais")) return asset("entrees-mix.png");
+    if (name.includes("nouilles") || name.includes("pad thaï") || name.includes("pad thai")) return asset("pad-thai.png");
+    if (name.includes("curry") || name.includes("porc") || name.includes("poulet") || name.includes("kra pao") || name.includes("nam man")) return asset("pad-thai.png");
+
     return asset("pad-thai.png");
   }
 
@@ -1265,7 +1274,7 @@ KRUA PEÈN THAÏ`;
                   <div className="space-y-5">
                     <EntreesPaperMenu />
                     <div className="grid gap-5">
-                      <section className="rounded-[2rem] border border-white/10 bg-black/35 p-4"><h3 className="mb-4 text-2xl font-black text-amber-200">🍚 Accompagnements thaï</h3><ProductGrid items={productsFromIds(thaiAccompanimentIds)} /></section>
+                      <section className="rounded-[2rem] border border-white/10 bg-black/35 p-4"><h3 className="mb-4 text-2xl font-black text-amber-200">🍚 Accompagnements</h3><ProductGrid items={productsFromIds(thaiAccompanimentIds)} /></section>
                       <section className="rounded-[2rem] border border-white/10 bg-black/35 p-4"><h3 className="mb-4 text-2xl font-black text-amber-200">🍜 Plats avec nouilles</h3><ProductGrid items={categoryProducts("Plats avec nouilles")} /></section>
                       <section className="rounded-[2rem] border border-white/10 bg-black/35 p-4"><h3 className="mb-4 text-2xl font-black text-amber-200">🍚 Plats avec riz</h3><ProductGrid items={[...categoryProducts("Plats avec riz"), ...productsFromIds(thaiRiceOptionIds)]} /></section>
                       <section className="rounded-[2rem] border border-white/10 bg-black/35 p-4"><h3 className="mb-4 text-2xl font-black text-amber-200">🌶️ Currys</h3><ProductGrid items={categoryProducts("Currys")} /></section>
