@@ -13,12 +13,12 @@ const initialLocations = [
   { id: "BRI", city: "Brignogan", label: "Dimanche soir", place: "Devant le camping Slow Village", day: "Dimanche", hours: "16h30 – 21h30", active: true },
 ];
 
-const categoryOrder = ["Entrées","Accompagnements","Plats avec nouilles","Plats avec riz","Currys","Sushis","Makis","California","Sushis spécial","Crunch","Makis printemps","Poké bowls"];
+const categoryOrder = ["Entrées","Accompagnements","Plats avec nouilles","Plats avec riz","Currys","Sushis","Makis","California","Sushis spécial","Crunch","Makis printemps","Poké bowls","Accompagnements sushi"];
 const categoryLabels = {
   "Entrées": "🥟 Entrées", "Accompagnements": "🍚 Accompagnements",
   "Plats avec nouilles": "🍜 Plats avec nouilles", "Plats avec riz": "🍚 Plats avec riz", "Currys": "🌶️ Currys",
   "Sushis": "🍣 Sushis", "Makis": "🥒 Makis", "California": "🥑 California", "Sushis spécial": "⭐ Sushis spéciaux",
-  "Crunch": "🔥 Crunch", "Makis printemps": "🌿 Makis printemps", "Poké bowls": "🥗 Poké bowls",
+  "Crunch": "🔥 Crunch", "Makis printemps": "🌿 Makis printemps", "Poké bowls": "🥗 Poké bowls", "Accompagnements sushi": "🍚 Accompagnements",
 };
 
 const productsSeed = [
@@ -41,8 +41,8 @@ const productsSeed = [
   { id: "e9-6", code: "E9", name: "Bouchées vapeur poulet & crevette x6", category: "Entrées", price: 5.5, available: true, fixed: true, desc: "6 pièces." },
   { id: "riz-cantonais", code: "A1", name: "Riz cantonais", category: "Accompagnements", price: 5.5, available: true, fixed: true, desc: "Accompagnement." },
   { id: "nouilles-sautees-accompagnement", code: "A2", name: "Nouilles sautées", category: "Accompagnements", price: 5.5, available: true, fixed: true, desc: "Accompagnement." },
-  { id: "option-riz-cantonais", code: "OPT", name: "Option riz cantonais", category: "Accompagnements", price: 2.5, available: true, fixed: true, desc: "Remplacer le riz nature par du riz cantonais." },
-  { id: "option-nouilles-sautees", code: "OPT", name: "Option nouilles sautées", category: "Accompagnements", price: 2.5, available: true, fixed: true, desc: "Remplacer le riz nature par des nouilles sautées." },
+  { id: "option-riz-cantonais", code: "OPT", name: "Option riz cantonais", category: "Plats avec riz", price: 2.5, available: true, fixed: true, desc: "Option pour remplacer le riz nature." },
+  { id: "option-nouilles-sautees", code: "OPT", name: "Option nouilles sautées", category: "Plats avec riz", price: 2.5, available: true, fixed: true, desc: "Option pour remplacer le riz nature." },
   { id: "pad-thai", code: "P1", name: "Pad Thaï", category: "Plats avec nouilles", price: 10.5, available: true, fixed: true, desc: "Nouilles de riz, œuf, soja, cacahuètes, ciboulettes. Au choix : porc, poulet ou crevettes." },
   { id: "nouilles-sautees", code: "P2", name: "Nouilles sautées", category: "Plats avec nouilles", price: 9.5, available: true, fixed: true, desc: "Nouilles de blé sautées avec légumes. Au choix : porc, poulet ou crevettes." },
   { id: "pad-nam-man-hoi", code: "P3", name: "Pad Nam Man Hoi", category: "Plats avec riz", price: 9.9, available: true, fixed: false, desc: "Bœuf sauté, sauce huître, oignons, ciboulettes. Au choix : porc, poulet ou crevettes." },
@@ -87,9 +87,9 @@ const productsSeed = [
   { id: "s32", code: "S32", name: "6 Roll saumon fromage", category: "Makis printemps", price: 9.5, available: true, fixed: true, desc: "6 pièces." },
   { id: "s33", code: "S33", name: "Poké bowl saumon", category: "Poké bowls", price: 9.5, available: true, fixed: true, desc: "Avocat, concombre, radis, oignons frits." },
   { id: "s34", code: "S34", name: "Poké bowl thon mayonnaise", category: "Poké bowls", price: 9.5, available: true, fixed: true, desc: "Avocat, concombre, radis, oignons frits." },
-  { id: "s35", code: "S35", name: "Riz vinaigré", category: "Accompagnements", price: 3.5, available: true, fixed: true, desc: "Accompagnement." },
-  { id: "s36", code: "S36", name: "Tartare de riz saumon avocat", category: "Accompagnements", price: 8.5, available: true, fixed: true, desc: "Accompagnement." },
-  { id: "s37", code: "S37", name: "Salade de chou", category: "Accompagnements", price: 3.5, available: true, fixed: true, desc: "Accompagnement." },
+  { id: "s35", code: "S35", name: "Riz vinaigré", category: "Accompagnements sushi", price: 3.5, available: true, fixed: true, desc: "Accompagnement sushi." },
+  { id: "s36", code: "S36", name: "Tartare de riz saumon avocat", category: "Accompagnements sushi", price: 8.5, available: true, fixed: true, desc: "Accompagnement sushi." },
+  { id: "s37", code: "S37", name: "Salade de chou", category: "Accompagnements sushi", price: 3.5, available: true, fixed: true, desc: "Accompagnement sushi." },
 ];
 
 const showcase = ["Pad Thaï signature","Currys thaï","Poulet noix de cajou","Porc caramel","Pad Kra Pao","Sushis sur commande","Poké bowls","Nems, samoussas, bouchées vapeur","Traiteur mariage, retour de mariage, entreprise"];
@@ -395,8 +395,9 @@ useEffect(() => {
   }
 
   const availableProducts = products.filter(p => p.available);
-  const categories = ["Tous", ...categoryOrder.filter(cat => availableProducts.some(p => p.category === cat))];
-  const filteredProducts = availableProducts.filter(p => {
+  const displayProducts = products;
+  const categories = ["Tous", ...categoryOrder.filter(cat => displayProducts.some(p => p.category === cat))];
+  const filteredProducts = displayProducts.filter(p => {
     const q = searchTerm.trim().toLowerCase();
     return !q || p.name.toLowerCase().includes(q) || (p.code || "").toLowerCase().includes(q) || (p.category || "").toLowerCase().includes(q);
   });
@@ -408,6 +409,7 @@ useEffect(() => {
       title: "Spécialités thaïlandaises",
       subtitle: "Entrées, plats avec nouilles, riz et currys",
       description: "La cuisine thaï de Tina, pensée pour les plats de la semaine et les retraits au food truck.",
+      image: "/cartes/menu-thai.png",
       categories: ["Entrées", "Accompagnements", "Plats avec nouilles", "Plats avec riz", "Currys"],
     },
     {
@@ -416,7 +418,8 @@ useEffect(() => {
       title: "Sushis & Poké bowls",
       subtitle: "Sushis, makis, california, crunch et poké",
       description: "Précommande conseillée pour garantir le choix et la fraîcheur.",
-      categories: ["Sushis", "Makis", "California", "Sushis spécial", "Crunch", "Makis printemps", "Poké bowls"],
+      image: "/cartes/menu-sushis.png",
+      categories: ["Sushis", "Makis", "California", "Sushis spécial", "Crunch", "Makis printemps", "Poké bowls", "Accompagnements sushi"],
     },
   ];
 
@@ -961,6 +964,108 @@ KRUA PEÈN THAÏ`;
     setTimeout(() => document.getElementById("commander")?.scrollIntoView({ behavior: "smooth", block: "start" }), 80);
   }
 
+  const entryRows = [
+    { baseId: "e1", multiId: "e1-4", label: "Rouleaux de printemps crevette", code: "E1" },
+    { baseId: "e2", multiId: "e2-4", label: "Nems crevettes", code: "E2" },
+    { baseId: "e3", multiId: "e3-4", label: "Nems porc", code: "E3" },
+    { baseId: "e4", multiId: "e4-4", label: "Nems légumes", code: "E4" },
+    { baseId: "e5", multiId: "e5-4", label: "Nems poulet", code: "E5" },
+    { baseId: "e6", multiId: "e6-4", label: "Samoussas bœuf", code: "E6" },
+    { baseId: "e7", multiId: "e7-4", label: "Samoussas porc basilic Thaï", code: "E7" },
+    { baseId: "e8", multiId: null, label: "Brochette de poulet pané", code: "E8" },
+    { baseId: "e9", multiId: "e9-6", label: "Bouchées vapeur poulet & crevette", code: "E9", multiLabel: "6 pièces" },
+  ];
+
+  function productById(id) { return products.find(p => p.id === id); }
+
+  function canAddProduct(product) {
+    return Boolean(product?.available && selectedAvailability.open && !isProductBlocked(product));
+  }
+
+  function PriceButton({ product, label }) {
+    const qty = product ? (cart[product.id] || 0) : 0;
+    const canAdd = canAddProduct(product);
+    return (
+      <button
+        disabled={!canAdd}
+        onClick={() => product && addToCart(product.id)}
+        className={`min-w-[92px] rounded-2xl px-3 py-3 text-center transition ${canAdd ? "bg-amber-400 text-black shadow-lg shadow-amber-500/10 hover:bg-amber-300" : "bg-white/5 text-stone-500 line-through opacity-60"}`}
+      >
+        <div className="text-[11px] font-black uppercase tracking-wide">{label}</div>
+        <div className="text-lg font-black">{product ? euro(product.price) : "—"}</div>
+        {qty > 0 && <div className="mt-1 rounded-full bg-black/20 px-2 py-0.5 text-xs font-black">x{qty}</div>}
+      </button>
+    );
+  }
+
+  function EntryMenuRows({ group }) {
+    const visibleIds = new Set(group.items.map(item => item.id));
+    const rows = entryRows
+      .map(row => ({ ...row, one: productById(row.baseId), multi: row.multiId ? productById(row.multiId) : null }))
+      .filter(row => visibleIds.has(row.baseId) || (row.multiId && visibleIds.has(row.multiId)));
+
+    return (
+      <div className="space-y-3 border-t border-white/10 p-4">
+        <div className="rounded-2xl border border-amber-300/20 bg-amber-400/10 p-3 text-sm font-bold text-amber-100">
+          Clique directement sur le prix pour ajouter au panier. Les produits indisponibles apparaissent grisés.
+        </div>
+        {rows.map(row => {
+          const oneBlocked = row.one && (!row.one.available || isProductBlocked(row.one));
+          const multiBlocked = row.multi && (!row.multi.available || isProductBlocked(row.multi));
+          const fullyBlocked = oneBlocked && (!row.multi || multiBlocked);
+          return (
+            <div key={row.code} className={`grid gap-3 rounded-[1.5rem] border p-4 sm:grid-cols-[1fr_auto_auto] sm:items-center ${fullyBlocked ? "border-white/5 bg-stone-950/70 opacity-60" : "border-white/10 bg-stone-900/80"}`}>
+              <div className="min-w-0">
+                <div className="mb-1 inline-flex rounded-full bg-white/10 px-3 py-1 text-xs font-black text-amber-200">{row.code}</div>
+                <h5 className="break-words text-lg font-black text-white">{row.label}</h5>
+                {fullyBlocked && <p className="mt-1 text-xs font-bold text-orange-200">Indisponible / complet à la réservation.</p>}
+              </div>
+              <PriceButton product={row.one} label="1 pièce" />
+              {row.multi ? <PriceButton product={row.multi} label={row.multiLabel || "4 pièces"} /> : <div className="hidden sm:block min-w-[92px]" />}
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
+
+  function StandardProductGrid({ group }) {
+    return (
+      <div className="grid min-w-0 gap-4 border-t border-white/10 p-4 sm:grid-cols-2 xl:grid-cols-3">
+        {group.items.map(p => {
+          const qty = cart[p.id] || 0;
+          const blocked = isProductBlocked(p);
+          const disabled = !p.available || blocked;
+          return (
+            <article key={p.id} className={`group relative min-w-0 overflow-hidden rounded-[1.7rem] border p-5 transition ${disabled ? "border-white/5 bg-stone-950/70 opacity-55 grayscale" : "border-white/10 bg-gradient-to-br from-stone-900 to-black hover:-translate-y-0.5 hover:border-amber-300/30 hover:shadow-2xl hover:shadow-amber-950/20"}`}>
+              <div className="mb-4 flex items-start justify-between gap-3">
+                <div className="inline-flex rounded-full bg-amber-400 px-3 py-1 text-xs font-black text-black">{p.code}</div>
+                <div className="rounded-full bg-white/10 px-3 py-1 text-xs font-bold text-stone-300">{p.available ? (p.fixed ? "Permanent" : "Cette semaine") : "Indisponible"}</div>
+              </div>
+              <h5 className="break-words text-xl font-black leading-tight">{p.name}</h5>
+              <p className="mt-3 min-h-14 text-sm leading-relaxed text-stone-300">{p.desc}</p>
+              <div className="mt-5 flex items-center justify-between gap-3">
+                <div className="text-2xl font-black text-amber-300">{euro(p.price)}</div>
+                {qty > 0 ? (
+                  <div className="flex items-center rounded-2xl bg-white/10 p-1">
+                    <button onClick={()=>removeFromCart(p.id)} className="h-10 w-10 rounded-xl bg-black/60 text-xl font-black">−</button>
+                    <div className="w-10 text-center text-lg font-black">{qty}</div>
+                    <button disabled={!canAddProduct(p)} onClick={()=>addToCart(p.id)} className="h-10 w-10 rounded-xl bg-amber-400 text-xl font-black text-black disabled:opacity-40">+</button>
+                  </div>
+                ) : (
+                  <button disabled={!canAddProduct(p)} onClick={()=>addToCart(p.id)} className="rounded-2xl bg-amber-400 px-5 py-3 font-black text-black disabled:cursor-not-allowed disabled:opacity-40">
+                    {disabled ? "Indisponible" : "Ajouter"}
+                  </button>
+                )}
+              </div>
+              {blocked && <div className="mt-3 rounded-xl bg-orange-950/70 p-3 text-xs font-bold text-orange-100">Complet à la réservation pour cet emplacement.</div>}
+            </article>
+          );
+        })}
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen max-w-full overflow-x-hidden bg-[#070504] text-stone-50">
       <style>{`
@@ -1084,16 +1189,20 @@ KRUA PEÈN THAÏ`;
 
                 {productsByUniverse.map(universe => (
                   <section id={`univers-${universe.id}`} key={universe.id} className="min-w-0 overflow-hidden rounded-[2rem] border border-amber-300/20 bg-gradient-to-br from-stone-950 to-black shadow-2xl shadow-black/30">
-                    <div className="border-b border-white/10 bg-white/[0.03] p-5 md:p-6">
-                      <div className="flex min-w-0 items-start gap-4">
+                    <div className="relative overflow-hidden border-b border-white/10 p-5 md:p-6">
+                      <div className="absolute inset-0 opacity-25">
+                        <img src={universe.image} alt="" className="h-full w-full object-cover object-[center_15%]"/>
+                      </div>
+                      <div className="absolute inset-0 bg-gradient-to-r from-black via-black/80 to-black/45"/>
+                      <div className="relative flex min-w-0 items-start gap-4">
                         <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-amber-400 text-2xl shadow-lg shadow-amber-500/20">{universe.icon}</div>
                         <div className="min-w-0">
                           <h3 className="break-words text-2xl font-black text-amber-200 md:text-3xl">{universe.title}</h3>
                           <p className="mt-1 break-words text-sm font-bold text-stone-100">{universe.subtitle}</p>
-                          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-stone-400">{universe.description}</p>
+                          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-stone-300">{universe.description}</p>
                         </div>
                       </div>
-                      <div className="mt-4 flex max-w-full gap-2 overflow-x-auto overscroll-x-contain pb-1">
+                      <div className="relative mt-4 flex max-w-full gap-2 overflow-x-auto overscroll-x-contain pb-1">
                         {universe.groups.map(group => (
                           <button key={group.category} onClick={() => setOpenCategory(openCategory === group.category ? "" : group.category)} className={`whitespace-nowrap rounded-2xl px-4 py-3 text-xs font-black transition ${openCategory === group.category ? "bg-amber-400 text-black" : "bg-white/10 text-stone-100 hover:bg-white/15"}`}>
                             {categoryLabels[group.category] || group.category}
@@ -1114,39 +1223,7 @@ KRUA PEÈN THAÏ`;
                               </div>
                               <ChevronDown className={`shrink-0 text-amber-300 transition-transform ${isOpen ? "rotate-180" : ""}`}/>
                             </button>
-                            {isOpen && (
-                              <div className="grid min-w-0 gap-4 border-t border-white/10 p-4 sm:grid-cols-2 xl:grid-cols-3">
-                                {group.items.map(p => {
-                                  const qty = cart[p.id] || 0;
-                                  const blocked = isProductBlocked(p);
-                                  return (
-                                    <article key={p.id} className="group relative min-w-0 overflow-hidden rounded-[1.7rem] border border-white/10 bg-gradient-to-br from-stone-900 to-black p-5 transition hover:-translate-y-0.5 hover:border-amber-300/30 hover:shadow-2xl hover:shadow-amber-950/20">
-                                      <div className="mb-4 flex items-start justify-between gap-3">
-                                        <div className="inline-flex rounded-full bg-amber-400 px-3 py-1 text-xs font-black text-black">{p.code}</div>
-                                        <div className="rounded-full bg-white/10 px-3 py-1 text-xs font-bold text-stone-300">{p.fixed ? "Permanent" : "Cette semaine"}</div>
-                                      </div>
-                                      <h5 className="break-words text-xl font-black leading-tight">{p.name}</h5>
-                                      <p className="mt-3 min-h-14 text-sm leading-relaxed text-stone-300">{p.desc}</p>
-                                      <div className="mt-5 flex items-center justify-between gap-3">
-                                        <div className="text-2xl font-black text-amber-300">{euro(p.price)}</div>
-                                        {qty > 0 ? (
-                                          <div className="flex items-center rounded-2xl bg-white/10 p-1">
-                                            <button onClick={()=>removeFromCart(p.id)} className="h-10 w-10 rounded-xl bg-black/60 text-xl font-black">−</button>
-                                            <div className="w-10 text-center text-lg font-black">{qty}</div>
-                                            <button onClick={()=>addToCart(p.id)} className="h-10 w-10 rounded-xl bg-amber-400 text-xl font-black text-black">+</button>
-                                          </div>
-                                        ) : (
-                                          <button disabled={!selectedAvailability.open || blocked} onClick={()=>addToCart(p.id)} className="rounded-2xl bg-amber-400 px-5 py-3 font-black text-black disabled:cursor-not-allowed disabled:opacity-40">
-                                            {blocked ? "Complet" : "Ajouter"}
-                                          </button>
-                                        )}
-                                      </div>
-                                      {blocked && <div className="mt-3 rounded-xl bg-orange-950/70 p-3 text-xs font-bold text-orange-100">Complet à la réservation pour cet emplacement.</div>}
-                                    </article>
-                                  );
-                                })}
-                              </div>
-                            )}
+                            {isOpen && (group.category === "Entrées" ? <EntryMenuRows group={group} /> : <StandardProductGrid group={group} />)}
                           </section>
                         );
                       })}
