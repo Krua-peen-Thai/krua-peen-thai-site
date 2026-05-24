@@ -199,6 +199,7 @@ function KruaSite() {
   const [loginPassword, setLoginPassword] = useState("");
   const [loginError, setLoginError] = useState("");
   const [authLoading, setAuthLoading] = useState(false);
+  const [cartDrawerOpen, setCartDrawerOpen] = useState(false);
 
 useEffect(() => {
   const normalizePath = () => window.location.pathname.replace(/\/$/, "");
@@ -466,6 +467,7 @@ const orderItems = cartLines.map(({id,name,qty,price}) => ({id,name,qty,price}))
     }
     await sendOrderNotification(order, total);
     setOrders(old => [order, ...old]); setCart({}); setCustomer({ firstName:"", lastName:"", phone:"", email:"", note:"" });
+    setCartDrawerOpen(false);
     alert(`Demande enregistrée : ${order.id}\nTina confirmera par téléphone, WhatsApp ou email.`);
   }
 
@@ -1018,14 +1020,140 @@ KRUA PEÈN THAÏ`;
             </div>
           </section>
 
-          <section id="commander" className="mx-auto max-w-7xl px-4 py-12"><div className="mb-6 flex items-center gap-3"><ShoppingCart className="text-amber-300"/><h2 className="text-3xl font-black">Commander cette semaine</h2></div><div className="mb-6 space-y-4"><div className="flex gap-2 overflow-x-auto pb-2">{categories.map(cat=><button key={cat} onClick={()=>{setCategoryFilter(cat); if(cat!=="Tous") setOpenCategory(cat);}} className={`whitespace-nowrap rounded-full px-4 py-3 text-sm font-bold ${categoryFilter===cat ? "bg-amber-400 text-black" : "bg-white/10"}`}>{cat==="Tous" ? "Tout" : categoryLabels[cat] || cat}</button>)}</div><div className="relative"><Search className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400" size={18}/><input value={searchTerm} onChange={e=>setSearchTerm(e.target.value)} placeholder="Rechercher : saumon, poké, S16..." className="w-full rounded-2xl border border-white/10 bg-stone-900 py-4 pl-12 pr-4"/></div></div><div className="grid gap-6 lg:grid-cols-[1fr_380px]"><div className="space-y-4">{productsByCategory.map(group=>{const isOpen=openCategory===group.category || categoryFilter!=="Tous"; return <div key={group.category} className="overflow-hidden rounded-3xl border border-white/10 bg-stone-950/70"><button onClick={()=>setOpenCategory(isOpen?"":group.category)} className="flex w-full items-center justify-between gap-4 p-5 text-left"><div><h3 className="text-2xl font-black text-amber-200">{categoryLabels[group.category] || group.category}</h3><p className="mt-1 text-sm text-stone-400">{group.items.length} produit{group.items.length>1?"s":""}</p></div><ChevronDown className={`text-amber-300 transition-transform ${isOpen ? "rotate-180" : ""}`}/></button>{isOpen && <div className="grid gap-4 border-t border-white/10 p-5 sm:grid-cols-2">{group.items.map(p=><article key={p.id} className="rounded-3xl border border-white/10 bg-stone-900 p-5"><div className="mb-2 flex items-center justify-between gap-3 text-sm"><span className="font-black text-amber-300">{p.code}</span><span className="rounded-full bg-white/10 px-3 py-1 text-xs text-stone-300">{p.fixed ? "Permanent" : "Cette semaine"}</span></div><h3 className="text-xl font-black">{p.name}</h3><p className="mt-2 min-h-12 text-sm text-stone-300">{p.desc}</p><div className="mt-5 flex items-center justify-between"><span className="text-lg font-black text-amber-300">{euro(p.price)}</span><button disabled={!selectedAvailability.open || isProductBlocked(p)} onClick={()=>addToCart(p.id)} className="rounded-xl bg-amber-400 px-4 py-3 font-bold text-black disabled:opacity-40">{isProductBlocked(p) ? "Complet réservation" : "Ajouter"}</button></div></article>)}</div>}</div>})}</div><aside className="h-fit rounded-3xl border border-amber-300/20 bg-black p-5 shadow-xl"><h3 className="mb-4 text-2xl font-black">Votre commande</h3><label className="text-sm text-stone-300">Lieu de retrait</label><select value={locationId} onChange={e=>setLocationId(e.target.value)} className="mt-2 w-full rounded-xl border border-white/10 bg-stone-900 p-3">{visibleLocations.map(l=><option key={l.id} value={l.id}>{l.label} – {l.city}</option>)}</select><div className="mt-3 rounded-xl bg-white/[0.04] p-3 text-sm text-stone-300"><MapPin className="mr-2 inline text-amber-300" size={16}/>{selectedLocation.place} • {servicePickupText(selectedLocation)}</div>{currentBlockMessages.map(block=><div key={block.group} className="mt-4 rounded-xl bg-orange-950/70 p-4 text-sm font-bold text-orange-100">⚠️ {block.text}</div>)}{!selectedAvailability.open && <div className="mt-4 rounded-xl bg-red-950/70 p-4 text-sm font-bold text-red-100">{selectedAvailability.message}</div>}{selectedAvailability.open && selectedAvailability.mode === "service" && <div className="mt-4 rounded-xl bg-green-950/70 p-4 text-sm font-bold text-green-100">{selectedAvailability.message}</div>}<div className="my-5 space-y-3">{cartLines.length===0 && <div className="rounded-xl bg-white/[0.04] p-4 text-stone-400">Panier vide</div>}{cartLines.map(line=><div key={line.id} className="flex items-center justify-between gap-3 rounded-xl bg-white/[0.04] p-3"><div><div className="font-bold">{line.name}</div><div className="text-sm text-stone-400">{line.qty} × {euro(line.price)}</div></div><div className="flex items-center gap-2"><button onClick={()=>removeFromCart(line.id)} className="rounded-lg bg-white/10 px-3 py-2">-</button><button onClick={()=>addToCart(line.id)} className="rounded-lg bg-white/10 px-3 py-2">+</button></div></div>)}</div>{sushiDiscount > 0 && <div className="mb-3 flex items-center justify-between rounded-xl bg-green-500/10 p-3 text-sm font-black text-green-200"><span>Remise sushis -10%</span><span>-{euro(sushiDiscount)}</span></div>}
-              {sushiDiscountBase > 0 && sushiDiscount === 0 && <div className="mb-3 rounded-xl bg-amber-400/10 p-3 text-xs font-bold text-amber-100">🍣 -10% sur les sushis dès 25€ de commande sushi.</div>}
-              <div className="mb-5 flex items-center justify-between border-t border-white/10 pt-4 text-xl font-black"><span>Total</span><span className="text-amber-300">{euro(total)}</span></div><div className="grid gap-3"><input placeholder="Prénom *" value={customer.firstName} onChange={e=>setCustomer({...customer, firstName:e.target.value})} className="rounded-xl border border-white/10 bg-stone-900 p-3"/><input placeholder="Nom" value={customer.lastName} onChange={e=>setCustomer({...customer, lastName:e.target.value})} className="rounded-xl border border-white/10 bg-stone-900 p-3"/><input placeholder="Téléphone *" value={customer.phone} onChange={e=>setCustomer({...customer, phone:e.target.value})} className="rounded-xl border border-white/10 bg-stone-900 p-3"/><input placeholder="Email (pour confirmation)" type="email" value={customer.email} onChange={e=>setCustomer({...customer, email:e.target.value})} className="rounded-xl border border-white/10 bg-stone-900 p-3"/><textarea placeholder="Commentaire" value={customer.note} onChange={e=>setCustomer({...customer, note:e.target.value})} className="rounded-xl border border-white/10 bg-stone-900 p-3"/><button disabled={!selectedAvailability.open} onClick={submitOrder} className="rounded-2xl bg-amber-400 px-5 py-4 font-black text-black disabled:opacity-40">{selectedAvailability.open ? "Envoyer la demande" : "Commandes fermées"}</button><p className="text-xs text-stone-400">{selectedAvailability.open ? selectedAvailability.message : selectedAvailability.message}</p></div></aside></div></section>
+          <section id="commander" className="relative mx-auto max-w-7xl px-4 py-12">
+            <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+              <div>
+                <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-amber-300/30 bg-amber-300/10 px-4 py-2 text-sm font-bold text-amber-200">
+                  <ShoppingCart size={16}/> Commande en ligne
+                </div>
+                <h2 className="text-3xl font-black md:text-5xl">Commander cette semaine</h2>
+                <p className="mt-3 max-w-2xl text-stone-300">Choisissez l’emplacement, ajoutez vos plats, puis Tina confirme la commande. Paiement sur place au food truck.</p>
+              </div>
+              <div className="rounded-3xl border border-amber-300/20 bg-amber-400/10 p-4 text-sm font-bold text-amber-100 md:max-w-sm">
+                🍣 -10% automatique sur les sushis dès 25€ de commande sushi.
+              </div>
+            </div>
+
+            <div className="mb-6 grid gap-4 lg:grid-cols-[1fr_380px]">
+              <div className="space-y-4">
+                <div className="sticky top-[72px] z-30 rounded-3xl border border-white/10 bg-[#070504]/95 p-3 shadow-2xl shadow-black/40 backdrop-blur-xl">
+                  <div className="flex gap-2 overflow-x-auto pb-1">
+                    {categories.map(cat => (
+                      <button key={cat} onClick={() => { setCategoryFilter(cat); if (cat !== "Tous") setOpenCategory(cat); }} className={`whitespace-nowrap rounded-2xl px-4 py-3 text-sm font-black transition ${categoryFilter===cat ? "bg-amber-400 text-black shadow-lg shadow-amber-500/20" : "bg-white/10 text-white hover:bg-white/15"}`}>
+                        {cat === "Tous" ? "Tout" : categoryLabels[cat] || cat}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="relative mt-3">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400" size={18}/>
+                    <input value={searchTerm} onChange={e=>setSearchTerm(e.target.value)} placeholder="Rechercher : saumon, poké, S16..." className="w-full rounded-2xl border border-white/10 bg-stone-900 py-4 pl-12 pr-4 outline-none ring-amber-300/30 focus:ring-4" />
+                  </div>
+                </div>
+
+                {productsByCategory.map(group => {
+                  const isOpen = openCategory === group.category || categoryFilter !== "Tous";
+                  return (
+                    <section key={group.category} className="overflow-hidden rounded-[2rem] border border-white/10 bg-stone-950/80 shadow-xl">
+                      <button onClick={()=>setOpenCategory(isOpen ? "" : group.category)} className="flex w-full items-center justify-between gap-4 p-5 text-left">
+                        <div>
+                          <h3 className="text-2xl font-black text-amber-200">{categoryLabels[group.category] || group.category}</h3>
+                          <p className="mt-1 text-sm text-stone-400">{group.items.length} produit{group.items.length>1 ? "s" : ""}</p>
+                        </div>
+                        <ChevronDown className={`text-amber-300 transition-transform ${isOpen ? "rotate-180" : ""}`}/>
+                      </button>
+                      {isOpen && (
+                        <div className="grid gap-4 border-t border-white/10 p-4 sm:grid-cols-2 xl:grid-cols-3">
+                          {group.items.map(p => {
+                            const qty = cart[p.id] || 0;
+                            const blocked = isProductBlocked(p);
+                            return (
+                              <article key={p.id} className="group relative overflow-hidden rounded-[1.7rem] border border-white/10 bg-gradient-to-br from-stone-900 to-black p-5 transition hover:-translate-y-0.5 hover:border-amber-300/30 hover:shadow-2xl hover:shadow-amber-950/20">
+                                <div className="mb-4 flex items-start justify-between gap-3">
+                                  <div className="inline-flex rounded-full bg-amber-400 px-3 py-1 text-xs font-black text-black">{p.code}</div>
+                                  <div className="rounded-full bg-white/10 px-3 py-1 text-xs font-bold text-stone-300">{p.fixed ? "Permanent" : "Cette semaine"}</div>
+                                </div>
+                                <h4 className="text-xl font-black leading-tight">{p.name}</h4>
+                                <p className="mt-3 min-h-14 text-sm leading-relaxed text-stone-300">{p.desc}</p>
+                                <div className="mt-5 flex items-center justify-between gap-3">
+                                  <div className="text-2xl font-black text-amber-300">{euro(p.price)}</div>
+                                  {qty > 0 ? (
+                                    <div className="flex items-center rounded-2xl bg-white/10 p-1">
+                                      <button onClick={()=>removeFromCart(p.id)} className="h-10 w-10 rounded-xl bg-black/60 text-xl font-black">−</button>
+                                      <div className="w-10 text-center text-lg font-black">{qty}</div>
+                                      <button onClick={()=>addToCart(p.id)} className="h-10 w-10 rounded-xl bg-amber-400 text-xl font-black text-black">+</button>
+                                    </div>
+                                  ) : (
+                                    <button disabled={!selectedAvailability.open || blocked} onClick={()=>addToCart(p.id)} className="rounded-2xl bg-amber-400 px-5 py-3 font-black text-black disabled:cursor-not-allowed disabled:opacity-40">
+                                      {blocked ? "Complet" : "Ajouter"}
+                                    </button>
+                                  )}
+                                </div>
+                                {blocked && <div className="mt-3 rounded-xl bg-orange-950/70 p-3 text-xs font-bold text-orange-100">Complet à la réservation pour cet emplacement.</div>}
+                              </article>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </section>
+                  );
+                })}
+              </div>
+
+              <aside className="hidden h-fit lg:sticky lg:top-28 lg:block">
+                <div className="rounded-[2rem] border border-amber-300/20 bg-black p-5 shadow-2xl shadow-black/50">
+                  <div className="mb-4 flex items-center justify-between gap-3">
+                    <h3 className="text-2xl font-black">Votre commande</h3>
+                    <div className="rounded-full bg-amber-400 px-3 py-1 text-sm font-black text-black">{cartLines.reduce((s,i)=>s+i.qty,0)} article{cartLines.reduce((s,i)=>s+i.qty,0)>1 ? "s" : ""}</div>
+                  </div>
+                  <label className="text-sm font-bold text-stone-300">Lieu de retrait</label>
+                  <select value={locationId} onChange={e=>setLocationId(e.target.value)} className="mt-2 w-full rounded-2xl border border-white/10 bg-stone-900 p-4 font-bold">{visibleLocations.map(l=><option key={l.id} value={l.id}>{l.label} – {l.city}</option>)}</select>
+                  <div className="mt-3 rounded-2xl bg-white/[0.04] p-4 text-sm text-stone-300"><MapPin className="mr-2 inline text-amber-300" size={16}/>{selectedLocation.place} • {servicePickupText(selectedLocation)}</div>
+                  {currentBlockMessages.map(block=><div key={block.group} className="mt-4 rounded-2xl bg-orange-950/70 p-4 text-sm font-bold text-orange-100">⚠️ {block.text}</div>)}
+                  {!selectedAvailability.open && <div className="mt-4 rounded-2xl bg-red-950/70 p-4 text-sm font-bold text-red-100">{selectedAvailability.message}</div>}
+                  {selectedAvailability.open && selectedAvailability.mode === "service" && <div className="mt-4 rounded-2xl bg-green-950/70 p-4 text-sm font-bold text-green-100">{selectedAvailability.message}</div>}
+                  <div className="my-5 space-y-3">
+                    {cartLines.length===0 && <div className="rounded-2xl bg-white/[0.04] p-5 text-center text-stone-400">Panier vide</div>}
+                    {cartLines.map(line=><div key={line.id} className="rounded-2xl bg-white/[0.04] p-3"><div className="flex items-start justify-between gap-3"><div><div className="font-black">{line.name}</div><div className="text-sm text-stone-400">{line.qty} × {euro(line.price)}</div></div><div className="font-black text-amber-300">{euro(line.qty * line.price)}</div></div><div className="mt-3 flex w-fit items-center rounded-xl bg-black/50 p-1"><button onClick={()=>removeFromCart(line.id)} className="h-9 w-9 rounded-lg bg-white/10 text-lg font-black">−</button><div className="w-10 text-center font-black">{line.qty}</div><button onClick={()=>addToCart(line.id)} className="h-9 w-9 rounded-lg bg-amber-400 text-lg font-black text-black">+</button></div></div>)}
+                  </div>
+                  {sushiDiscount > 0 && <div className="mb-3 flex items-center justify-between rounded-2xl bg-green-500/10 p-4 text-sm font-black text-green-200"><span>Remise sushis -10%</span><span>-{euro(sushiDiscount)}</span></div>}
+                  {sushiDiscountBase > 0 && sushiDiscount === 0 && <div className="mb-3 rounded-2xl bg-amber-400/10 p-4 text-xs font-bold text-amber-100">🍣 Encore {euro(Math.max(0,25-sushiDiscountBase))} de sushis pour obtenir -10%.</div>}
+                  <div className="mb-5 flex items-center justify-between border-t border-white/10 pt-4 text-2xl font-black"><span>Total</span><span className="text-amber-300">{euro(total)}</span></div>
+                  <div className="grid gap-3">
+                    <input placeholder="Prénom *" value={customer.firstName} onChange={e=>setCustomer({...customer, firstName:e.target.value})} className="rounded-2xl border border-white/10 bg-stone-900 p-4"/>
+                    <input placeholder="Nom" value={customer.lastName} onChange={e=>setCustomer({...customer, lastName:e.target.value})} className="rounded-2xl border border-white/10 bg-stone-900 p-4"/>
+                    <input placeholder="Téléphone *" value={customer.phone} onChange={e=>setCustomer({...customer, phone:e.target.value})} className="rounded-2xl border border-white/10 bg-stone-900 p-4"/>
+                    <input placeholder="Email (optionnel)" type="email" value={customer.email} onChange={e=>setCustomer({...customer, email:e.target.value})} className="rounded-2xl border border-white/10 bg-stone-900 p-4"/>
+                    <textarea placeholder="Commentaire" value={customer.note} onChange={e=>setCustomer({...customer, note:e.target.value})} className="rounded-2xl border border-white/10 bg-stone-900 p-4"/>
+                    <button disabled={!selectedAvailability.open || cartLines.length === 0} onClick={submitOrder} className="rounded-2xl bg-amber-400 px-5 py-5 text-lg font-black text-black disabled:opacity-40">{selectedAvailability.open ? "Envoyer la demande" : "Commandes fermées"}</button>
+                    <p className="text-xs text-stone-400">{selectedAvailability.message}</p>
+                  </div>
+                </div>
+              </aside>
+            </div>
+            {cartLines.length > 0 && (
+              <button onClick={()=>setCartDrawerOpen(true)} className="fixed bottom-4 left-4 right-4 z-50 flex items-center justify-between rounded-3xl bg-amber-400 px-5 py-4 font-black text-black shadow-2xl shadow-black/60 lg:hidden"><span>🛒 Voir mon panier ({cartLines.reduce((s,i)=>s+i.qty,0)})</span><span>{euro(total)}</span></button>
+            )}
+            {cartDrawerOpen && (
+              <div className="fixed inset-0 z-[120] bg-black/80 lg:hidden">
+                <div className="absolute bottom-0 left-0 right-0 max-h-[92vh] overflow-auto rounded-t-[2rem] border-t border-amber-300/30 bg-[#070504] p-5 shadow-2xl">
+                  <div className="mb-4 flex items-center justify-between"><div><div className="text-sm font-bold text-amber-300">KRUA PEÈN THAÏ</div><h3 className="text-2xl font-black">Votre panier</h3></div><button onClick={()=>setCartDrawerOpen(false)} className="rounded-full bg-white/10 px-4 py-2 font-black">Fermer ✕</button></div>
+                  <label className="text-sm font-bold text-stone-300">Lieu de retrait</label>
+                  <select value={locationId} onChange={e=>setLocationId(e.target.value)} className="mt-2 w-full rounded-2xl border border-white/10 bg-stone-900 p-4 font-bold">{visibleLocations.map(l=><option key={l.id} value={l.id}>{l.label} – {l.city}</option>)}</select>
+                  <div className="mt-3 rounded-2xl bg-white/[0.04] p-4 text-sm text-stone-300"><MapPin className="mr-2 inline text-amber-300" size={16}/>{selectedLocation.place} • {servicePickupText(selectedLocation)}</div>
+                  <div className="my-5 space-y-3">{cartLines.map(line=><div key={line.id} className="rounded-2xl bg-white/[0.04] p-3"><div className="flex items-start justify-between gap-3"><div><div className="font-black">{line.name}</div><div className="text-sm text-stone-400">{line.qty} × {euro(line.price)}</div></div><div className="font-black text-amber-300">{euro(line.qty * line.price)}</div></div><div className="mt-3 flex w-fit items-center rounded-xl bg-black/50 p-1"><button onClick={()=>removeFromCart(line.id)} className="h-9 w-9 rounded-lg bg-white/10 text-lg font-black">−</button><div className="w-10 text-center font-black">{line.qty}</div><button onClick={()=>addToCart(line.id)} className="h-9 w-9 rounded-lg bg-amber-400 text-lg font-black text-black">+</button></div></div>)}</div>
+                  {sushiDiscount > 0 && <div className="mb-3 flex items-center justify-between rounded-2xl bg-green-500/10 p-4 text-sm font-black text-green-200"><span>Remise sushis -10%</span><span>-{euro(sushiDiscount)}</span></div>}
+                  <div className="mb-5 flex items-center justify-between border-t border-white/10 pt-4 text-2xl font-black"><span>Total</span><span className="text-amber-300">{euro(total)}</span></div>
+                  <div className="grid gap-3"><input placeholder="Prénom *" value={customer.firstName} onChange={e=>setCustomer({...customer, firstName:e.target.value})} className="rounded-2xl border border-white/10 bg-stone-900 p-4"/><input placeholder="Nom" value={customer.lastName} onChange={e=>setCustomer({...customer, lastName:e.target.value})} className="rounded-2xl border border-white/10 bg-stone-900 p-4"/><input placeholder="Téléphone *" value={customer.phone} onChange={e=>setCustomer({...customer, phone:e.target.value})} className="rounded-2xl border border-white/10 bg-stone-900 p-4"/><input placeholder="Email (optionnel)" type="email" value={customer.email} onChange={e=>setCustomer({...customer, email:e.target.value})} className="rounded-2xl border border-white/10 bg-stone-900 p-4"/><textarea placeholder="Commentaire" value={customer.note} onChange={e=>setCustomer({...customer, note:e.target.value})} className="rounded-2xl border border-white/10 bg-stone-900 p-4"/><button disabled={!selectedAvailability.open || cartLines.length === 0} onClick={submitOrder} className="rounded-2xl bg-amber-400 px-5 py-5 text-lg font-black text-black disabled:opacity-40">{selectedAvailability.open ? "Envoyer la demande" : "Commandes fermées"}</button><p className="pb-4 text-xs text-stone-400">{selectedAvailability.message}</p></div>
+                </div>
+              </div>
+            )}
+          </section>
 
           <section id="lieux" className="mx-auto max-w-7xl px-4 py-12"><div className="mb-6 flex items-center gap-3"><CalendarDays className="text-amber-300"/><h2 className="text-3xl font-black">Où nous trouver</h2></div><div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">{visibleLocations.map(l=><div key={l.id} className="rounded-3xl border border-white/10 bg-white/[0.03] p-5"><div className="font-bold text-amber-300">{l.label}</div><div className="mt-2 text-2xl font-black">{l.city}</div><div className="mt-2 text-stone-300">{l.place}</div><div className="mt-4 flex items-center gap-2 text-stone-200"><Clock size={16}/>{servicePickupText(l)}</div></div>)}</div></section>
 
-          <section id="traiteur" className="mx-auto max-w-7xl px-4 py-12 pb-20"><div className="rounded-[2rem] border border-amber-300/20 bg-gradient-to-br from-stone-900 to-black p-8"><h2 className="text-3xl font-black">Traiteur thaï, sushi & poké bowls</h2><p className="mt-3 max-w-3xl text-stone-300">Mariage, retour de mariage, anniversaire, séminaire, repas d’entreprise. Demandez un devis, Tina vous recontacte.</p><div className="mt-6 grid gap-3 md:grid-cols-2"><input placeholder="Nom" className="rounded-xl border border-white/10 bg-black p-4"/><input placeholder="Téléphone" className="rounded-xl border border-white/10 bg-black p-4"/><input placeholder="Type d’événement" className="rounded-xl border border-white/10 bg-black p-4"/><input placeholder="Nombre de personnes" className="rounded-xl border border-white/10 bg-black p-4"/><textarea placeholder="Votre demande" className="rounded-xl border border-white/10 bg-black p-4 md:col-span-2"/></div><button className="mt-5 rounded-2xl bg-amber-400 px-6 py-4 font-black text-black">Demander un devis</button></div></section>
+          <section id="traiteur" className="mx-auto max-w-7xl px-4 py-12 pb-28 lg:pb-20"><div className="rounded-[2rem] border border-amber-300/20 bg-gradient-to-br from-stone-900 to-black p-8"><h2 className="text-3xl font-black">Traiteur thaï, sushi & poké bowls</h2><p className="mt-3 max-w-3xl text-stone-300">Mariage, retour de mariage, anniversaire, séminaire, repas d’entreprise. Demandez un devis, Tina vous recontacte.</p><div className="mt-6 grid gap-3 md:grid-cols-2"><input placeholder="Nom" className="rounded-xl border border-white/10 bg-black p-4"/><input placeholder="Téléphone" className="rounded-xl border border-white/10 bg-black p-4"/><input placeholder="Type d’événement" className="rounded-xl border border-white/10 bg-black p-4"/><input placeholder="Nombre de personnes" className="rounded-xl border border-white/10 bg-black p-4"/><textarea placeholder="Votre demande" className="rounded-xl border border-white/10 bg-black p-4 md:col-span-2"/></div><button className="mt-5 rounded-2xl bg-amber-400 px-6 py-4 font-black text-black">Demander un devis</button></div></section>
         </main>
+
       ) : view === "login" ? (
         <main className="mx-auto flex min-h-[80vh] items-center justify-center px-4 py-12">
           <form onSubmit={signInAdmin} className="w-full max-w-md rounded-[2rem] border border-amber-300/20 bg-stone-950 p-6 shadow-2xl">
