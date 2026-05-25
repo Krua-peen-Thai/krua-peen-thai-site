@@ -1002,7 +1002,7 @@ KRUA PEÈN THAÏ`;
     if (category === "Crunch") return asset("sushi-crunch.jpg");
     if (category === "Makis" || category === "Makis printemps") return asset("sushi-maki.jpg");
     if (category === "Sushis") return asset("sushi-saumon.jpg");
-    if (name.includes("riz vinaigr") || name.includes("tartare") || name.includes("salade de chou")) return asset("sushi-accompagnement.jpg");
+    if (name.includes("riz vinaigr") || name.includes("tartare") || name.includes("salade de chou")) return asset("thai-accompagnement.png");
 
     if (category === "Entrées" || name.includes("bouch") || name.includes("nem") || name.includes("samoussa") || name.includes("brochette")) return asset("thai-entrees.png");
     if (name.includes("riz cantonais")) return asset("thai-accompagnement.png");
@@ -1137,7 +1137,7 @@ KRUA PEÈN THAÏ`;
     { label: "Crunch", image: asset("sushi-crunch.jpg"), anchor: "sushi-crunch" },
     { label: "Sandwich sushi", image: asset("sushi-sandwich.jpg"), anchor: "sushi-special" },
     { label: "Poké bowls", image: asset("sushi-poke.png"), anchor: "sushi-poke" },
-    { label: "Accompagnements", image: asset("sushi-accompagnement.jpg"), anchor: "sushi-accompagnements" },
+    { label: "Accompagnements", image: asset("thai-accompagnement.png"), anchor: "sushi-accompagnements" },
   ];
 
   function CategoryMiniNav({ title, cards }) {
@@ -1373,7 +1373,7 @@ KRUA PEÈN THAÏ`;
                     <CategorySection id="sushi-special" title="⭐ Sandwichs sushi" image={asset("sushi-sandwich.jpg")}><ProductGrid items={categoryProducts("Sushis spécial")} /></CategorySection>
                     <CategorySection id="sushi-printemps" title="🌿 Makis printemps" image={asset("sushi-maki.jpg")}><ProductGrid items={categoryProducts("Makis printemps")} /></CategorySection>
                     <CategorySection id="sushi-poke" title="🥗 Poké bowls" image={asset("sushi-poke.png")}><ProductGrid items={categoryProducts("Poké bowls")} /></CategorySection>
-                    <CategorySection id="sushi-accompagnements" title="🥣 Accompagnements sushi" image={asset("sushi-accompagnement.jpg")}><ProductGrid items={productsFromIds(sushiAccompanimentIds)} /></CategorySection>
+                    <CategorySection id="sushi-accompagnements" title="🥣 Accompagnements sushi" image={asset("thai-accompagnement.png")}><ProductGrid items={productsFromIds(sushiAccompanimentIds)} /></CategorySection>
                   </div>
                 </CategoryBlock>
               </div>
