@@ -1082,6 +1082,46 @@ KRUA PEÈN THAÏ`;
     );
   }
 
+
+  const sushiGroupedRows = [
+    { label: "Sushis saumon", ids: ["s1", "s2"], labels: ["6 pièces", "10 pièces"] },
+    { label: "Sushis crevettes", ids: ["s3", "s4"], labels: ["6 pièces", "10 pièces"] },
+    { label: "Sushis saumon avocat", ids: ["s5"], labels: ["6 pièces"] },
+    { label: "Sushis crevettes avocat", ids: ["s6"], labels: ["6 pièces"] },
+  ];
+
+  function SushisPaperMenu() {
+    return (
+      <div className="overflow-hidden rounded-[2rem] border border-amber-300/20 bg-[#090705] shadow-2xl">
+        <div className="flex flex-col gap-4 border-b border-amber-300/10 bg-gradient-to-r from-amber-500/15 to-transparent p-5 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h3 className="text-2xl font-black text-amber-200">🍣 Sushis</h3>
+            <p className="mt-1 text-sm text-stone-300">Format lisible comme la carte : choisissez directement 6 ou 10 pièces.</p>
+          </div>
+          <img src={asset("sushi-saumon.jpg")} alt="Sushis saumon" className="h-24 w-full rounded-2xl object-cover sm:w-44" />
+        </div>
+        <div className="divide-y divide-white/10">
+          {sushiGroupedRows.map((row) => {
+            const productsRow = row.ids.map(findProduct).filter(Boolean);
+            const disabled = productsRow.length > 0 && productsRow.every((product) => !canOrderProduct(product));
+            return (
+              <div key={row.label} className={`grid gap-3 p-4 sm:grid-cols-[1fr_auto_auto] sm:items-center ${disabled ? "opacity-50" : ""}`}>
+                <div>
+                  <div className="font-black text-white">{row.label}</div>
+                  <div className="text-xs text-stone-400">{productsRow.map(p => p.code).join(" / ")} {disabled ? "• non disponible" : ""}</div>
+                </div>
+                {row.ids.map((id, index) => (
+                  <PriceAddButton key={id} product={findProduct(id)} label={row.labels[index] || ""} />
+                ))}
+                {row.ids.length === 1 && <div className="hidden sm:block" />}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
   const thaiCategoryCards = [
     { label: "Entrées", image: asset("thai-entrees.png"), anchor: "thai-entrees" },
     { label: "Plats avec nouilles", image: asset("thai-padthai.png"), anchor: "thai-nouilles" },
@@ -1104,7 +1144,7 @@ KRUA PEÈN THAÏ`;
     return (
       <div className="mb-5 rounded-[2rem] border border-amber-300/15 bg-black/35 p-4">
         <div className="mb-3 text-center text-sm font-black uppercase tracking-wide text-amber-300">{title}</div>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-7">
           {cards.map((card) => (
             <button key={card.anchor} type="button" onClick={() => document.getElementById(card.anchor)?.scrollIntoView({ behavior: "smooth", block: "start" })} className="group rounded-2xl border border-white/10 bg-stone-950/80 p-2 text-center transition hover:border-amber-300/40">
               <img src={card.image} alt={card.label} className="mx-auto h-16 w-20 rounded-xl object-cover transition group-hover:scale-105" />
@@ -1246,11 +1286,11 @@ KRUA PEÈN THAÏ`;
 
       {view === "site" ? (
         <main className="overflow-x-hidden">
-          <section className="relative min-h-[78vh] overflow-hidden">
+          <section className="relative min-h-[70vh] overflow-hidden">
             <img src={asset("hero-sushi.jpg")} alt="Plateaux sushi KRUA PEÈN THAÏ" className="absolute inset-0 h-full w-full object-cover" />
             <div className="absolute inset-0 bg-gradient-to-r from-black via-black/75 to-black/20" />
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_left,rgba(245,158,11,.22),transparent_35%)]" />
-            <div className="relative mx-auto flex min-h-[78vh] max-w-7xl items-center px-4 py-16">
+            <div className="relative mx-auto flex min-h-[70vh] max-w-7xl items-center px-4 py-16">
               <div className="max-w-3xl">
                 <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-amber-300/40 bg-black/50 px-4 py-2 text-sm font-bold text-amber-100 backdrop-blur"><Sparkles size={16}/> {siteMessage}</div>
                 <h1 className="text-5xl font-black leading-none tracking-tight sm:text-6xl lg:text-7xl">KRUA PEÈN THAÏ</h1>
@@ -1326,7 +1366,7 @@ KRUA PEÈN THAÏ`;
                 <CategoryBlock title="🍣 Sushis & Poké bowls" subtitle="Préparés sur commande pour plus de fraîcheur. Remise de 10% dès 25€ de sushis." image={asset("hero-sushi.jpg")}>
                   <CategoryMiniNav title="Sushis & Poké bowls" cards={sushiCategoryCards} />
                   <div className="grid gap-5">
-                    <CategorySection id="sushi-sushis" title="🍣 Sushis" image={asset("sushi-saumon.jpg")}><ProductGrid items={categoryProducts("Sushis")} /></CategorySection>
+                    <div id="sushi-sushis" className="scroll-mt-24"><SushisPaperMenu /></div>
                     <CategorySection id="sushi-makis" title="🍙 Makis" image={asset("sushi-maki.jpg")}><ProductGrid items={categoryProducts("Makis")} /></CategorySection>
                     <CategorySection id="sushi-california" title="🥑 Californias" image={asset("sushi-california.jpg")}><ProductGrid items={categoryProducts("California")} /></CategorySection>
                     <CategorySection id="sushi-crunch" title="🔥 Crunch" image={asset("sushi-crunch.jpg")}><ProductGrid items={categoryProducts("Crunch")} /></CategorySection>
