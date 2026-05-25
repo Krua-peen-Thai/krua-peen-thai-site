@@ -931,7 +931,7 @@ KRUA PEÈN THAÏ`;
     setTimeout(() => document.getElementById("commander")?.scrollIntoView({ behavior: "smooth", block: "start" }), 80);
   }
 
-  const asset = (name) => `/krua-v2/${name}`;
+  const asset = (name) => `/krua-v3/${name}`;
 
   const thaiEntreeRows = [
     { label: "Rouleau de printemps crevette", ids: ["e1", "e1-4"] },
@@ -992,24 +992,25 @@ KRUA PEÈN THAÏ`;
   }
 
   function productImage(product) {
-    if (!product) return asset("pad-thai.png");
+    if (!product) return asset("thai-padthai.png");
     const name = String(product.name || "").toLowerCase();
     const category = String(product.category || "");
 
-    if (category === "Poké bowls" || name.includes("poké") || name.includes("poke")) return asset("poke-bowl.png");
-    if (category === "Sushis spécial" || name.includes("sandwich") || name.includes("dragon")) return asset("sandwich-sushi.jpg");
-    if (["Sushis", "Makis", "California", "Crunch", "Makis printemps"].includes(category)) return asset("hero-sushi.jpg");
-    if (name.includes("riz vinaigr") || name.includes("tartare") || name.includes("salade de chou")) return asset("hero-sushi.jpg");
+    if (category === "Poké bowls" || name.includes("poké") || name.includes("poke")) return asset("sushi-poke.png");
+    if (category === "Sushis spécial" || name.includes("sandwich") || name.includes("dragon")) return asset("sushi-sandwich.jpg");
+    if (category === "California") return asset("sushi-california.jpg");
+    if (category === "Crunch") return asset("sushi-crunch.jpg");
+    if (category === "Makis" || category === "Makis printemps") return asset("sushi-maki.jpg");
+    if (category === "Sushis") return asset("sushi-saumon.jpg");
+    if (name.includes("riz vinaigr") || name.includes("tartare") || name.includes("salade de chou")) return asset("sushi-accompagnement.jpg");
 
-    if (name.includes("bouch")) return asset("bouchees.jpg");
-    if (name.includes("nem")) return asset("nems.jpg");
-    if (name.includes("samoussa") || name.includes("brochette") || category === "Entrées") return asset("entrees-mix.png");
+    if (category === "Entrées" || name.includes("bouch") || name.includes("nem") || name.includes("samoussa") || name.includes("brochette")) return asset("thai-entrees.png");
+    if (name.includes("riz cantonais")) return asset("thai-accompagnement.png");
+    if (name.includes("nouilles") || name.includes("pad thaï") || name.includes("pad thai")) return asset("thai-padthai.png");
+    if (name.includes("curry")) return asset("thai-curry.jpg");
+    if (category === "Plats avec riz" || name.includes("porc") || name.includes("poulet") || name.includes("kra pao") || name.includes("nam man")) return asset("thai-rice.jpg");
 
-    if (name.includes("riz cantonais")) return asset("entrees-mix.png");
-    if (name.includes("nouilles") || name.includes("pad thaï") || name.includes("pad thai")) return asset("pad-thai.png");
-    if (name.includes("curry") || name.includes("porc") || name.includes("poulet") || name.includes("kra pao") || name.includes("nam man")) return asset("pad-thai.png");
-
-    return asset("pad-thai.png");
+    return asset("thai-padthai.png");
   }
 
   function PriceAddButton({ product, label }) {
@@ -1027,34 +1028,25 @@ KRUA PEÈN THAÏ`;
     );
   }
 
-  function ProductCard({ product, compact = false }) {
+  function ProductCard({ product }) {
     if (!product) return null;
     const blocked = isProductBlocked(product);
     const disabled = !product.available || blocked || !selectedAvailability.open;
     return (
-      <article className={`group overflow-hidden rounded-3xl border ${disabled ? "border-white/5 bg-stone-950/50 opacity-55" : "border-white/10 bg-stone-950/90"} shadow-xl`}>
-        {!compact && (
-          <div className="relative h-32 overflow-hidden bg-black">
-            <img src={productImage(product)} alt="" className="h-full w-full object-cover opacity-80 transition duration-500 group-hover:scale-105" />
-            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
-            <div className="absolute left-3 top-3 rounded-full bg-black/65 px-3 py-1 text-xs font-black text-amber-200">{product.code}</div>
-          </div>
-        )}
-        <div className="p-4">
-          <div className="mb-2 flex items-start justify-between gap-3">
+      <article className={`rounded-2xl border p-4 transition ${disabled ? "border-white/5 bg-stone-950/45 opacity-50" : "border-white/10 bg-stone-950/80 hover:border-amber-300/35"}`}>
+        <div className="mb-2 flex items-start justify-between gap-3">
+          <div>
+            <div className="mb-1 text-xs font-black text-amber-300">{product.code}</div>
             <h4 className="text-lg font-black leading-tight">{product.name}</h4>
-            {compact && <span className="shrink-0 rounded-full bg-black/60 px-2 py-1 text-xs font-black text-amber-300">{product.code}</span>}
           </div>
-          <p className="min-h-10 text-sm text-stone-300">{product.desc}</p>
-          {blocked && <p className="mt-2 rounded-xl bg-orange-950/70 p-2 text-xs font-bold text-orange-100">Complet à la réservation pour cet emplacement.</p>}
-          {!product.available && <p className="mt-2 rounded-xl bg-white/5 p-2 text-xs font-bold text-stone-400">Non disponible cette semaine.</p>}
-          <div className="mt-4 flex items-center justify-between gap-3">
-            <div className="text-xl font-black text-amber-300">{euro(product.price)}</div>
-            <button disabled={disabled} onClick={() => addProduct(product)} className="rounded-2xl bg-amber-400 px-4 py-3 font-black text-black disabled:bg-white/10 disabled:text-stone-500">
-              Ajouter
-            </button>
-          </div>
+          <div className="shrink-0 text-lg font-black text-amber-300">{euro(product.price)}</div>
         </div>
+        <p className="min-h-10 text-sm text-stone-300">{product.desc}</p>
+        {blocked && <p className="mt-2 rounded-xl bg-orange-950/70 p-2 text-xs font-bold text-orange-100">Complet à la réservation pour cet emplacement.</p>}
+        {!product.available && <p className="mt-2 rounded-xl bg-white/5 p-2 text-xs font-bold text-stone-400">Non disponible cette semaine.</p>}
+        <button disabled={disabled} onClick={() => addProduct(product)} className="mt-4 w-full rounded-2xl bg-amber-400 px-4 py-3 font-black text-black disabled:bg-white/10 disabled:text-stone-500">
+          Ajouter
+        </button>
       </article>
     );
   }
@@ -1067,7 +1059,7 @@ KRUA PEÈN THAÏ`;
             <h3 className="text-2xl font-black text-amber-200">🥟 Entrées thaï</h3>
             <p className="mt-1 text-sm text-stone-300">Présentation comme sur la carte : cliquez directement sur le prix.</p>
           </div>
-          <img src={asset("entrees-mix.png")} alt="Entrées thaï" className="h-24 w-full rounded-2xl object-cover sm:w-44" />
+          <img src={asset("thai-entrees.png")} alt="Entrées thaï" className="h-24 w-full rounded-2xl object-cover sm:w-44" />
         </div>
         <div className="divide-y divide-white/10">
           {thaiEntreeRows.map((row) => {
@@ -1087,6 +1079,56 @@ KRUA PEÈN THAÏ`;
           })}
         </div>
       </div>
+    );
+  }
+
+  const thaiCategoryCards = [
+    { label: "Entrées", image: asset("thai-entrees.png"), anchor: "thai-entrees" },
+    { label: "Plats avec nouilles", image: asset("thai-padthai.png"), anchor: "thai-nouilles" },
+    { label: "Plats avec riz", image: asset("thai-rice.jpg"), anchor: "thai-riz" },
+    { label: "Currys", image: asset("thai-curry.jpg"), anchor: "thai-currys" },
+    { label: "Accompagnements", image: asset("thai-accompagnement.png"), anchor: "thai-accompagnements" },
+  ];
+
+  const sushiCategoryCards = [
+    { label: "Sushis", image: asset("sushi-saumon.jpg"), anchor: "sushi-sushis" },
+    { label: "Makis", image: asset("sushi-maki.jpg"), anchor: "sushi-makis" },
+    { label: "Californias", image: asset("sushi-california.jpg"), anchor: "sushi-california" },
+    { label: "Crunch", image: asset("sushi-crunch.jpg"), anchor: "sushi-crunch" },
+    { label: "Sandwich sushi", image: asset("sushi-sandwich.jpg"), anchor: "sushi-special" },
+    { label: "Poké bowls", image: asset("sushi-poke.png"), anchor: "sushi-poke" },
+    { label: "Accompagnements", image: asset("sushi-accompagnement.jpg"), anchor: "sushi-accompagnements" },
+  ];
+
+  function CategoryMiniNav({ title, cards }) {
+    return (
+      <div className="mb-5 rounded-[2rem] border border-amber-300/15 bg-black/35 p-4">
+        <div className="mb-3 text-center text-sm font-black uppercase tracking-wide text-amber-300">{title}</div>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+          {cards.map((card) => (
+            <button key={card.anchor} type="button" onClick={() => document.getElementById(card.anchor)?.scrollIntoView({ behavior: "smooth", block: "start" })} className="group rounded-2xl border border-white/10 bg-stone-950/80 p-2 text-center transition hover:border-amber-300/40">
+              <img src={card.image} alt={card.label} className="mx-auto h-16 w-20 rounded-xl object-cover transition group-hover:scale-105" />
+              <div className="mt-2 text-xs font-black text-white sm:text-sm">{card.label}</div>
+              <div className="mx-auto mt-2 h-0.5 w-8 rounded-full bg-amber-400" />
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  function CategorySection({ id, title, image, children }) {
+    return (
+      <section id={id} className="scroll-mt-24 overflow-hidden rounded-[2rem] border border-white/10 bg-black/35">
+        <div className="flex items-center gap-4 border-b border-white/10 bg-gradient-to-r from-amber-500/10 to-transparent p-4">
+          <img src={image} alt="" className="h-20 w-24 rounded-2xl object-cover shadow-lg shadow-black/30 sm:h-24 sm:w-32" />
+          <div>
+            <h3 className="text-2xl font-black text-amber-200">{title}</h3>
+            <p className="text-sm text-stone-300">Choisis directement dans la liste.</p>
+          </div>
+        </div>
+        <div className="p-4">{children}</div>
+      </section>
     );
   }
 
@@ -1233,8 +1275,8 @@ KRUA PEÈN THAÏ`;
             <div className="grid gap-5 lg:grid-cols-2">
               <article className="overflow-hidden rounded-[2rem] border border-amber-300/20 bg-stone-950 shadow-2xl">
                 <div className="relative h-80 overflow-hidden">
-                  <img src={asset("pad-thai.png")} alt="Cuisine thaï" className="absolute bottom-0 right-0 h-full w-full object-contain object-right opacity-95" />
-                  <img src={asset("entrees-mix.png")} alt="Entrées" className="absolute -bottom-10 -left-10 hidden h-56 w-72 object-contain opacity-90 sm:block" />
+                  <img src={asset("univers-thai.jpg")} alt="Cuisine thaï" className="absolute bottom-0 right-0 h-full w-full object-contain object-right opacity-95" />
+                  <img src={asset("thai-entrees.png")} alt="Entrées" className="absolute -bottom-10 -left-10 hidden h-56 w-72 object-contain opacity-90 sm:block" />
                   <div className="absolute inset-0 bg-gradient-to-r from-black via-black/75 to-transparent" />
                   <div className="absolute inset-x-0 bottom-0 p-6">
                     <div className="mb-2 inline-flex rounded-full bg-amber-400 px-3 py-1 text-xs font-black text-black">Cuisine maison</div>
@@ -1246,7 +1288,7 @@ KRUA PEÈN THAÏ`;
               </article>
               <article className="overflow-hidden rounded-[2rem] border border-amber-300/20 bg-stone-950 shadow-2xl">
                 <div className="relative h-80 overflow-hidden">
-                  <img src={asset("buffet-sushi.jpg")} alt="Sushis KRUA" className="h-full w-full object-cover" />
+                  <img src={asset("univers-sushi.jpg")} alt="Sushis KRUA" className="h-full w-full object-cover" />
                   <div className="absolute inset-0 bg-gradient-to-t from-black via-black/45 to-transparent" />
                   <div className="absolute inset-x-0 bottom-0 p-6">
                     <div className="mb-2 inline-flex rounded-full bg-amber-400 px-3 py-1 text-xs font-black text-black">Sur commande</div>
@@ -1270,22 +1312,28 @@ KRUA PEÈN THAÏ`;
 
             <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_390px]">
               <div className="min-w-0 space-y-6">
-                <CategoryBlock title="🇹🇭 Cuisine thaïlandaise" subtitle="Entrées, plats avec nouilles, plats avec riz et currys maison." image={asset("pad-thai.png")}>
+                <CategoryBlock title="🇹🇭 Cuisine thaïlandaise" subtitle="Entrées, plats avec nouilles, plats avec riz et currys maison." image={asset("hero-thai.jpg")}>
+                  <CategoryMiniNav title="Cuisine thaïlandaise" cards={thaiCategoryCards} />
                   <div className="space-y-5">
-                    <EntreesPaperMenu />
-                    <div className="grid gap-5">
-                      <section className="rounded-[2rem] border border-white/10 bg-black/35 p-4"><h3 className="mb-4 text-2xl font-black text-amber-200">🍚 Accompagnements</h3><ProductGrid items={productsFromIds(thaiAccompanimentIds)} /></section>
-                      <section className="rounded-[2rem] border border-white/10 bg-black/35 p-4"><h3 className="mb-4 text-2xl font-black text-amber-200">🍜 Plats avec nouilles</h3><ProductGrid items={categoryProducts("Plats avec nouilles")} /></section>
-                      <section className="rounded-[2rem] border border-white/10 bg-black/35 p-4"><h3 className="mb-4 text-2xl font-black text-amber-200">🍚 Plats avec riz</h3><ProductGrid items={[...categoryProducts("Plats avec riz"), ...productsFromIds(thaiRiceOptionIds)]} /></section>
-                      <section className="rounded-[2rem] border border-white/10 bg-black/35 p-4"><h3 className="mb-4 text-2xl font-black text-amber-200">🌶️ Currys</h3><ProductGrid items={categoryProducts("Currys")} /></section>
-                    </div>
+                    <div id="thai-entrees" className="scroll-mt-24"><EntreesPaperMenu /></div>
+                    <CategorySection id="thai-accompagnements" title="🥣 Accompagnements" image={asset("thai-accompagnement.png")}><ProductGrid items={productsFromIds(thaiAccompanimentIds)} /></CategorySection>
+                    <CategorySection id="thai-nouilles" title="🍜 Plats avec nouilles" image={asset("thai-padthai.png")}><ProductGrid items={categoryProducts("Plats avec nouilles")} /></CategorySection>
+                    <CategorySection id="thai-riz" title="🍚 Plats avec riz" image={asset("thai-rice.jpg")}><ProductGrid items={[...categoryProducts("Plats avec riz"), ...productsFromIds(thaiRiceOptionIds)]} /></CategorySection>
+                    <CategorySection id="thai-currys" title="🌶️ Currys" image={asset("thai-curry.jpg")}><ProductGrid items={categoryProducts("Currys")} /></CategorySection>
                   </div>
                 </CategoryBlock>
 
                 <CategoryBlock title="🍣 Sushis & Poké bowls" subtitle="Préparés sur commande pour plus de fraîcheur. Remise de 10% dès 25€ de sushis." image={asset("hero-sushi.jpg")}>
+                  <CategoryMiniNav title="Sushis & Poké bowls" cards={sushiCategoryCards} />
                   <div className="grid gap-5">
-                    {sushiCategories.map((cat) => <section key={cat} className="rounded-[2rem] border border-white/10 bg-black/35 p-4"><h3 className="mb-4 text-2xl font-black text-amber-200">{categoryLabels[cat] || cat}</h3><ProductGrid items={categoryProducts(cat)} /></section>)}
-                    <section className="rounded-[2rem] border border-white/10 bg-black/35 p-4"><h3 className="mb-4 text-2xl font-black text-amber-200">🍚 Accompagnements sushi</h3><ProductGrid items={productsFromIds(sushiAccompanimentIds)} /></section>
+                    <CategorySection id="sushi-sushis" title="🍣 Sushis" image={asset("sushi-saumon.jpg")}><ProductGrid items={categoryProducts("Sushis")} /></CategorySection>
+                    <CategorySection id="sushi-makis" title="🍙 Makis" image={asset("sushi-maki.jpg")}><ProductGrid items={categoryProducts("Makis")} /></CategorySection>
+                    <CategorySection id="sushi-california" title="🥑 Californias" image={asset("sushi-california.jpg")}><ProductGrid items={categoryProducts("California")} /></CategorySection>
+                    <CategorySection id="sushi-crunch" title="🔥 Crunch" image={asset("sushi-crunch.jpg")}><ProductGrid items={categoryProducts("Crunch")} /></CategorySection>
+                    <CategorySection id="sushi-special" title="⭐ Sandwichs sushi" image={asset("sushi-sandwich.jpg")}><ProductGrid items={categoryProducts("Sushis spécial")} /></CategorySection>
+                    <CategorySection id="sushi-printemps" title="🌿 Makis printemps" image={asset("sushi-maki.jpg")}><ProductGrid items={categoryProducts("Makis printemps")} /></CategorySection>
+                    <CategorySection id="sushi-poke" title="🥗 Poké bowls" image={asset("sushi-poke.png")}><ProductGrid items={categoryProducts("Poké bowls")} /></CategorySection>
+                    <CategorySection id="sushi-accompagnements" title="🥣 Accompagnements sushi" image={asset("sushi-accompagnement.jpg")}><ProductGrid items={productsFromIds(sushiAccompanimentIds)} /></CategorySection>
                   </div>
                 </CategoryBlock>
               </div>
@@ -1298,7 +1346,7 @@ KRUA PEÈN THAÏ`;
 
           <section id="traiteur" className="mx-auto max-w-7xl px-4 py-12 pb-28">
             <div className="grid overflow-hidden rounded-[2rem] border border-amber-300/20 bg-gradient-to-br from-stone-900 to-black shadow-2xl lg:grid-cols-[.95fr_1.05fr]">
-              <div className="relative min-h-80"><img src={asset("camion-side.jpg")} alt="Food truck KRUA PEÈN THAÏ" className="absolute inset-0 h-full w-full object-cover"/><div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"/></div>
+              <div className="relative min-h-80"><img src={asset("camion-krua.jpg")} alt="Food truck KRUA PEÈN THAÏ" className="absolute inset-0 h-full w-full object-cover"/><div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"/></div>
               <div className="p-6 sm:p-8"><div className="mb-3 inline-flex rounded-full bg-amber-400 px-3 py-1 text-xs font-black text-black">Traiteur événementiel</div><h2 className="text-4xl font-black">Mariage, anniversaire, entreprise, séminaire</h2><p className="mt-4 text-stone-300">Cuisine thaï maison, sushis et poké bowls pour vos événements. Tina adapte la proposition selon le nombre de personnes, le lieu et le type de repas.</p><div className="mt-6 grid gap-3 sm:grid-cols-2"><div className="rounded-2xl bg-white/[0.04] p-4 font-bold">Mariage / retour de mariage</div><div className="rounded-2xl bg-white/[0.04] p-4 font-bold">Repas entreprise</div><div className="rounded-2xl bg-white/[0.04] p-4 font-bold">Anniversaire</div><div className="rounded-2xl bg-white/[0.04] p-4 font-bold">Séminaire</div></div><a href={whatsappLink(BRAND.phone, "Bonjour, je souhaite une demande traiteur KRUA PEÈN THAÏ.")} target="_blank" rel="noreferrer" className="mt-6 inline-flex rounded-2xl bg-amber-400 px-6 py-4 font-black text-black">Demander un devis WhatsApp</a></div>
             </div>
           </section>
