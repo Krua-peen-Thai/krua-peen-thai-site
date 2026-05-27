@@ -22,12 +22,6 @@ const categoryLabels = {
   "Crunch": "🔥 Crunch", "Makis printemps": "🌿 Makis printemps", "Poké bowls": "🥗 Poké bowls",
 };
 
-
-const preorderInfo = {
-  thai: "🍛 Les plats thaï de la semaine sont annoncés chaque dimanche soir / lundi matin. Les précommandes ouvrent dès publication du nouveau menu.",
-  sushi: "🍣 Précommandes sushi & poké ouvertes en continu selon disponibilité."
-};
-
 const productsSeed = [
   { id: "e1", code: "E1", name: "Rouleau de printemps crevette", category: "Entrées", price: 3.5, available: true, fixed: true, desc: "1 pièce." },
   { id: "e1-4", code: "E1", name: "Rouleaux de printemps crevette x4", category: "Entrées", price: 12, available: true, fixed: true, desc: "4 pièces." },
@@ -115,7 +109,7 @@ const menuVisualCards = [
     title: "Spécialités thaïlandaises",
     subtitle: "Cuisine traditionnelle thaïlandaise maison",
     text: "Pad Thaï, currys, plats avec riz ou nouilles, entrées à partager.",
-    image: "/cartes/menu-thai.png",
+    image: "/krua-v3/menu-thai.png",
     category: "Plats avec nouilles"
   },
   {
@@ -123,7 +117,7 @@ const menuVisualCards = [
     title: "Sushis & Poké bowls",
     subtitle: "Préparés sur commande pour plus de fraîcheur",
     text: "Sushis, makis, california, crunch, makis printemps et poké bowls.",
-    image: "/cartes/menu-sushis.png",
+    image: "/krua-v3/menu-sushis.png",
     category: "Sushis"
   }
 ];
@@ -1310,10 +1304,6 @@ KRUA PEÈN THAÏ`;
             <div className="relative mx-auto flex min-h-[70vh] max-w-7xl items-center px-4 py-16">
               <div className="max-w-3xl">
                 <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-amber-300/40 bg-black/50 px-4 py-2 text-sm font-bold text-amber-100 backdrop-blur"><Sparkles size={16}/> {siteMessage}</div>
-                <div className="mb-5 space-y-2 rounded-2xl border border-amber-300/20 bg-black/40 p-4 text-sm text-amber-50 backdrop-blur">
-                  <p>{preorderInfo.thai}</p>
-                  <p>{preorderInfo.sushi}</p>
-                </div>
                 <h1 className="text-5xl font-black leading-none tracking-tight sm:text-6xl lg:text-7xl">KRUA PEÈN THAÏ</h1>
                 <p className="mt-5 max-w-2xl text-xl font-bold text-amber-100">Cuisine thaï maison • Sushi • Poké • Traiteur événementiel</p>
                 <p className="mt-4 max-w-2xl text-base text-stone-200 sm:text-lg">Food truck basé à Plabennec, présent dans le Finistère Nord. Précommande, retrait au camion et confirmation par Tina.</p>
@@ -1367,6 +1357,16 @@ KRUA PEÈN THAÏ`;
               <div>
                 <div className="mb-3 flex items-center gap-3"><ShoppingCart className="text-amber-300"/><h2 className="text-4xl font-black">Commander cette semaine</h2></div>
                 <p className="max-w-3xl text-stone-300">Deux univers séparés, comme les cartes papier. Les produits indisponibles ou complets sont grisés.</p>
+                <div className="mt-4 grid gap-3 md:grid-cols-2">
+                  <div className="rounded-3xl border border-amber-300/20 bg-amber-400/10 p-4 text-sm text-amber-50">
+                    <div className="font-black text-amber-200">🍛 Plats thaï de la semaine</div>
+                    <p className="mt-1 text-stone-200">Les plats thaï de la semaine sont annoncés chaque dimanche soir ou lundi matin. Les précommandes ouvrent dès publication du nouveau menu.</p>
+                  </div>
+                  <div className="rounded-3xl border border-green-400/20 bg-green-500/10 p-4 text-sm text-green-50">
+                    <div className="font-black text-green-200">🍣 Sushis & poké bowls</div>
+                    <p className="mt-1 text-stone-200">Précommandes ouvertes en continu selon disponibilité. Remise de 10% dès 25€ de sushis.</p>
+                  </div>
+                </div>
               </div>
               <div className="relative w-full lg:max-w-sm"><Search className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400" size={18}/><input value={searchTerm} onChange={e=>setSearchTerm(e.target.value)} placeholder="Rechercher : saumon, poké, S16..." className="w-full rounded-2xl border border-white/10 bg-stone-900 py-4 pl-12 pr-4"/></div>
             </div>
