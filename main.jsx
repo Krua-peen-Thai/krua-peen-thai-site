@@ -13,12 +13,19 @@ const initialLocations = [
   { id: "BRI", city: "Brignogan", label: "Dimanche soir", place: "Devant le camping Slow Village", day: "Dimanche", hours: "16h30 – 21h30", active: true },
 ];
 
-const categoryOrder = ["Entrées","Accompagnements","Plats avec nouilles","Plats avec riz","Currys","Sushis","Makis","California","Sushis spécial","Crunch","Makis printemps","Poké bowls"];
+const categoryOrder = ["Entrées","Accompagnements","Plats avec nouilles","Plats avec riz","Currys","Mix sushi découverte","Sushis","Makis","California","Sushis spécial","Crunch","Makis printemps","Poké bowls"];
 const categoryLabels = {
   "Entrées": "🥟 Entrées", "Accompagnements": "🍚 Accompagnements",
   "Plats avec nouilles": "🍜 Plats avec nouilles", "Plats avec riz": "🍚 Plats avec riz", "Currys": "🌶️ Currys",
+  "Mix sushi découverte": "🍱 Mix sushi découverte",
   "Sushis": "🍣 Sushis", "Makis": "🥒 Makis", "California": "🥑 California", "Sushis spécial": "⭐ Sushis spéciaux",
   "Crunch": "🔥 Crunch", "Makis printemps": "🌿 Makis printemps", "Poké bowls": "🥗 Poké bowls",
+};
+
+
+const preorderInfo = {
+  thai: "🍛 Les plats thaï de la semaine sont annoncés chaque dimanche soir / lundi matin. Les précommandes ouvrent dès publication du nouveau menu.",
+  sushi: "🍣 Précommandes sushi & poké ouvertes en continu selon disponibilité."
 };
 
 const productsSeed = [
@@ -54,11 +61,19 @@ const productsSeed = [
   { id: "curry-rouge", code: "P9", name: "Curry rouge", category: "Currys", price: 9.9, available: true, fixed: false, desc: "Viande, légumes, pâte de curry, lait de coco. Au choix : poulet, porc ou crevette." },
   { id: "curry-vert", code: "P10", name: "Curry vert", category: "Currys", price: 9.9, available: true, fixed: false, desc: "Viande, légumes, pâte de curry, lait de coco. Au choix : poulet, porc ou crevette." },
   { id: "s1", code: "S1", name: "6 sushis saumon", category: "Sushis", price: 8.5, available: true, fixed: true, desc: "Commande conseillée la veille." },
-  { id: "s2", code: "S2", name: "10 sushis saumon", category: "Sushis", price: 15, available: true, fixed: true, desc: "Commande conseillée la veille." },
-  { id: "s3", code: "S3", name: "6 sushis crevettes", category: "Sushis", price: 9, available: true, fixed: true, desc: "Commande conseillée la veille." },
-  { id: "s4", code: "S4", name: "10 sushis crevettes", category: "Sushis", price: 15, available: true, fixed: true, desc: "Commande conseillée la veille." },
-  { id: "s5", code: "S5", name: "6 sushis saumon avocat", category: "Sushis", price: 12, available: true, fixed: true, desc: "Commande conseillée la veille." },
-  { id: "s6", code: "S6", name: "6 sushis crevettes avocat", category: "Sushis", price: 11, available: true, fixed: true, desc: "Commande conseillée la veille." },
+  { id: "m1", code: "M1", name: "Mix découverte 18 pièces", category: "Mix sushi découverte", price: 16.9, available: true, fixed: true, desc: "6 maki concombre fromage, 8 california thon mayonnaise, 4 sushi saumon." },
+  { id: "m2", code: "M2", name: "Mix découverte 18 pièces", category: "Mix sushi découverte", price: 16.9, available: true, fixed: true, desc: "6 maki saumon, 8 california saumon, 4 sushi saumon." },
+  { id: "m3", code: "M3", name: "Mix découverte 20 pièces", category: "Mix sushi découverte", price: 19.5, available: true, fixed: true, desc: "8 california thon mayonnaise, 6 maki saumon, 6 sushi saumon." },
+  { id: "m4", code: "M4", name: "Mix découverte 20 pièces", category: "Mix sushi découverte", price: 19.5, available: true, fixed: true, desc: "8 california saumon, 6 maki avocat, 6 sushi saumon." },
+  { id: "m5", code: "M5", name: "Mix découverte 22 pièces", category: "Mix sushi découverte", price: 21.9, available: true, fixed: true, desc: "8 california saumon, 8 california thon mayonnaise, 6 sushi saumon." },
+  { id: "m6", code: "M6", name: "Mix découverte 22 pièces", category: "Mix sushi découverte", price: 17.9, available: true, fixed: true, desc: "8 california saumon, 8 california thon mayonnaise, 6 maki saumon." },
+  { id: "opt-crunch", code: "OPT", name: "Option crunch", category: "Mix sushi découverte", price: 1, available: true, fixed: true, desc: "Ajout oignons frits et sauce crunch." },
+
+  { id: "s2", code: "S2", name: "10 sushis saumon", category: "Sushis", price: 12.9, available: true, fixed: true, desc: "Commande conseillée la veille." },
+  { id: "s3", code: "S3", name: "6 sushis crevettes", category: "Sushis", price: 8.9, available: true, fixed: true, desc: "Commande conseillée la veille." },
+  { id: "s4", code: "S4", name: "10 sushis crevettes", category: "Sushis", price: 12.9, available: true, fixed: true, desc: "Commande conseillée la veille." },
+  { id: "s5", code: "S5", name: "6 sushis saumon avocat", category: "Sushis", price: 10.9, available: true, fixed: true, desc: "Commande conseillée la veille." },
+  { id: "s6", code: "S6", name: "6 sushis crevettes avocat", category: "Sushis", price: 10.9, available: true, fixed: true, desc: "Commande conseillée la veille." },
   { id: "s7", code: "S7", name: "Maki concombre x6", category: "Makis", price: 4, available: true, fixed: true, desc: "6 pièces." },
   { id: "s8", code: "S8", name: "Maki avocat x6", category: "Makis", price: 4, available: true, fixed: true, desc: "6 pièces." },
   { id: "s9", code: "S9", name: "Maki fromage x6", category: "Makis", price: 4.5, available: true, fixed: true, desc: "6 pièces." },
@@ -1295,6 +1310,10 @@ KRUA PEÈN THAÏ`;
             <div className="relative mx-auto flex min-h-[70vh] max-w-7xl items-center px-4 py-16">
               <div className="max-w-3xl">
                 <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-amber-300/40 bg-black/50 px-4 py-2 text-sm font-bold text-amber-100 backdrop-blur"><Sparkles size={16}/> {siteMessage}</div>
+                <div className="mb-5 space-y-2 rounded-2xl border border-amber-300/20 bg-black/40 p-4 text-sm text-amber-50 backdrop-blur">
+                  <p>{preorderInfo.thai}</p>
+                  <p>{preorderInfo.sushi}</p>
+                </div>
                 <h1 className="text-5xl font-black leading-none tracking-tight sm:text-6xl lg:text-7xl">KRUA PEÈN THAÏ</h1>
                 <p className="mt-5 max-w-2xl text-xl font-bold text-amber-100">Cuisine thaï maison • Sushi • Poké • Traiteur événementiel</p>
                 <p className="mt-4 max-w-2xl text-base text-stone-200 sm:text-lg">Food truck basé à Plabennec, présent dans le Finistère Nord. Précommande, retrait au camion et confirmation par Tina.</p>
