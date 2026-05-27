@@ -194,7 +194,7 @@ function KruaSite() {
   const [customer, setCustomer] = useState({ firstName: "", lastName: "", phone: "", email: "", note: "" });
   const [categoryFilter, setCategoryFilter] = useState("Tous");
   const [searchTerm, setSearchTerm] = useState("");
-  const [openCategory, setOpenCategory] = useState("Plats de la semaine");
+  const [openCategory, setOpenCategory] = useState("Entrées");
   const [orderSearch, setOrderSearch] = useState("");
   const [appMode, setAppMode] = useState(supabase ? "Connecté à Supabase" : "Mode démo local");
   const [notificationStatus, setNotificationStatus] = useState("Notifications inactives");
@@ -423,7 +423,7 @@ useEffect(() => {
   function removeFromCart(id) { setCart(old => { const n={...old}; n[id]=(n[id]||0)-1; if(n[id]<=0) delete n[id]; return n; }); }
 
   function isSushiDiscountProduct(product) {
-    return ["Sushis", "Makis", "California", "Sushis spécial", "Crunch", "Makis printemps"].includes(product?.category);
+    return ["Mix sushi découverte", "Sushis", "Makis", "California", "Sushis spécial", "Crunch", "Makis printemps"].includes(product?.category);
   }
 
   function orderItemsTotal(order) {
@@ -550,7 +550,7 @@ const orderItems = cartLines.map(({id,name,qty,price}) => ({id,name,qty,price}))
   function productBlockGroup(product) {
     if (!product) return null;
     if (["Plats permanents", "Plats de la semaine", "Plats avec nouilles", "Plats avec riz", "Currys"].includes(product.category)) return "thai";
-    if (["Sushis", "Makis", "California", "Sushis spécial", "Crunch", "Makis printemps", "Poké bowls"].includes(product.category)) return "sushi";
+    if (["Mix sushi découverte", "Sushis", "Makis", "California", "Sushis spécial", "Crunch", "Makis printemps", "Poké bowls"].includes(product.category)) return "sushi";
     return null;
   }
 
@@ -957,7 +957,7 @@ KRUA PEÈN THAÏ`;
   const thaiAccompanimentIds = ["riz-cantonais", "nouilles-sautees-accompagnement"];
   const thaiRiceOptionIds = ["option-riz-cantonais", "option-nouilles-sautees"];
   const sushiAccompanimentIds = ["s35", "s36", "s37"];
-  const sushiCategories = ["Sushis", "Makis", "California", "Sushis spécial", "Crunch", "Makis printemps", "Poké bowls"];
+  const sushiCategories = ["Mix sushi découverte", "Sushis", "Makis", "California", "Sushis spécial", "Crunch", "Makis printemps", "Poké bowls"];
 
   function findProduct(id) {
     return products.find((p) => p.id === id);
@@ -1005,6 +1005,7 @@ KRUA PEÈN THAÏ`;
     const name = String(product.name || "").toLowerCase();
     const category = String(product.category || "");
 
+    if (category === "Mix sushi découverte" || name.includes("mix découverte")) return asset("sushi-saumon.jpg");
     if (category === "Poké bowls" || name.includes("poké") || name.includes("poke")) return asset("sushi-poke.png");
     if (category === "Sushis spécial" || name.includes("sandwich") || name.includes("dragon")) return asset("sushi-sandwich.jpg");
     if (category === "California") return asset("sushi-california.jpg");
@@ -1141,6 +1142,7 @@ KRUA PEÈN THAÏ`;
   ];
 
   const sushiCategoryCards = [
+    { label: "Mix découverte", image: asset("sushi-saumon.jpg"), anchor: "sushi-mix" },
     { label: "Sushis", image: asset("sushi-saumon.jpg"), anchor: "sushi-sushis" },
     { label: "Makis", image: asset("sushi-maki.jpg"), anchor: "sushi-makis" },
     { label: "Californias", image: asset("sushi-california.jpg"), anchor: "sushi-california" },
@@ -1387,6 +1389,7 @@ KRUA PEÈN THAÏ`;
                 <CategoryBlock title="🍣 Sushis & Poké bowls" subtitle="Préparés sur commande pour plus de fraîcheur. Remise de 10% dès 25€ de sushis." image={asset("hero-sushi.jpg")}>
                   <CategoryMiniNav title="Sushis & Poké bowls" cards={sushiCategoryCards} />
                   <div className="grid gap-5">
+                    <CategorySection id="sushi-mix" title="🍱 Mix sushi découverte" image={asset("sushi-saumon.jpg")}><ProductGrid items={categoryProducts("Mix sushi découverte")} /></CategorySection>
                     <div id="sushi-sushis" className="scroll-mt-24"><SushisPaperMenu /></div>
                     <CategorySection id="sushi-makis" title="🍙 Makis" image={asset("sushi-maki.jpg")}><ProductGrid items={categoryProducts("Makis")} /></CategorySection>
                     <CategorySection id="sushi-california" title="🥑 Californias" image={asset("sushi-california.jpg")}><ProductGrid items={categoryProducts("California")} /></CategorySection>
