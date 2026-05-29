@@ -7,7 +7,7 @@ import "./style.css";
 const BRAND = { name: "KRUA PEÈN THAÏ", phone: "0670395523", email: "kruapeenthai@gmail.com", instagram: "@krua_peen_thai", facebook: "KRUA Peèn-Thaï" };
 
 const initialLocations = [
-  { id: "PLAB", city: "Plabennec", label: "Mardi soir", place: "Devant l’église", day: "Mardi", hours: "16h00 – 20h30", active: true },
+  { id: "PLAB", city: "Plabennec", label: "Mardi soir", place: "Devant l’église", day: "Mardi", hours: "15h30 – 20h30", active: true },
   { id: "KERJ", city: "Kerlouan", label: "Jeudi matin", place: "Place de la mairie", day: "Jeudi", hours: "08h00 – 13h00", active: true },
   { id: "KERD", city: "Kerlouan", label: "Dimanche matin", place: "Place de la mairie", day: "Dimanche", hours: "08h00 – 13h00", active: true },
   { id: "BRI", city: "Brignogan", label: "Dimanche soir", place: "Devant le camping Slow Village", day: "Dimanche", hours: "16h30 – 21h30", active: true },
@@ -1252,7 +1252,7 @@ KRUA PEÈN THAÏ`;
     return <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{items.map((p) => <ProductCard key={p.id} product={p} />)}</div>;
   }
 
-  function CartPanel({ mobile = false }) {
+  function renderCartPanel(mobile = false) {
     return (
       <aside className={`${mobile ? "max-h-[92dvh] overflow-y-auto overscroll-contain" : "sticky top-24 h-fit"} rounded-[2rem] border border-amber-300/20 bg-black p-5 shadow-2xl`}>
         <div className="mb-4 flex items-center justify-between gap-3">
@@ -1280,11 +1280,11 @@ KRUA PEÈN THAÏ`;
         {sushiDiscountBase > 0 && sushiDiscount === 0 && <div className="mb-3 rounded-2xl bg-amber-400/10 p-3 text-xs font-bold text-amber-100">🍣 -10% sur les sushis dès 25€ de commande sushi.</div>}
         <div className="mb-5 flex items-center justify-between border-t border-white/10 pt-4 text-xl font-black"><span>Total</span><span className="text-amber-300">{euro(total)}</span></div>
         <div className="grid gap-3">
-          <input placeholder="Prénom *" autoComplete="given-name" value={customer.firstName} onChange={e=>setCustomer({...customer, firstName:e.target.value})} className="rounded-2xl border border-white/10 bg-stone-900 p-4 text-base"/>
-          <input placeholder="Nom" autoComplete="family-name" value={customer.lastName} onChange={e=>setCustomer({...customer, lastName:e.target.value})} className="rounded-2xl border border-white/10 bg-stone-900 p-4 text-base"/>
-          <input placeholder="Téléphone *" inputMode="tel" autoComplete="tel" value={customer.phone} onChange={e=>setCustomer({...customer, phone:e.target.value})} className="rounded-2xl border border-white/10 bg-stone-900 p-4 text-base"/>
-          <input placeholder="Email (optionnel)" type="email" inputMode="email" autoComplete="email" value={customer.email} onChange={e=>setCustomer({...customer, email:e.target.value})} className="rounded-2xl border border-white/10 bg-stone-900 p-4 text-base"/>
-          <textarea placeholder="Commentaire" value={customer.note} onChange={e=>setCustomer({...customer, note:e.target.value})} className="min-h-24 rounded-2xl border border-white/10 bg-stone-900 p-4 text-base"/>
+          <input placeholder="Prénom *" autoComplete="given-name" value={customer.firstName} onChange={e=>setCustomer(old => ({...old, firstName:e.target.value}))} className="rounded-2xl border border-white/10 bg-stone-900 p-4 text-base"/>
+          <input placeholder="Nom" autoComplete="family-name" value={customer.lastName} onChange={e=>setCustomer(old => ({...old, lastName:e.target.value}))} className="rounded-2xl border border-white/10 bg-stone-900 p-4 text-base"/>
+          <input placeholder="Téléphone *" inputMode="tel" autoComplete="tel" value={customer.phone} onChange={e=>setCustomer(old => ({...old, phone:e.target.value}))} className="rounded-2xl border border-white/10 bg-stone-900 p-4 text-base"/>
+          <input placeholder="Email (optionnel)" type="email" inputMode="email" autoComplete="email" value={customer.email} onChange={e=>setCustomer(old => ({...old, email:e.target.value}))} className="rounded-2xl border border-white/10 bg-stone-900 p-4 text-base"/>
+          <textarea placeholder="Commentaire" value={customer.note} onChange={e=>setCustomer(old => ({...old, note:e.target.value}))} className="min-h-24 rounded-2xl border border-white/10 bg-stone-900 p-4 text-base"/>
           <button disabled={!selectedAvailability.open} onClick={submitOrder} className="rounded-2xl bg-amber-400 px-5 py-4 font-black text-black disabled:opacity-40">{selectedAvailability.open ? "Envoyer la demande" : "Commandes fermées"}</button>
           <p className="text-xs text-stone-400">{selectedAvailability.message}</p>
         </div>
@@ -1374,6 +1374,10 @@ KRUA PEÈN THAÏ`;
                   <p className="text-base font-semibold leading-relaxed text-stone-200">Disponibles toute l'année à la précommande. Précommande conseillée pour garantir le choix et la fraîcheur.</p>
                 </div>
                 <div className="rounded-2xl bg-black/35 p-4">
+                  <h3 className="mb-2 text-xl font-black text-amber-200">🍜 Pad Thaï signature</h3>
+                  <p className="text-base font-semibold leading-relaxed text-stone-200">Disponible chaque semaine à la précommande.</p>
+                </div>
+                <div className="rounded-2xl bg-black/35 p-4">
                   <h3 className="mb-2 text-xl font-black text-amber-200">🌶️ Plats thaï de la semaine</h3>
                   <p className="text-base font-semibold leading-relaxed text-stone-200">Les plats changent chaque semaine et sont annoncés chaque dimanche soir ou lundi matin.</p>
                 </div>
@@ -1381,13 +1385,14 @@ KRUA PEÈN THAÏ`;
                   <h3 className="mb-2 text-xl font-black text-amber-200">⏰ Précommandes</h3>
                   <p className="text-base font-semibold leading-relaxed text-stone-200">Clôture la veille du service à 20h00. Les plats de la semaine peuvent être grisés avant annonce ou après clôture.</p>
                 </div>
-                <div className="rounded-2xl bg-black/35 p-4">
+                <div className="rounded-2xl bg-black/35 p-4 md:col-span-2">
                   <h3 className="mb-2 text-xl font-black text-amber-200">🍜 Vente directe au camion</h3>
                   <p className="text-base font-semibold leading-relaxed text-stone-200">Une sélection de plats thaï du jour, entrées, sushis et poké bowls est proposée directement au camion selon la préparation du jour.</p>
                 </div>
               </div>
               <div className="mt-5 rounded-2xl bg-amber-500/10 p-4 text-center">
                 <p className="text-lg font-black text-amber-100">📍 Plabennec tous les mardis</p>
+                <p className="mt-1 text-base font-black text-amber-200">15h30 à 20h30</p>
                 <p className="mt-1 text-base font-semibold text-stone-300">Kerlouan et Brignogan prochainement.</p>
               </div>
             </div>
@@ -1434,23 +1439,7 @@ KRUA PEÈN THAÏ`;
               <div>
                 <div className="mb-3 flex items-center gap-3"><ShoppingCart className="text-amber-300"/><h2 className="text-4xl font-black">Commander cette semaine</h2></div>
                 <p className="max-w-3xl text-lg font-semibold leading-relaxed text-stone-200">Précommande en ligne et vente directe au camion. Les produits indisponibles ou complets sont grisés automatiquement.</p>
-                <div className="mt-5 grid gap-4 md:grid-cols-2">
-                  <div className="rounded-3xl border border-amber-300/25 bg-amber-400/10 p-5 text-amber-50">
-                    <div className="text-2xl font-black text-amber-200">🍛 Plats thaï</div>
-                    <p className="mt-3 text-lg font-bold leading-relaxed text-stone-100">Pad Thaï, entrées et accompagnements restent disponibles à la précommande.</p>
-                    <p className="mt-3 text-lg font-bold leading-relaxed text-stone-100">Les autres plats thaï changent chaque semaine : ils sont commandables uniquement après annonce du menu, le dimanche soir ou lundi matin, puis jusqu’à la veille du service à 20h.</p>
-                  </div>
-                  <div className="rounded-3xl border border-green-400/25 bg-green-500/10 p-5 text-green-50">
-                    <div className="text-2xl font-black text-green-200">🍣 Sushis & poké bowls</div>
-                    <p className="mt-3 text-lg font-bold leading-relaxed text-stone-100">Précommandes ouvertes en continu selon disponibilité.</p>
-                    <p className="mt-3 text-lg font-bold leading-relaxed text-stone-100">Remise de 10% dès 25€ de sushis, makis, california, crunch, makis printemps ou mix découverte.</p>
-                  </div>
-                  <div className="rounded-3xl border border-white/15 bg-white/[0.04] p-5 md:col-span-2">
-                    <div className="text-2xl font-black text-amber-200">🚚 Disponible aussi directement au camion</div>
-                    <p className="mt-3 text-lg font-bold leading-relaxed text-stone-100">Une sélection d’entrées thaï, plats thaï du jour, sushis et poké bowls est proposée au camion selon la préparation du jour et les quantités disponibles.</p>
-                  </div>
-                </div>
-              </div>
+                <p className="mt-3 max-w-3xl text-base font-semibold leading-relaxed text-stone-300">Choisissez votre lieu de retrait, ajoutez vos produits au panier, puis Tina confirmera la commande.</p>
               <div className="relative w-full lg:max-w-sm"><Search className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400" size={18}/><input value={searchTerm} onChange={e=>setSearchTerm(e.target.value)} placeholder="Rechercher : saumon, poké, S16..." className="w-full rounded-2xl border border-white/10 bg-stone-900 py-4 pl-12 pr-4"/></div>
             </div>
 
@@ -1483,7 +1472,7 @@ KRUA PEÈN THAÏ`;
                 </CategoryBlock>
               </div>
 
-              <div className="hidden lg:block"><CartPanel /></div>
+              <div className="hidden lg:block">{renderCartPanel(false)}</div>
             </div>
           </section>
 
@@ -1518,7 +1507,7 @@ KRUA PEÈN THAÏ`;
           </section>
 
           {cartLines.length > 0 && <button onClick={() => setCartDrawerOpen(true)} className="fixed bottom-4 left-4 right-4 z-50 rounded-2xl bg-amber-400 px-5 py-4 text-center font-black text-black shadow-2xl shadow-black/40 lg:hidden">🛒 Voir mon panier ({cartLines.reduce((s,i)=>s+i.qty,0)}) • {euro(total)}</button>}
-          {cartDrawerOpen && <div className="fixed inset-0 z-[90] flex items-end bg-black/75 p-3 lg:hidden"><div className="w-full rounded-[2rem] bg-black"><CartPanel mobile /></div></div>}
+          {cartDrawerOpen && <div className="fixed inset-0 z-[90] flex items-end bg-black/75 p-3 lg:hidden"><div className="w-full rounded-[2rem] bg-black">{renderCartPanel(true)}</div></div>}
         </main>
       ) : view === "login" ? (
         <main className="mx-auto flex min-h-[80vh] items-center justify-center px-4 py-12">
