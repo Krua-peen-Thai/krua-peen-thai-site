@@ -1050,7 +1050,7 @@ KRUA PEÈN THAÏ`;
     const name = String(product.name || "").toLowerCase();
     const category = String(product.category || "");
 
-    if (category === "Mix sushi découverte" || name.includes("mix découverte")) return asset("sushi-saumon.jpg");
+    if (category === "Mix sushi découverte" || name.includes("mix découverte")) return asset("mix-sushi-decouverte.jpg");
     if (category === "Poké bowls" || name.includes("poké") || name.includes("poke")) return asset("sushi-poke.png");
     if (category === "Sushis spécial" || name.includes("sandwich") || name.includes("dragon")) return asset("sushi-sandwich.jpg");
     if (category === "California") return asset("sushi-california.jpg");
