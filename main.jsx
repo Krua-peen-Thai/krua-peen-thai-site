@@ -1192,7 +1192,7 @@ KRUA PEÈN THAÏ`;
     { label: "Mix découverte", image: asset("mix-sushi-decouverte.jpg"), anchor: "sushi-mix" },
     { label: "Sushis", image: asset("sushi-saumon.jpg"), anchor: "sushi-sushis" },
     { label: "Makis", image: asset("sushi-maki.jpg"), anchor: "sushi-makis" },
-    { label: "Californias", image: asset("sushi-california.jpg"), anchor: "sushi-california" },
+    { label: "California", image: asset("sushi-california.jpg"), anchor: "sushi-california" },
     { label: "Crunch", image: asset("sushi-crunch.jpg"), anchor: "sushi-crunch" },
     { label: "Sandwich sushi", image: asset("sushi-sandwich.jpg"), anchor: "sushi-special" },
     { label: "Makis printemps", image: asset("sushi-maki-printemps.jpg"), anchor: "sushi-printemps" },
@@ -1254,7 +1254,7 @@ KRUA PEÈN THAÏ`;
 
   function CartPanel({ mobile = false }) {
     return (
-      <aside className={`${mobile ? "h-full overflow-y-auto" : "sticky top-24 h-fit"} rounded-[2rem] border border-amber-300/20 bg-black p-5 shadow-2xl`}>
+      <aside className={`${mobile ? "max-h-[92dvh] overflow-y-auto overscroll-contain" : "sticky top-24 h-fit"} rounded-[2rem] border border-amber-300/20 bg-black p-5 shadow-2xl`}>
         <div className="mb-4 flex items-center justify-between gap-3">
           <div>
             <h3 className="text-2xl font-black">Votre commande</h3>
@@ -1280,11 +1280,11 @@ KRUA PEÈN THAÏ`;
         {sushiDiscountBase > 0 && sushiDiscount === 0 && <div className="mb-3 rounded-2xl bg-amber-400/10 p-3 text-xs font-bold text-amber-100">🍣 -10% sur les sushis dès 25€ de commande sushi.</div>}
         <div className="mb-5 flex items-center justify-between border-t border-white/10 pt-4 text-xl font-black"><span>Total</span><span className="text-amber-300">{euro(total)}</span></div>
         <div className="grid gap-3">
-          <input placeholder="Prénom *" value={customer.firstName} onChange={e=>setCustomer({...customer, firstName:e.target.value})} className="rounded-2xl border border-white/10 bg-stone-900 p-3"/>
-          <input placeholder="Nom" value={customer.lastName} onChange={e=>setCustomer({...customer, lastName:e.target.value})} className="rounded-2xl border border-white/10 bg-stone-900 p-3"/>
-          <input placeholder="Téléphone *" value={customer.phone} onChange={e=>setCustomer({...customer, phone:e.target.value})} className="rounded-2xl border border-white/10 bg-stone-900 p-3"/>
-          <input placeholder="Email (optionnel)" type="email" value={customer.email} onChange={e=>setCustomer({...customer, email:e.target.value})} className="rounded-2xl border border-white/10 bg-stone-900 p-3"/>
-          <textarea placeholder="Commentaire" value={customer.note} onChange={e=>setCustomer({...customer, note:e.target.value})} className="rounded-2xl border border-white/10 bg-stone-900 p-3"/>
+          <input placeholder="Prénom *" autoComplete="given-name" value={customer.firstName} onChange={e=>setCustomer({...customer, firstName:e.target.value})} className="rounded-2xl border border-white/10 bg-stone-900 p-4 text-base"/>
+          <input placeholder="Nom" autoComplete="family-name" value={customer.lastName} onChange={e=>setCustomer({...customer, lastName:e.target.value})} className="rounded-2xl border border-white/10 bg-stone-900 p-4 text-base"/>
+          <input placeholder="Téléphone *" inputMode="tel" autoComplete="tel" value={customer.phone} onChange={e=>setCustomer({...customer, phone:e.target.value})} className="rounded-2xl border border-white/10 bg-stone-900 p-4 text-base"/>
+          <input placeholder="Email (optionnel)" type="email" inputMode="email" autoComplete="email" value={customer.email} onChange={e=>setCustomer({...customer, email:e.target.value})} className="rounded-2xl border border-white/10 bg-stone-900 p-4 text-base"/>
+          <textarea placeholder="Commentaire" value={customer.note} onChange={e=>setCustomer({...customer, note:e.target.value})} className="min-h-24 rounded-2xl border border-white/10 bg-stone-900 p-4 text-base"/>
           <button disabled={!selectedAvailability.open} onClick={submitOrder} className="rounded-2xl bg-amber-400 px-5 py-4 font-black text-black disabled:opacity-40">{selectedAvailability.open ? "Envoyer la demande" : "Commandes fermées"}</button>
           <p className="text-xs text-stone-400">{selectedAvailability.message}</p>
         </div>
@@ -1361,6 +1361,34 @@ KRUA PEÈN THAÏ`;
                   <a href="#carte" className="rounded-2xl border border-white/25 bg-black/35 px-6 py-4 font-black text-white backdrop-blur">Voir nos cartes</a>
                   <a href="#traiteur" className="rounded-2xl border border-white/25 bg-black/35 px-6 py-4 font-black text-white backdrop-blur">Demande traiteur</a>
                 </div>
+              </div>
+            </div>
+          </section>
+
+          <section className="mx-auto max-w-5xl px-4 py-6 sm:py-8">
+            <div className="rounded-[2rem] border border-amber-400/20 bg-stone-950/90 p-5 shadow-2xl sm:p-6">
+              <h2 className="mb-5 text-center text-3xl font-black text-amber-300">🚚 Comment ça fonctionne ?</h2>
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="rounded-2xl bg-black/35 p-4">
+                  <h3 className="mb-2 text-xl font-black text-amber-200">🍣 Sushis, poké bowls & entrées</h3>
+                  <p className="text-base font-semibold leading-relaxed text-stone-200">Disponibles toute l'année à la précommande. Précommande conseillée pour garantir le choix et la fraîcheur.</p>
+                </div>
+                <div className="rounded-2xl bg-black/35 p-4">
+                  <h3 className="mb-2 text-xl font-black text-amber-200">🌶️ Plats thaï de la semaine</h3>
+                  <p className="text-base font-semibold leading-relaxed text-stone-200">Les plats changent chaque semaine et sont annoncés chaque dimanche soir ou lundi matin.</p>
+                </div>
+                <div className="rounded-2xl bg-black/35 p-4">
+                  <h3 className="mb-2 text-xl font-black text-amber-200">⏰ Précommandes</h3>
+                  <p className="text-base font-semibold leading-relaxed text-stone-200">Clôture la veille du service à 20h00. Les plats de la semaine peuvent être grisés avant annonce ou après clôture.</p>
+                </div>
+                <div className="rounded-2xl bg-black/35 p-4">
+                  <h3 className="mb-2 text-xl font-black text-amber-200">🍜 Vente directe au camion</h3>
+                  <p className="text-base font-semibold leading-relaxed text-stone-200">Une sélection de plats thaï du jour, entrées, sushis et poké bowls est proposée directement au camion selon la préparation du jour.</p>
+                </div>
+              </div>
+              <div className="mt-5 rounded-2xl bg-amber-500/10 p-4 text-center">
+                <p className="text-lg font-black text-amber-100">📍 Plabennec tous les mardis</p>
+                <p className="mt-1 text-base font-semibold text-stone-300">Kerlouan et Brignogan prochainement.</p>
               </div>
             </div>
           </section>
@@ -1445,7 +1473,7 @@ KRUA PEÈN THAÏ`;
                     <CategorySection id="sushi-mix" title="🍱 Mix sushi découverte" image={asset("mix-sushi-decouverte.jpg")}><ProductGrid items={categoryProducts("Mix sushi découverte")} /></CategorySection>
                     <div id="sushi-sushis" className="scroll-mt-24"><SushisPaperMenu /></div>
                     <CategorySection id="sushi-makis" title="🍙 Makis" image={asset("sushi-maki.jpg")}><ProductGrid items={categoryProducts("Makis")} /></CategorySection>
-                    <CategorySection id="sushi-california" title="🥑 Californias" image={asset("sushi-california.jpg")}><ProductGrid items={categoryProducts("California")} /></CategorySection>
+                    <CategorySection id="sushi-california" title="🥑 California" image={asset("sushi-california.jpg")}><ProductGrid items={categoryProducts("California")} /></CategorySection>
                     <CategorySection id="sushi-crunch" title="🔥 Crunch" image={asset("sushi-crunch.jpg")}><ProductGrid items={categoryProducts("Crunch")} /></CategorySection>
                     <CategorySection id="sushi-special" title="⭐ Sandwichs sushi" image={asset("sushi-sandwich.jpg")}><ProductGrid items={categoryProducts("Sushis spécial")} /></CategorySection>
                     <CategorySection id="sushi-printemps" title="🌿 Makis printemps" image={asset("sushi-maki-printemps.jpg")}><ProductGrid items={categoryProducts("Makis printemps")} /></CategorySection>
@@ -1490,7 +1518,7 @@ KRUA PEÈN THAÏ`;
           </section>
 
           {cartLines.length > 0 && <button onClick={() => setCartDrawerOpen(true)} className="fixed bottom-4 left-4 right-4 z-50 rounded-2xl bg-amber-400 px-5 py-4 text-center font-black text-black shadow-2xl shadow-black/40 lg:hidden">🛒 Voir mon panier ({cartLines.reduce((s,i)=>s+i.qty,0)}) • {euro(total)}</button>}
-          {cartDrawerOpen && <div className="fixed inset-0 z-[90] bg-black/75 p-3 lg:hidden"><div className="h-full rounded-[2rem] bg-black"><CartPanel mobile /></div></div>}
+          {cartDrawerOpen && <div className="fixed inset-0 z-[90] flex items-end bg-black/75 p-3 lg:hidden"><div className="w-full rounded-[2rem] bg-black"><CartPanel mobile /></div></div>}
         </main>
       ) : view === "login" ? (
         <main className="mx-auto flex min-h-[80vh] items-center justify-center px-4 py-12">
