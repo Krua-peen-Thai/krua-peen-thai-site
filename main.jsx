@@ -135,29 +135,15 @@ function locationCode(locationId) {
   return locationId;
 }
 
-async function makeOrderCode(locationId, existingOrders = []) {
+async function makeOrderCode(locationId) {
+  // Code unique généré côté client pour éviter les doublons Supabase order_code_key.
+  // Exemple : KR-PLAB-260529-153045-A7K
   const clean = locationCode(locationId);
-  const prefix = `KR-${clean}-`;
-  let max = 0;
-
-  const readCodes = (rows = []) => {
-    rows.forEach((row) => {
-      const code = typeof row === "string" ? row : row?.code || row?.id;
-      const match = String(code || "").match(new RegExp(`^${prefix}(\\d{3})$`));
-      if (match) max = Math.max(max, Number(match[1]));
-    });
-  };
-
-  if (supabase) {
-    const { data, error } = await supabase
-      .from("orders")
-      .select("code")
-      .like("code", `${prefix}%`);
-    if (!error) readCodes(data);
-  }
-
-  readCodes(existingOrders);
-  return `${prefix}${String(max + 1).padStart(3, "0")}`;
+  const pad = (value) => String(value).padStart(2, "0");
+  const now = new Date();
+  const stamp = `${String(now.getFullYear()).slice(-2)}${pad(now.getMonth() + 1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+  const random = Math.random().toString(36).slice(2, 5).toUpperCase();
+  return `KR-${clean}-${stamp}-${random}`;
 }
 function normalizePhoneForLinks(phone = "") {
   const digits = String(phone).replace(/\D/g, "");
@@ -449,7 +435,7 @@ const orderItems = cartLines.map(({id,name,qty,price}) => ({id,name,qty,price}))
     // IMPORTANT : la remise n'est pas insérée dans order_items.
     // order_items.product_id est lié à products.id, donc une fausse ligne "discount" casse Supabase.
     // La remise est uniquement enregistrée dans orders.total.
-    const order = { id: await makeOrderCode(locationId, orders), createdAt:new Date().toISOString(), status:"À confirmer", customer, locationId, items: orderItems, total };
+    const order = { id: await makeOrderCode(locationId), createdAt:new Date().toISOString(), status:"À confirmer", customer, locationId, items: orderItems, total };
     if (supabase) {
       const response = await fetch("/api/create-order", {
         method: "POST",
