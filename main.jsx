@@ -1189,7 +1189,7 @@ KRUA PEÈN THAÏ`;
   ];
 
   const sushiCategoryCards = [
-    { label: "Mix découverte", image: asset("sushi-saumon.jpg"), anchor: "sushi-mix" },
+    { label: "Mix découverte", image: asset("mix-sushi-decouverte.jpg"), anchor: "sushi-mix" },
     { label: "Sushis", image: asset("sushi-saumon.jpg"), anchor: "sushi-sushis" },
     { label: "Makis", image: asset("sushi-maki.jpg"), anchor: "sushi-makis" },
     { label: "Californias", image: asset("sushi-california.jpg"), anchor: "sushi-california" },
@@ -1442,7 +1442,7 @@ KRUA PEÈN THAÏ`;
                 <CategoryBlock title="🍣 Sushis & Poké bowls" subtitle="Préparés sur commande pour plus de fraîcheur. Remise de 10% dès 25€ de sushis." image={asset("hero-sushi.jpg")}>
                   <CategoryMiniNav title="Sushis & Poké bowls" cards={sushiCategoryCards} />
                   <div className="grid gap-5">
-                    <CategorySection id="sushi-mix" title="🍱 Mix sushi découverte" image={asset("sushi-saumon.jpg")}><ProductGrid items={categoryProducts("Mix sushi découverte")} /></CategorySection>
+                    <CategorySection id="sushi-mix" title="🍱 Mix sushi découverte" image={asset("mix-sushi-decouverte.jpg")}><ProductGrid items={categoryProducts("Mix sushi découverte")} /></CategorySection>
                     <div id="sushi-sushis" className="scroll-mt-24"><SushisPaperMenu /></div>
                     <CategorySection id="sushi-makis" title="🍙 Makis" image={asset("sushi-maki.jpg")}><ProductGrid items={categoryProducts("Makis")} /></CategorySection>
                     <CategorySection id="sushi-california" title="🥑 Californias" image={asset("sushi-california.jpg")}><ProductGrid items={categoryProducts("California")} /></CategorySection>
