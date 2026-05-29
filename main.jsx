@@ -41,11 +41,11 @@ const productsSeed = [
   { id: "e9", code: "E9", name: "Bouchée vapeur poulet & crevette", category: "Entrées", price: 1, available: true, fixed: true, desc: "1 pièce." },
   { id: "e9-6", code: "E9", name: "Bouchées vapeur poulet & crevette x6", category: "Entrées", price: 5.5, available: true, fixed: true, desc: "6 pièces." },
   { id: "riz-cantonais", code: "A1", name: "Riz cantonais", category: "Accompagnements", price: 5.5, available: true, fixed: true, desc: "Accompagnement." },
-  { id: "nouilles-sautees-accompagnement", code: "A2", name: "Nouilles sautées", category: "Accompagnements", price: 5.5, available: true, fixed: true, desc: "Accompagnement." },
+  { id: "nouilles-sautees-accompagnement", code: "A2", name: "Nouilles de blé sautées", category: "Accompagnements", price: 5.5, available: true, fixed: true, desc: "Accompagnement." },
   { id: "option-riz-cantonais", code: "OPT", name: "Option riz cantonais", category: "Accompagnements", price: 2.5, available: true, fixed: true, desc: "Remplacer le riz nature par du riz cantonais." },
   { id: "option-nouilles-sautees", code: "OPT", name: "Option nouilles sautées", category: "Accompagnements", price: 2.5, available: true, fixed: true, desc: "Remplacer le riz nature par des nouilles sautées." },
   { id: "pad-thai", code: "P1", name: "Pad Thaï", category: "Plats avec nouilles", price: 10.5, available: true, fixed: true, desc: "Nouilles de riz, œuf, soja, cacahuètes, ciboulettes. Au choix : porc, poulet ou crevettes." },
-  { id: "nouilles-sautees", code: "P2", name: "Nouilles sautées", category: "Plats avec nouilles", price: 9.5, available: true, fixed: true, desc: "Nouilles de blé sautées avec légumes. Au choix : porc, poulet ou crevettes." },
+  { id: "nouilles-sautees", code: "P2", name: "Nouilles sautées", category: "Plats avec nouilles", price: 9.5, available: true, fixed: true, desc: "Nouilles de riz sautées avec légumes. Au choix : porc, poulet ou crevettes." },
   { id: "pad-nam-man-hoi", code: "P3", name: "Pad Nam Man Hoi", category: "Plats avec riz", price: 9.9, available: true, fixed: false, desc: "Bœuf sauté, sauce huître, oignons, ciboulettes. Au choix : porc, poulet ou crevettes." },
   { id: "pad-kra-pao", code: "P4", name: "Pad Kra Pao", category: "Plats avec riz", price: 9.5, available: true, fixed: false, desc: "Viande hachée, basilic thaï, oignons. Au choix : porc, poulet ou crevettes." },
   { id: "porc-caramel", code: "P5", name: "Porc au caramel", category: "Plats avec riz", price: 9.9, available: true, fixed: false, desc: "Porc mijoté sauce caramélisée maison." },
@@ -66,8 +66,8 @@ const productsSeed = [
   { id: "s2", code: "S2", name: "10 sushis saumon", category: "Sushis", price: 12.9, available: true, fixed: true, desc: "Commande conseillée la veille." },
   { id: "s3", code: "S3", name: "6 sushis crevettes", category: "Sushis", price: 8.9, available: true, fixed: true, desc: "Commande conseillée la veille." },
   { id: "s4", code: "S4", name: "10 sushis crevettes", category: "Sushis", price: 12.9, available: true, fixed: true, desc: "Commande conseillée la veille." },
-  { id: "s5", code: "S5", name: "6 sushis saumon avocat", category: "Sushis", price: 10.9, available: true, fixed: true, desc: "Commande conseillée la veille." },
-  { id: "s6", code: "S6", name: "6 sushis crevettes avocat", category: "Sushis", price: 10.9, available: true, fixed: true, desc: "Commande conseillée la veille." },
+  { id: "s5", code: "S5", name: "6 sushis saumon avocat", category: "Sushis", price: 9.5, available: true, fixed: true, desc: "Commande conseillée la veille." },
+  { id: "s6", code: "S6", name: "6 sushis crevettes avocat", category: "Sushis", price: 9.5, available: true, fixed: true, desc: "Commande conseillée la veille." },
   { id: "s7", code: "S7", name: "Maki concombre x6", category: "Makis", price: 4, available: true, fixed: true, desc: "6 pièces." },
   { id: "s8", code: "S8", name: "Maki avocat x6", category: "Makis", price: 4, available: true, fixed: true, desc: "6 pièces." },
   { id: "s9", code: "S9", name: "Maki fromage x6", category: "Makis", price: 4.5, available: true, fixed: true, desc: "6 pièces." },
@@ -94,11 +94,11 @@ const productsSeed = [
   { id: "s30", code: "S30", name: "Maki printemps végétarien x8", category: "Makis printemps", price: 7, available: true, fixed: true, desc: "8 pièces." },
   { id: "s31", code: "S31", name: "Maki printemps crevettes fromage x8", category: "Makis printemps", price: 8.5, available: true, fixed: true, desc: "8 pièces." },
   { id: "s32", code: "S32", name: "6 Roll saumon fromage", category: "Makis printemps", price: 9.5, available: true, fixed: true, desc: "6 pièces." },
-  { id: "s33", code: "S33", name: "Poké bowl saumon", category: "Poké bowls", price: 9.5, available: true, fixed: true, desc: "Avocat, concombre, radis, oignons frits." },
-  { id: "s34", code: "S34", name: "Poké bowl thon mayonnaise", category: "Poké bowls", price: 9.5, available: true, fixed: true, desc: "Avocat, concombre, radis, oignons frits." },
+  { id: "s33", code: "S33", name: "Poké bowl saumon", category: "Poké bowls", price: 10, available: true, fixed: true, desc: "Avocat, concombre, radis, oignons frits." },
+  { id: "s34", code: "S34", name: "Poké bowl thon mayonnaise", category: "Poké bowls", price: 10, available: true, fixed: true, desc: "Avocat, concombre, radis, oignons frits." },
   { id: "s35", code: "S35", name: "Riz vinaigré", category: "Accompagnements", price: 3.5, available: true, fixed: true, desc: "Accompagnement." },
   { id: "s36", code: "S36", name: "Tartare de riz saumon avocat", category: "Accompagnements", price: 8.5, available: true, fixed: true, desc: "Accompagnement." },
-  { id: "s37", code: "S37", name: "Salade de chou", category: "Accompagnements", price: 3.5, available: true, fixed: true, desc: "Accompagnement." },
+  { id: "s37", code: "S37", name: "Salade de chou", category: "Accompagnements", price: 2.5, available: true, fixed: true, desc: "Accompagnement." },
 ];
 
 const showcase = ["Pad Thaï signature","Currys thaï","Poulet noix de cajou","Porc caramel","Pad Kra Pao","Sushis sur commande","Poké bowls","Nems, samoussas, bouchées vapeur","Traiteur mariage, retour de mariage, entreprise"];
@@ -707,6 +707,49 @@ const orderItems = cartLines.map(({id,name,qty,price}) => ({id,name,qty,price}))
     };
   }
 
+
+  function getPreorderClosingDate(location) {
+    const { date } = getServiceWindow(location);
+    const closingDate = new Date(date);
+    closingDate.setDate(closingDate.getDate() - 1);
+    closingDate.setHours(20, 0, 0, 0);
+    return closingDate;
+  }
+
+  function getWeeklyThaiOpeningDate(location) {
+    const { date } = getServiceWindow(location);
+    const openingDate = new Date(date);
+    const day = openingDate.getDay();
+    openingDate.setDate(openingDate.getDate() - day);
+    openingDate.setHours(18, 0, 0, 0);
+    return openingDate;
+  }
+
+  function isWeeklyThaiProduct(product) {
+    return Boolean(product && product.fixed === false && ["Plats avec riz", "Currys"].includes(product.category));
+  }
+
+  function weeklyThaiLockReason(product) {
+    if (!isWeeklyThaiProduct(product)) return "";
+    if (selectedAvailability.mode === "service") return "";
+
+    const now = new Date();
+    const openingDate = getWeeklyThaiOpeningDate(selectedLocation);
+    const closingDate = getPreorderClosingDate(selectedLocation);
+
+    if (now < openingDate) {
+      return "Disponible après annonce du menu de la semaine, dimanche soir ou lundi matin.";
+    }
+    if (now >= closingDate) {
+      return "Précommandes clôturées pour ce plat de la semaine. Clôture la veille du service à 20h.";
+    }
+    return "";
+  }
+
+  function isWeeklyThaiProductLocked(product) {
+    return Boolean(weeklyThaiLockReason(product));
+  }
+
   function buildWhatsAppMessage(order, loc) {
     return `Bonjour,
 
@@ -964,13 +1007,15 @@ KRUA PEÈN THAÏ`;
   }
 
   function canOrderProduct(product) {
-    return Boolean(product && product.available && selectedAvailability.open && !isProductBlocked(product));
+    return Boolean(product && product.available && selectedAvailability.open && !isProductBlocked(product) && !isWeeklyThaiProductLocked(product));
   }
 
   function addProduct(product) {
     if (!product) return;
     if (!selectedAvailability.open) return alert(selectedAvailability.message);
     if (!product.available) return alert(`${product.name} n'est pas disponible cette semaine.`);
+    const weeklyReason = weeklyThaiLockReason(product);
+    if (weeklyReason) return alert(weeklyReason);
     if (isProductBlocked(product)) return alert(`${product.name} est complet à la réservation pour cet emplacement.`);
     addToCart(product.id);
     setCartDrawerOpen(true);
@@ -1042,7 +1087,8 @@ KRUA PEÈN THAÏ`;
   function ProductCard({ product }) {
     if (!product) return null;
     const blocked = isProductBlocked(product);
-    const disabled = !product.available || blocked || !selectedAvailability.open;
+    const weeklyReason = weeklyThaiLockReason(product);
+    const disabled = !product.available || blocked || Boolean(weeklyReason) || !selectedAvailability.open;
     return (
       <article className={`rounded-2xl border p-4 transition ${disabled ? "border-white/5 bg-stone-950/45 opacity-50" : "border-white/10 bg-stone-950/80 hover:border-amber-300/35"}`}>
         <div className="mb-2 flex items-start justify-between gap-3">
@@ -1053,6 +1099,7 @@ KRUA PEÈN THAÏ`;
           <div className="shrink-0 text-lg font-black text-amber-300">{euro(product.price)}</div>
         </div>
         <p className="min-h-10 text-sm text-stone-300">{product.desc}</p>
+        {weeklyReason && <p className="mt-2 rounded-xl bg-amber-950/70 p-3 text-sm font-black text-amber-100">⏰ {weeklyReason}</p>}
         {blocked && <p className="mt-2 rounded-xl bg-orange-950/70 p-2 text-xs font-bold text-orange-100">Complet à la réservation pour cet emplacement.</p>}
         {!product.available && <p className="mt-2 rounded-xl bg-white/5 p-2 text-xs font-bold text-stone-400">Non disponible cette semaine.</p>}
         <button disabled={disabled} onClick={() => addProduct(product)} className="mt-4 w-full rounded-2xl bg-amber-400 px-4 py-3 font-black text-black disabled:bg-white/10 disabled:text-stone-500">
@@ -1358,15 +1405,21 @@ KRUA PEÈN THAÏ`;
             <div className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
               <div>
                 <div className="mb-3 flex items-center gap-3"><ShoppingCart className="text-amber-300"/><h2 className="text-4xl font-black">Commander cette semaine</h2></div>
-                <p className="max-w-3xl text-stone-300">Deux univers séparés, comme les cartes papier. Les produits indisponibles ou complets sont grisés.</p>
-                <div className="mt-4 grid gap-3 md:grid-cols-2">
-                  <div className="rounded-3xl border border-amber-300/20 bg-amber-400/10 p-4 text-sm text-amber-50">
-                    <div className="font-black text-amber-200">🍛 Plats thaï de la semaine</div>
-                    <p className="mt-1 text-stone-200">Les plats thaï de la semaine sont annoncés chaque dimanche soir ou lundi matin. Les précommandes ouvrent dès publication du nouveau menu.</p>
+                <p className="max-w-3xl text-lg font-semibold leading-relaxed text-stone-200">Précommande en ligne et vente directe au camion. Les produits indisponibles ou complets sont grisés automatiquement.</p>
+                <div className="mt-5 grid gap-4 md:grid-cols-2">
+                  <div className="rounded-3xl border border-amber-300/25 bg-amber-400/10 p-5 text-amber-50">
+                    <div className="text-2xl font-black text-amber-200">🍛 Plats thaï</div>
+                    <p className="mt-3 text-lg font-bold leading-relaxed text-stone-100">Pad Thaï, entrées et accompagnements restent disponibles à la précommande.</p>
+                    <p className="mt-3 text-lg font-bold leading-relaxed text-stone-100">Les autres plats thaï changent chaque semaine : ils sont commandables uniquement après annonce du menu, le dimanche soir ou lundi matin, puis jusqu’à la veille du service à 20h.</p>
                   </div>
-                  <div className="rounded-3xl border border-green-400/20 bg-green-500/10 p-4 text-sm text-green-50">
-                    <div className="font-black text-green-200">🍣 Sushis & poké bowls</div>
-                    <p className="mt-1 text-stone-200">Précommandes ouvertes en continu selon disponibilité. Remise de 10% dès 25€ de sushis.</p>
+                  <div className="rounded-3xl border border-green-400/25 bg-green-500/10 p-5 text-green-50">
+                    <div className="text-2xl font-black text-green-200">🍣 Sushis & poké bowls</div>
+                    <p className="mt-3 text-lg font-bold leading-relaxed text-stone-100">Précommandes ouvertes en continu selon disponibilité.</p>
+                    <p className="mt-3 text-lg font-bold leading-relaxed text-stone-100">Remise de 10% dès 25€ de sushis, makis, california, crunch, makis printemps ou mix découverte.</p>
+                  </div>
+                  <div className="rounded-3xl border border-white/15 bg-white/[0.04] p-5 md:col-span-2">
+                    <div className="text-2xl font-black text-amber-200">🚚 Disponible aussi directement au camion</div>
+                    <p className="mt-3 text-lg font-bold leading-relaxed text-stone-100">Une sélection d’entrées thaï, plats thaï du jour, sushis et poké bowls est proposée au camion selon la préparation du jour et les quantités disponibles.</p>
                   </div>
                 </div>
               </div>
@@ -1406,7 +1459,28 @@ KRUA PEÈN THAÏ`;
             </div>
           </section>
 
-          <section id="lieux" className="mx-auto max-w-7xl px-4 py-12"><div className="mb-6 flex items-center gap-3"><CalendarDays className="text-amber-300"/><h2 className="text-3xl font-black">Où nous trouver</h2></div><div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">{visibleLocations.map(l=><div key={l.id} className="rounded-3xl border border-white/10 bg-white/[0.03] p-5"><div className="font-bold text-amber-300">{l.label}</div><div className="mt-2 text-2xl font-black">{l.city}</div><div className="mt-2 text-stone-300">{l.place}</div><div className="mt-4 flex items-center gap-2 text-stone-200"><Clock size={16}/>{servicePickupText(l)}</div></div>)}</div></section>
+          <section id="lieux" className="mx-auto max-w-7xl px-4 py-12">
+            <div className="mb-6 flex items-center gap-3"><CalendarDays className="text-amber-300"/><h2 className="text-3xl font-black">Où nous trouver</h2></div>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+              {visibleLocations.map(l => {
+                const soon = l.id !== "PLAB";
+                return (
+                  <div key={l.id} className="rounded-3xl border border-white/10 bg-white/[0.03] p-5">
+                    <div className="font-bold text-amber-300">{l.label}</div>
+                    <div className="mt-2 text-2xl font-black">{l.city}</div>
+                    {soon ? (
+                      <div className="mt-4 inline-flex rounded-full bg-amber-400 px-4 py-2 text-base font-black text-black">Bientôt disponible</div>
+                    ) : (
+                      <>
+                        <div className="mt-2 text-lg font-semibold text-stone-200">{l.place}</div>
+                        <div className="mt-4 flex items-center gap-2 text-lg font-bold text-stone-100"><Clock size={18}/>{servicePickupText(l)}</div>
+                      </>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </section>
 
           <section id="traiteur" className="mx-auto max-w-7xl px-4 py-12 pb-28">
             <div className="grid overflow-hidden rounded-[2rem] border border-amber-300/20 bg-gradient-to-br from-stone-900 to-black shadow-2xl lg:grid-cols-[.95fr_1.05fr]">
