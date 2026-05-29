@@ -977,6 +977,29 @@ KRUA PEÈN THAÏ`;
       .filter(group => group.items.length);
   }, [orders, adminLocationFilter]);
 
+  const prepHistoryByLocation = useMemo(() => {
+    const groups = {};
+    orders
+      .filter(o => adminLocationFilter === "ALL" || locationCode(o.locationId) === adminLocationFilter)
+      .filter(o => adminStatusFilter === "ALL" || adminStatusFilter === "ACTIVE" ? (adminStatusFilter === "ALL" ? true : (o.status === "À confirmer" || o.status === "Confirmée")) : o.status === adminStatusFilter)
+      .forEach(order => {
+        const code = locationCode(order.locationId);
+        const loc = locations.find(l => l.id === order.locationId);
+        if (!groups[code]) groups[code] = { code, label: loc ? `${loc.city} · ${loc.label}` : code, orders: [], totals: {} };
+        groups[code].orders.push(order);
+        if (order.status !== "Annulée" && order.status !== "Récupérée") {
+          order.items.forEach(item => {
+            groups[code].totals[item.name] = (groups[code].totals[item.name] || 0) + item.qty;
+          });
+        }
+      });
+    return Object.values(groups).map(group => ({
+      ...group,
+      orders: group.orders.sort((a,b)=>new Date(b.createdAt || 0)-new Date(a.createdAt || 0)),
+      totals: Object.entries(group.totals).sort((a,b)=>b[1]-a[1])
+    })).sort((a,b)=>a.code.localeCompare(b.code));
+  }, [orders, locations, adminLocationFilter, adminStatusFilter]);
+
   function goToMenuCategory(category) {
     setCategoryFilter("Tous");
     setOpenCategory(category);
@@ -1280,11 +1303,11 @@ KRUA PEÈN THAÏ`;
         {sushiDiscountBase > 0 && sushiDiscount === 0 && <div className="mb-3 rounded-2xl bg-amber-400/10 p-3 text-xs font-bold text-amber-100">🍣 -10% sur les sushis dès 25€ de commande sushi.</div>}
         <div className="mb-5 flex items-center justify-between border-t border-white/10 pt-4 text-xl font-black"><span>Total</span><span className="text-amber-300">{euro(total)}</span></div>
         <div className="grid gap-3">
-          <input placeholder="Prénom *" autoComplete="given-name" value={customer.firstName} onChange={e=>setCustomer(old => ({...old, firstName:e.target.value}))} className="rounded-2xl border border-white/10 bg-stone-900 p-4 text-base"/>
-          <input placeholder="Nom" autoComplete="family-name" value={customer.lastName} onChange={e=>setCustomer(old => ({...old, lastName:e.target.value}))} className="rounded-2xl border border-white/10 bg-stone-900 p-4 text-base"/>
-          <input placeholder="Téléphone *" inputMode="tel" autoComplete="tel" value={customer.phone} onChange={e=>setCustomer(old => ({...old, phone:e.target.value}))} className="rounded-2xl border border-white/10 bg-stone-900 p-4 text-base"/>
-          <input placeholder="Email (optionnel)" type="email" inputMode="email" autoComplete="email" value={customer.email} onChange={e=>setCustomer(old => ({...old, email:e.target.value}))} className="rounded-2xl border border-white/10 bg-stone-900 p-4 text-base"/>
-          <textarea placeholder="Commentaire" value={customer.note} onChange={e=>setCustomer(old => ({...old, note:e.target.value}))} className="min-h-24 rounded-2xl border border-white/10 bg-stone-900 p-4 text-base"/>
+          <input placeholder="Prénom *" autoComplete="given-name" value={customer.firstName} onChange={e=>setCustomer({...customer, firstName:e.target.value})} className="rounded-2xl border border-white/10 bg-stone-900 p-4 text-base"/>
+          <input placeholder="Nom" autoComplete="family-name" value={customer.lastName} onChange={e=>setCustomer({...customer, lastName:e.target.value})} className="rounded-2xl border border-white/10 bg-stone-900 p-4 text-base"/>
+          <input placeholder="Téléphone *" inputMode="tel" autoComplete="tel" value={customer.phone} onChange={e=>setCustomer({...customer, phone:e.target.value})} className="rounded-2xl border border-white/10 bg-stone-900 p-4 text-base"/>
+          <input placeholder="Email (optionnel)" type="email" inputMode="email" autoComplete="email" value={customer.email} onChange={e=>setCustomer({...customer, email:e.target.value})} className="rounded-2xl border border-white/10 bg-stone-900 p-4 text-base"/>
+          <textarea placeholder="Commentaire" value={customer.note} onChange={e=>setCustomer({...customer, note:e.target.value})} className="min-h-24 rounded-2xl border border-white/10 bg-stone-900 p-4 text-base"/>
           <button disabled={!selectedAvailability.open} onClick={submitOrder} className="rounded-2xl bg-amber-400 px-5 py-4 font-black text-black disabled:opacity-40">{selectedAvailability.open ? "Envoyer la demande" : "Commandes fermées"}</button>
           <p className="text-xs text-stone-400">{selectedAvailability.message}</p>
         </div>
@@ -1375,7 +1398,7 @@ KRUA PEÈN THAÏ`;
                 </div>
                 <div className="rounded-2xl bg-black/35 p-4">
                   <h3 className="mb-2 text-xl font-black text-amber-200">🍜 Pad Thaï signature</h3>
-                  <p className="text-base font-semibold leading-relaxed text-stone-200">Disponible chaque semaine à la précommande.</p>
+                  <p className="text-base font-semibold leading-relaxed text-stone-200">Disponible chaque semaine à la précommande, avec porc, poulet ou crevettes au choix.</p>
                 </div>
                 <div className="rounded-2xl bg-black/35 p-4">
                   <h3 className="mb-2 text-xl font-black text-amber-200">🌶️ Plats thaï de la semaine</h3>
@@ -1386,13 +1409,13 @@ KRUA PEÈN THAÏ`;
                   <p className="text-base font-semibold leading-relaxed text-stone-200">Clôture la veille du service à 20h00. Les plats de la semaine peuvent être grisés avant annonce ou après clôture.</p>
                 </div>
                 <div className="rounded-2xl bg-black/35 p-4 md:col-span-2">
-                  <h3 className="mb-2 text-xl font-black text-amber-200">🍜 Vente directe au camion</h3>
+                  <h3 className="mb-2 text-xl font-black text-amber-200">🚚 Vente directe au camion</h3>
                   <p className="text-base font-semibold leading-relaxed text-stone-200">Une sélection de plats thaï du jour, entrées, sushis et poké bowls est proposée directement au camion selon la préparation du jour.</p>
                 </div>
               </div>
               <div className="mt-5 rounded-2xl bg-amber-500/10 p-4 text-center">
                 <p className="text-lg font-black text-amber-100">📍 Plabennec tous les mardis</p>
-                <p className="mt-1 text-base font-black text-amber-200">15h30 à 20h30</p>
+                <p className="mt-1 text-base font-black text-amber-100">15h30 à 20h30</p>
                 <p className="mt-1 text-base font-semibold text-stone-300">Kerlouan et Brignogan prochainement.</p>
               </div>
             </div>
@@ -1439,7 +1462,8 @@ KRUA PEÈN THAÏ`;
               <div>
                 <div className="mb-3 flex items-center gap-3"><ShoppingCart className="text-amber-300"/><h2 className="text-4xl font-black">Commander cette semaine</h2></div>
                 <p className="max-w-3xl text-lg font-semibold leading-relaxed text-stone-200">Précommande en ligne et vente directe au camion. Les produits indisponibles ou complets sont grisés automatiquement.</p>
-                <p className="mt-3 max-w-3xl text-base font-semibold leading-relaxed text-stone-300">Choisissez votre lieu de retrait, ajoutez vos produits au panier, puis Tina confirmera la commande.</p>
+
+              </div>
               <div className="relative w-full lg:max-w-sm"><Search className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400" size={18}/><input value={searchTerm} onChange={e=>setSearchTerm(e.target.value)} placeholder="Rechercher : saumon, poké, S16..." className="w-full rounded-2xl border border-white/10 bg-stone-900 py-4 pl-12 pr-4"/></div>
             </div>
 
@@ -1565,8 +1589,8 @@ KRUA PEÈN THAÏ`;
             </button>
           </div>
 
-          <div className="mb-6 grid gap-3 sm:grid-cols-4">
-            {[["orders","Commandes"],["products","Produits"],["locations","Emplacements"],["settings","Réglages"]].map(([id,label])=><button key={id} onClick={()=>setAdminTab(id)} className={`rounded-2xl p-4 text-left font-black ${adminTab===id ? "bg-amber-400 text-black" : "bg-white/10"}`}>{label}</button>)}
+          <div className="mb-6 grid gap-3 sm:grid-cols-5">
+            {[["orders","Commandes"],["prep","Prépa"],["products","Produits"],["locations","Emplacements"],["settings","Réglages"]].map(([id,label])=><button key={id} onClick={()=>setAdminTab(id)} className={`rounded-2xl p-4 text-left font-black ${adminTab===id ? "bg-amber-400 text-black" : "bg-white/10"}`}>{label}</button>)}
           </div>
 
           {adminTab === "orders" && (
@@ -1641,6 +1665,87 @@ KRUA PEÈN THAÏ`;
               </aside>
             </div>
           )}
+          {adminTab === "prep" && (
+            <div className="space-y-6">
+              <div className="rounded-3xl border border-amber-300/20 bg-stone-900 p-5">
+                <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <h2 className="text-3xl font-black text-amber-300">🧾 Préparation cuisine</h2>
+                    <p className="mt-2 text-stone-300">Liste automatique des quantités à préparer, groupée par lieu. Les commandes récupérées ou annulées ne comptent pas dans le total à préparer.</p>
+                  </div>
+                  <div className="rounded-2xl bg-black/40 px-4 py-3 text-sm font-bold text-stone-300">
+                    Filtre actuel : {adminLocationFilter === "ALL" ? "Tous les lieux" : adminLocationFilter} · {adminStatusFilter === "ACTIVE" ? "À traiter" : adminStatusFilter}
+                  </div>
+                </div>
+
+                <div className="mb-5 grid gap-3 md:grid-cols-2">
+                  <div className="flex gap-2 overflow-x-auto">
+                    {[["ALL","Tous"],["PLAB","Plabennec"],["BRI","Brignogan"],["KER","Kerlouan"]].map(([id,label])=><button key={id} onClick={()=>setAdminLocationFilter(id)} className={`rounded-full px-4 py-3 text-sm font-black ${adminLocationFilter===id ? "bg-amber-400 text-black" : "bg-black"}`}>{label}</button>)}
+                  </div>
+                  <div className="flex gap-2 overflow-x-auto">
+                    {[["ACTIVE","À préparer"],["ALL","Historique"],["À confirmer","À confirmer"],["Confirmée","Confirmées"],["Récupérée","Récupérées"],["Annulée","Annulées"]].map(([id,label])=><button key={id} onClick={()=>setAdminStatusFilter(id)} className={`rounded-full px-4 py-3 text-sm font-black ${adminStatusFilter===id ? "bg-amber-400 text-black" : "bg-black"}`}>{label}</button>)}
+                  </div>
+                </div>
+
+                {prepSummary.length === 0 && <div className="rounded-2xl bg-black/40 p-5 text-stone-400">Aucune quantité à préparer dans ce filtre.</div>}
+
+                <div className="grid gap-4 lg:grid-cols-3">
+                  {prepSummary.map(group=><div key={group.code} className="rounded-3xl border border-white/10 bg-black/40 p-5">
+                    <div className="mb-3 flex items-center justify-between gap-3">
+                      <h3 className="text-2xl font-black text-amber-300">{group.code}</h3>
+                      <span className="rounded-full bg-amber-400/10 px-3 py-1 text-xs font-black text-amber-200">À préparer</span>
+                    </div>
+                    <div className="space-y-2">
+                      {group.items.map(([name,qty])=><div key={name} className="flex items-center justify-between gap-3 rounded-xl bg-white/[0.05] px-4 py-3">
+                        <span className="font-bold">{name}</span>
+                        <b className="text-2xl text-amber-300">x{qty}</b>
+                      </div>)}
+                    </div>
+                  </div>)}
+                </div>
+              </div>
+
+              <div className="rounded-3xl border border-white/10 bg-stone-900 p-5">
+                <h2 className="mb-4 text-2xl font-black">Historique des commandes par lieu</h2>
+                {prepHistoryByLocation.length === 0 && <div className="rounded-2xl bg-black/40 p-5 text-stone-400">Aucune commande dans ce filtre.</div>}
+                <div className="grid gap-5 lg:grid-cols-2">
+                  {prepHistoryByLocation.map(group=><div key={group.code} className="rounded-3xl bg-black/40 p-5">
+                    <div className="mb-4 flex items-start justify-between gap-3">
+                      <div>
+                        <h3 className="text-2xl font-black text-amber-300">{group.code}</h3>
+                        <p className="text-sm text-stone-400">{group.label}</p>
+                      </div>
+                      <span className="rounded-full bg-white/10 px-3 py-1 text-sm font-bold">{group.orders.length} commande{group.orders.length > 1 ? "s" : ""}</span>
+                    </div>
+
+                    {group.totals.length > 0 && <div className="mb-4 rounded-2xl border border-amber-300/10 bg-amber-400/5 p-4">
+                      <h4 className="mb-2 font-black text-amber-200">Total à préparer</h4>
+                      <div className="space-y-2">{group.totals.map(([name,qty])=><div key={name} className="flex justify-between gap-3 text-sm"><span>{name}</span><b className="text-amber-300">x{qty}</b></div>)}</div>
+                    </div>}
+
+                    <div className="space-y-3">
+                      {group.orders.map(order=>{
+                        const loc = locations.find(l=>l.id===order.locationId)||locations[0];
+                        return <div key={order.id} className="rounded-2xl bg-white/[0.04] p-4">
+                          <div className="mb-2 flex items-start justify-between gap-3">
+                            <div>
+                              <div className="font-black text-amber-300">{order.id}</div>
+                              <div className="text-sm text-stone-300">{order.customer.firstName} {order.customer.lastName}</div>
+                            </div>
+                            <span className={`rounded-full px-3 py-1 text-xs font-bold ${order.status==="Confirmée" ? "bg-green-500/20 text-green-300" : order.status==="Annulée" ? "bg-red-500/20 text-red-300" : order.status==="Récupérée" ? "bg-blue-500/20 text-blue-300" : "bg-orange-500/20 text-orange-300"}`}>{order.status}</span>
+                          </div>
+                          <div className="mb-2 text-xs text-stone-400">{formatDateTime(order.createdAt)} · {loc.city} · {loc.label}</div>
+                          <div className="space-y-1">{order.items.map(item=><div key={`${order.id}-${item.id}`} className="flex justify-between gap-3 text-sm"><span>{item.qty} × {item.name}</span><b>{euro(item.qty*item.price)}</b></div>)}</div>
+                          <div className="mt-3 flex justify-between border-t border-white/10 pt-2 font-black"><span>Total</span><span>{euro(orderGrandTotal(order))}</span></div>
+                        </div>
+                      })}
+                    </div>
+                  </div>)}
+                </div>
+              </div>
+            </div>
+          )}
+
           {adminTab==="products" && <div className="rounded-3xl border border-white/10 bg-stone-900 p-5"><h2 className="mb-4 text-2xl font-black">Produits commandables</h2><p className="mb-5 text-stone-300">Tina coche les produits disponibles, ajuste les prix et peut ajouter un nouveau produit sans refaire le code.</p><div className="mb-5 rounded-2xl bg-black/40 p-4"><h3 className="mb-3 font-black text-amber-300">Ajouter un produit</h3><div className="grid gap-2 md:grid-cols-[90px_1fr_180px_120px]"><input placeholder="Code" value={newProduct.code} onChange={e=>setNewProduct({...newProduct, code:e.target.value})} className="rounded-xl border border-white/10 bg-stone-900 p-3"/><input placeholder="Nom du produit" value={newProduct.name} onChange={e=>setNewProduct({...newProduct, name:e.target.value})} className="rounded-xl border border-white/10 bg-stone-900 p-3"/><select value={newProduct.category} onChange={e=>setNewProduct({...newProduct, category:e.target.value})} className="rounded-xl border border-white/10 bg-stone-900 p-3">{categoryOrder.map(cat=><option key={cat} value={cat}>{cat}</option>)}</select><input placeholder="Prix" type="number" step="0.1" value={newProduct.price} onChange={e=>setNewProduct({...newProduct, price:e.target.value})} className="rounded-xl border border-white/10 bg-stone-900 p-3"/></div><textarea placeholder="Description" value={newProduct.desc} onChange={e=>setNewProduct({...newProduct, desc:e.target.value})} className="mt-2 min-h-20 w-full rounded-xl border border-white/10 bg-stone-900 p-3"/><button onClick={addProductFromDashboard} className="mt-3 rounded-xl bg-amber-400 px-4 py-3 font-black text-black">+ Ajouter le produit</button></div><div className="grid gap-3 md:grid-cols-2">{products.map(p=><div key={p.id} className="rounded-2xl bg-black/40 p-4"><div className="mb-3 flex items-start justify-between gap-3"><div><div className="text-sm font-black text-amber-300">{p.code}</div><div className="font-black">{p.name}</div><div className="text-sm text-stone-400">{p.category}</div></div><label className="flex items-center gap-2 text-sm font-bold"><span>{p.available ? "ON" : "OFF"}</span><input type="checkbox" checked={p.available} onChange={()=>updateProduct(p.id,"available",!p.available)} className="h-7 w-7 accent-amber-400"/></label></div><div className="grid gap-2 sm:grid-cols-[1fr_120px]"><input value={p.name} onChange={e=>updateProduct(p.id,"name",e.target.value)} className="rounded-xl border border-white/10 bg-stone-900 p-3"/><input type="number" step="0.1" value={p.price} onChange={e=>updateProduct(p.id,"price",Number(e.target.value))} className="rounded-xl border border-white/10 bg-stone-900 p-3"/></div><textarea value={p.desc} onChange={e=>updateProduct(p.id,"desc",e.target.value)} className="mt-2 min-h-16 w-full rounded-xl border border-white/10 bg-stone-900 p-3 text-sm"/></div>)}</div></div>}
           {adminTab==="locations" && <div className="rounded-3xl border border-white/10 bg-stone-900 p-5"><h2 className="mb-4 text-2xl font-black">Emplacements & horaires</h2><p className="mb-5 text-stone-300">Le dernier retrait est calculé automatiquement 30 min avant la fermeture.</p><div className="mb-5 rounded-2xl bg-black/40 p-4"><h3 className="mb-3 font-black text-amber-300">Ajouter un emplacement</h3><div className="grid gap-2 md:grid-cols-5"><input placeholder="Label ex : Dimanche soir" value={newLocation.label} onChange={e=>setNewLocation({...newLocation, label:e.target.value})} className="rounded-xl border border-white/10 bg-stone-900 p-3"/><input placeholder="Ville" value={newLocation.city} onChange={e=>setNewLocation({...newLocation, city:e.target.value})} className="rounded-xl border border-white/10 bg-stone-900 p-3"/><input placeholder="Lieu" value={newLocation.place} onChange={e=>setNewLocation({...newLocation, place:e.target.value})} className="rounded-xl border border-white/10 bg-stone-900 p-3"/><select value={newLocation.day} onChange={e=>setNewLocation({...newLocation, day:e.target.value})} className="rounded-xl border border-white/10 bg-stone-900 p-3">{["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche"].map(day=><option key={day}>{day}</option>)}</select><input placeholder="16h30 – 21h30" value={newLocation.hours} onChange={e=>setNewLocation({...newLocation, hours:e.target.value})} className="rounded-xl border border-white/10 bg-stone-900 p-3"/></div><button onClick={addLocationFromDashboard} className="mt-3 rounded-xl bg-amber-400 px-4 py-3 font-black text-black">+ Ajouter l’emplacement</button></div><div className="grid gap-4 md:grid-cols-2">{locations.map(l=><div key={l.id} className="rounded-2xl bg-black/40 p-4"><div className="mb-4 flex items-center justify-between gap-3"><div className="font-black text-amber-300">{l.label}</div><label className="flex items-center gap-2 text-sm font-bold"><span>{l.active === false ? "Masqué" : "Visible"}</span><input type="checkbox" checked={l.active !== false} onChange={()=>updateLocation(l.id,"active",!(l.active !== false))} className="h-6 w-6 accent-amber-400"/></label></div><div className="grid gap-3"><input value={l.label} onChange={e=>updateLocation(l.id,"label",e.target.value)} className="rounded-xl border border-white/10 bg-stone-900 p-3"/><input value={l.city} onChange={e=>updateLocation(l.id,"city",e.target.value)} className="rounded-xl border border-white/10 bg-stone-900 p-3"/><input value={l.place} onChange={e=>updateLocation(l.id,"place",e.target.value)} className="rounded-xl border border-white/10 bg-stone-900 p-3"/><select value={l.day} onChange={e=>updateLocation(l.id,"day",e.target.value)} className="rounded-xl border border-white/10 bg-stone-900 p-3">{["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche"].map(day=><option key={day}>{day}</option>)}</select><input value={l.hours} onChange={e=>updateLocation(l.id,"hours",e.target.value)} className="rounded-xl border border-white/10 bg-stone-900 p-3"/><div className="rounded-xl bg-amber-400/10 p-3 text-sm font-bold text-amber-100">Dernier retrait client : {formatTime(getServiceWindow(l).pickupEndDate)}</div></div></div>)}</div></div>}
           {adminTab==="settings" && <div className="grid gap-6 lg:grid-cols-2">
