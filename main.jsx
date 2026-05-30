@@ -54,7 +54,7 @@ const productsSeed = [
   { id: "curry-panang", code: "P8", name: "Curry Panang", category: "Currys", price: 9.9, available: true, fixed: false, desc: "Viande, légumes, pâte de curry, lait de coco. Au choix : poulet, porc ou crevette." },
   { id: "curry-rouge", code: "P9", name: "Curry rouge", category: "Currys", price: 9.9, available: true, fixed: false, desc: "Viande, légumes, pâte de curry, lait de coco. Au choix : poulet, porc ou crevette." },
   { id: "curry-vert", code: "P10", name: "Curry vert", category: "Currys", price: 9.9, available: true, fixed: false, desc: "Viande, légumes, pâte de curry, lait de coco. Au choix : poulet, porc ou crevette." },
-  { id: "s1", code: "S1", name: "6 sushis saumon", category: "Sushis", price: 8.5, available: true, fixed: true, desc: "Commande conseillée la veille." },
+  { id: "s1", code: "S1", name: "6 sushis saumon", category: "Sushis", price: 8.5, available: true, fixed: true, desc: "Précommandes ouvertes jusqu’à la veille du service à 20h." },
   { id: "m1", code: "M1", name: "Mix découverte 18 pièces", category: "Mix sushi découverte", price: 16.9, available: true, fixed: true, desc: "6 maki concombre fromage, 8 california thon mayonnaise, 4 sushi saumon." },
   { id: "m2", code: "M2", name: "Mix découverte 18 pièces", category: "Mix sushi découverte", price: 16.9, available: true, fixed: true, desc: "6 maki saumon, 8 california saumon, 4 sushi saumon." },
   { id: "m3", code: "M3", name: "Mix découverte 20 pièces", category: "Mix sushi découverte", price: 19.5, available: true, fixed: true, desc: "8 california thon mayonnaise, 6 maki saumon, 6 sushi saumon." },
@@ -63,11 +63,11 @@ const productsSeed = [
   { id: "m6", code: "M6", name: "Mix découverte 22 pièces", category: "Mix sushi découverte", price: 17.9, available: true, fixed: true, desc: "8 california saumon, 8 california thon mayonnaise, 6 maki saumon." },
   { id: "opt-crunch", code: "OPT", name: "Option crunch", category: "Mix sushi découverte", price: 1, available: true, fixed: true, desc: "Ajout oignons frits et sauce crunch." },
 
-  { id: "s2", code: "S2", name: "10 sushis saumon", category: "Sushis", price: 12.9, available: true, fixed: true, desc: "Commande conseillée la veille." },
-  { id: "s3", code: "S3", name: "6 sushis crevettes", category: "Sushis", price: 8.9, available: true, fixed: true, desc: "Commande conseillée la veille." },
-  { id: "s4", code: "S4", name: "10 sushis crevettes", category: "Sushis", price: 12.9, available: true, fixed: true, desc: "Commande conseillée la veille." },
-  { id: "s5", code: "S5", name: "6 sushis saumon avocat", category: "Sushis", price: 9.5, available: true, fixed: true, desc: "Commande conseillée la veille." },
-  { id: "s6", code: "S6", name: "6 sushis crevettes avocat", category: "Sushis", price: 9.5, available: true, fixed: true, desc: "Commande conseillée la veille." },
+  { id: "s2", code: "S2", name: "10 sushis saumon", category: "Sushis", price: 12.9, available: true, fixed: true, desc: "Précommandes ouvertes jusqu’à la veille du service à 20h." },
+  { id: "s3", code: "S3", name: "6 sushis crevettes", category: "Sushis", price: 8.9, available: true, fixed: true, desc: "Précommandes ouvertes jusqu’à la veille du service à 20h." },
+  { id: "s4", code: "S4", name: "10 sushis crevettes", category: "Sushis", price: 12.9, available: true, fixed: true, desc: "Précommandes ouvertes jusqu’à la veille du service à 20h." },
+  { id: "s5", code: "S5", name: "6 sushis saumon avocat", category: "Sushis", price: 9.5, available: true, fixed: true, desc: "Précommandes ouvertes jusqu’à la veille du service à 20h." },
+  { id: "s6", code: "S6", name: "6 sushis crevettes avocat", category: "Sushis", price: 9.5, available: true, fixed: true, desc: "Précommandes ouvertes jusqu’à la veille du service à 20h." },
   { id: "s7", code: "S7", name: "Maki concombre x6", category: "Makis", price: 4, available: true, fixed: true, desc: "6 pièces." },
   { id: "s8", code: "S8", name: "Maki avocat x6", category: "Makis", price: 4, available: true, fixed: true, desc: "6 pièces." },
   { id: "s9", code: "S9", name: "Maki fromage x6", category: "Makis", price: 4.5, available: true, fixed: true, desc: "6 pièces." },
@@ -115,7 +115,7 @@ const menuVisualCards = [
   {
     id: "sushi",
     title: "Sushis & Poké bowls",
-    subtitle: "Préparés sur commande pour plus de fraîcheur",
+    subtitle: "Sushis, makis, california, crunch & poké bowls",
     text: "Sushis, makis, california, crunch, makis printemps et poké bowls.",
     image: "/krua-v3/menu-sushis.png",
     category: "Sushis"
@@ -1380,7 +1380,7 @@ KRUA PEÈN THAÏ`;
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="rounded-2xl bg-black/35 p-4">
                   <h3 className="mb-2 text-xl font-black text-amber-200">🍣 Sushis, poké bowls & entrées</h3>
-                  <p className="text-base font-semibold leading-relaxed text-stone-200">Disponibles toute l'année à la précommande. Précommande conseillée pour garantir le choix et la fraîcheur.</p>
+                  <p className="text-base font-semibold leading-relaxed text-stone-200">Disponibles toute l’année à la précommande.</p>
                 </div>
                 <div className="rounded-2xl bg-black/35 p-4">
                   <h3 className="mb-2 text-xl font-black text-amber-200">🍜 Pad Thaï signature</h3>
@@ -1466,7 +1466,7 @@ KRUA PEÈN THAÏ`;
                   </div>
                 </CategoryBlock>
 
-                <CategoryBlock title="🍣 Sushis & Poké bowls" subtitle="Préparés sur commande pour plus de fraîcheur. Remise de 10% dès 25€ de sushis." image={asset("hero-sushi.jpg")}>
+                <CategoryBlock title="🍣 Sushis & Poké bowls" subtitle="Sushis, makis, california, crunch & poké bowls. Remise de 10% dès 25€ de sushis." image={asset("hero-sushi.jpg")}>
                   <CategoryMiniNav title="Sushis & Poké bowls" cards={sushiCategoryCards} />
                   <div className="grid gap-5">
                     <CategorySection id="sushi-mix" title="🍱 Mix sushi découverte" image={asset("mix-sushi-decouverte.jpg")}><ProductGrid items={categoryProducts("Mix sushi découverte")} /></CategorySection>
