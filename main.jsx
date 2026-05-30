@@ -1384,11 +1384,11 @@ KRUA PEÈN THAÏ`;
                 </div>
                 <div className="rounded-2xl bg-black/35 p-4">
                   <h3 className="mb-2 text-xl font-black text-amber-200">🍜 Pad Thaï signature</h3>
-                  <p className="text-base font-semibold leading-relaxed text-stone-200">Disponible chaque semaine à la précommande, avec porc, poulet ou crevettes au choix.</p>
+                  <p className="text-base font-semibold leading-relaxed text-stone-200">Disponible chaque semaine à la précommande. La variante proposée (porc, poulet ou crevettes) est annoncée chaque semaine sur nos réseaux sociaux avec le menu.</p>
                 </div>
                 <div className="rounded-2xl bg-black/35 p-4">
                   <h3 className="mb-2 text-xl font-black text-amber-200">🌶️ Plats thaï de la semaine</h3>
-                  <p className="text-base font-semibold leading-relaxed text-stone-200">Les plats changent chaque semaine et sont annoncés chaque dimanche soir ou lundi matin.</p>
+                  <p className="text-base font-semibold leading-relaxed text-stone-200">Les plats de la semaine et leurs variantes sont annoncés chaque dimanche soir ou lundi matin sur nos réseaux sociaux.</p>
                 </div>
                 <div className="rounded-2xl bg-black/35 p-4">
                   <h3 className="mb-2 text-xl font-black text-amber-200">⏰ Précommandes</h3>
