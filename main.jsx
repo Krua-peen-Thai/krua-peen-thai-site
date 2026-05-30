@@ -1392,7 +1392,8 @@ KRUA PEÈN THAÏ`;
                 </div>
                 <div className="rounded-2xl bg-black/35 p-4">
                   <h3 className="mb-2 text-xl font-black text-amber-200">⏰ Précommandes</h3>
-                  <p className="text-base font-semibold leading-relaxed text-stone-200">Clôture la veille du service à 20h00. Les plats de la semaine peuvent être grisés avant annonce ou après clôture.</p>
+                  <p className="text-base font-semibold leading-relaxed text-stone-200">Clôture la veille du service à 20h00 pour tous nos lieux de vente.
+Les produits non disponibles à la précommande sont automatiquement grisés..</p>
                 </div>
                 <div className="rounded-2xl bg-black/35 p-4 md:col-span-2">
                   <h3 className="mb-2 text-xl font-black text-amber-200">🚚 Vente directe au camion</h3>
