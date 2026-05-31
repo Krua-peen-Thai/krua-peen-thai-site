@@ -136,14 +136,10 @@ function locationCode(locationId) {
 }
 
 async function makeOrderCode(locationId) {
-  // Code unique généré côté client pour éviter les doublons Supabase order_code_key.
-  // Exemple : KR-PLAB-260529-153045-A7K
+  // Code court et unique pour le dashboard Tina.
+  // Exemple : PLAB-12345, KER-12346, BRI-12347
   const clean = locationCode(locationId);
-  const pad = (value) => String(value).padStart(2, "0");
-  const now = new Date();
-  const stamp = `${String(now.getFullYear()).slice(-2)}${pad(now.getMonth() + 1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
-  const random = Math.random().toString(36).slice(2, 5).toUpperCase();
-  return `KR-${clean}-${stamp}-${random}`;
+  return `${clean}-${Date.now().toString().slice(-5)}`;
 }
 function normalizePhoneForLinks(phone = "") {
   const digits = String(phone).replace(/\D/g, "");
@@ -1632,6 +1628,7 @@ KRUA PEÈN THAÏ`;
                     const orderTotal=orderGrandTotal(order);
                     const whatsMsg=buildWhatsAppMessage(order, loc);
                     const smsMsg=buildSmsMessage(order, loc);
+                    const alreadyConfirmed = order.status === "Confirmée";
                     return <div key={order.id} id={`order-${order.id}`} className="mb-4 rounded-3xl border border-white/10 bg-black p-5">
                       <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
                         <div>
@@ -1646,8 +1643,8 @@ KRUA PEÈN THAÏ`;
                       {order.customer.note && <div className="mb-4 rounded-xl bg-amber-400/10 p-3 text-sm text-amber-100">Note : {order.customer.note}</div>}
                       <div className="mb-4 flex justify-between border-t border-white/10 pt-4 text-xl font-black"><span>Total</span><span>{euro(orderTotal)}</span></div>
                       <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-7">
-                        <a href={whatsappLink(order.customer.phone, whatsMsg)} target="_blank" rel="noreferrer" onClick={()=>updateOrderStatus(order.id,"Confirmée")} className="rounded-2xl bg-green-500 px-4 py-4 text-center font-black text-black"><MessageCircle className="mr-2 inline" size={18}/>Confirmer WhatsApp</a>
-                        <a href={smsLink(order.customer.phone, smsMsg)} onClick={()=>updateOrderStatus(order.id,"Confirmée")} className="rounded-2xl bg-white/10 px-4 py-4 text-center font-black"><Phone className="mr-2 inline" size={18}/>Confirmer SMS</a><button onClick={()=>sendConfirmationEmail(order, loc)} disabled={!order.customer.email} className="rounded-2xl bg-amber-400 px-4 py-4 text-center font-black text-black disabled:opacity-40"><MessageCircle className="mr-2 inline" size={18}/>Confirmer Email</button>
+                        <a href={alreadyConfirmed ? undefined : whatsappLink(order.customer.phone, whatsMsg)} target="_blank" rel="noreferrer" onClick={(e)=>{ if (alreadyConfirmed) { e.preventDefault(); return; } updateOrderStatus(order.id,"Confirmée"); }} className={`rounded-2xl px-4 py-4 text-center font-black ${alreadyConfirmed ? "pointer-events-none bg-white/10 text-stone-500 opacity-40" : "bg-green-500 text-black"}`}><MessageCircle className="mr-2 inline" size={18}/>{alreadyConfirmed ? "WhatsApp envoyé" : "Confirmer WhatsApp"}</a>
+                        <a href={alreadyConfirmed ? undefined : smsLink(order.customer.phone, smsMsg)} onClick={(e)=>{ if (alreadyConfirmed) { e.preventDefault(); return; } updateOrderStatus(order.id,"Confirmée"); }} className={`rounded-2xl px-4 py-4 text-center font-black ${alreadyConfirmed ? "pointer-events-none bg-white/10 text-stone-500 opacity-40" : "bg-white/10"}`}><Phone className="mr-2 inline" size={18}/>{alreadyConfirmed ? "SMS envoyé" : "Confirmer SMS"}</a><button onClick={()=>sendConfirmationEmail(order, loc)} disabled={!order.customer.email || alreadyConfirmed} className={`rounded-2xl px-4 py-4 text-center font-black disabled:opacity-40 ${alreadyConfirmed ? "bg-white/10 text-stone-500" : "bg-amber-400 text-black"}`}><MessageCircle className="mr-2 inline" size={18}/>{alreadyConfirmed ? "Email confirmé" : "Confirmer Email"}</button>
                         <button onClick={()=>printKitchenTicket(order, loc)} className="rounded-2xl bg-amber-400 px-4 py-4 text-center font-black text-black">🖨️ Imprimer ticket</button>
                         <button onClick={()=>copyMessageToClipboard(whatsMsg)} className="rounded-2xl bg-white/10 px-4 py-4 text-center font-black"><Clipboard className="mr-2 inline" size={18}/>Copier message</button>
                         <a href={`tel:${order.customer.phone}`} className="rounded-2xl bg-white/10 px-4 py-4 text-center font-black"><Phone className="mr-2 inline" size={18}/>Appeler</a>
@@ -1793,6 +1790,17 @@ KRUA PEÈN THAÏ`;
             </div>
           </div>}
         </main>
+      )}
+
+      {view === "site" && (
+        <button
+          type="button"
+          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+          aria-label="Retour en haut"
+          className="fixed bottom-24 right-4 z-50 flex h-12 w-12 items-center justify-center rounded-full border border-amber-300/50 bg-amber-400 text-2xl font-black text-black shadow-2xl shadow-black/50"
+        >
+          ↑
+        </button>
       )}
     </div>
   );
