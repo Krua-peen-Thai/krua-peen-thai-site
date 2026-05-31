@@ -1441,7 +1441,7 @@ KRUA PEÈN THAÏ`;
                     <p className="mt-2 max-w-md text-stone-200">Pad Thaï, currys, plats avec riz ou nouilles, entrées à partager.</p>
                   </div>
                 </div>
-                <div className="grid gap-3 p-5 sm:grid-cols-2"><button onClick={() => setSelectedMenuCard(menuVisualCards[0])} className="rounded-2xl border border-amber-300/30 px-4 py-3 font-black text-amber-200">Voir la carte thaï</button><button onClick={() => document.getElementById("commander")?.scrollIntoView({behavior:"smooth"})} className="rounded-2xl bg-amber-400 px-4 py-3 font-black text-black">Commander</button></div>
+                <div className="grid gap-3 p-5 sm:grid-cols-2"><button onClick={() => setSelectedMenuCard(menuVisualCards[0])} className="rounded-2xl border border-amber-300/30 px-4 py-3 font-black text-amber-200">Voir la carte thaï</button><button onClick={() => document.getElementById("thai-menu-start")?.scrollIntoView({behavior:"smooth", block:"start"})} className="rounded-2xl bg-amber-400 px-4 py-3 font-black text-black">Commander</button></div>
               </article>
               <article className="overflow-hidden rounded-[2rem] border border-amber-300/20 bg-stone-950 shadow-2xl">
                 <div className="relative h-80 overflow-hidden">
@@ -1453,7 +1453,7 @@ KRUA PEÈN THAÏ`;
                     <p className="mt-2 max-w-md text-stone-200">Sushis, makis, california, crunch, makis printemps et poké bowls.</p>
                   </div>
                 </div>
-                <div className="grid gap-3 p-5 sm:grid-cols-2"><button onClick={() => setSelectedMenuCard(menuVisualCards[1])} className="rounded-2xl border border-amber-300/30 px-4 py-3 font-black text-amber-200">Voir la carte sushi</button><button onClick={() => document.getElementById("sushi-mix")?.scrollIntoView({behavior:"smooth", block:"start"})} className="rounded-2xl bg-amber-400 px-4 py-3 font-black text-black">Commander</button></div>
+                <div className="grid gap-3 p-5 sm:grid-cols-2"><button onClick={() => setSelectedMenuCard(menuVisualCards[1])} className="rounded-2xl border border-amber-300/30 px-4 py-3 font-black text-amber-200">Voir la carte sushi</button><button onClick={() => document.getElementById("sushi-menu-start")?.scrollIntoView({behavior:"smooth", block:"start"})} className="rounded-2xl bg-amber-400 px-4 py-3 font-black text-black">Commander</button></div>
               </article>
             </div>
           </section>
@@ -1470,6 +1470,7 @@ KRUA PEÈN THAÏ`;
 
             <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_390px]">
               <div className="min-w-0 space-y-6">
+                <div id="thai-menu-start" className="scroll-mt-24" />
                 <CategoryBlock title="🇹🇭 Cuisine thaïlandaise" subtitle="Entrées, plats avec nouilles, plats avec riz et currys maison." image={asset("hero-thai.jpg")}>
                   <CategoryMiniNav title="Cuisine thaïlandaise" cards={thaiCategoryCards} />
                   <div className="space-y-5">
@@ -1481,6 +1482,7 @@ KRUA PEÈN THAÏ`;
                   </div>
                 </CategoryBlock>
 
+                <div id="sushi-menu-start" className="scroll-mt-24" />
                 <CategoryBlock title="🍣 Sushis & Poké bowls" subtitle="Sushis, makis, california, crunch & poké bowls. Remise de 10% dès 25€ de sushis." image={asset("hero-sushi.jpg")}>
                   <CategoryMiniNav title="Sushis & Poké bowls" cards={sushiCategoryCards} />
                   <div className="grid gap-5">
