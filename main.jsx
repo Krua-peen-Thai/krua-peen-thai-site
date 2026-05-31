@@ -1135,7 +1135,7 @@ KRUA PEÈN THAÏ`;
         <div className="flex flex-col gap-4 border-b border-amber-300/10 bg-gradient-to-r from-amber-500/15 to-transparent p-5 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h3 className="text-2xl font-black text-amber-200">🥟 Entrées thaï</h3>
-            <p className="mt-1 text-sm text-stone-300">Cliquez directement sur le prix.</p>
+            <p className="mt-1 text-sm text-stone-300">Cliquer directement sur le prix.</p>
           </div>
           <img src={asset("thai-entrees.png")} alt="Entrées thaï" className="h-24 w-full rounded-2xl object-cover sm:w-44" />
         </div>
@@ -1249,7 +1249,7 @@ KRUA PEÈN THAÏ`;
           <img src={image} alt="" className="h-16 w-20 rounded-2xl object-cover shadow-lg shadow-black/30 sm:h-20 sm:w-28" />
           <div className="min-w-0 flex-1">
             <h3 className="text-xl font-black text-amber-200 sm:text-2xl">{title}</h3>
-            <p className="text-sm text-stone-300">{isOpen ? "Clique pour refermer cette catégorie." : "Clique pour voir les menus et compositions."}</p>
+            <p className="text-sm text-stone-300">{isOpen ? "Cliquer pour refermer cette catégorie." : "Cliquer pour voir les menus et compositions."}</p>
           </div>
           <ChevronDown className={`shrink-0 text-amber-300 transition ${isOpen ? "rotate-180" : ""}`} />
         </button>
