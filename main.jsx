@@ -294,7 +294,24 @@ useEffect(() => {
       navigator.serviceWorker.register("/sw.js").catch((error) => console.error("Service worker", error));
     }
   }, []);
+useEffect(() => {
+  async function checkExistingSubscription() {
+    if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
 
+    try {
+      const registration = await navigator.serviceWorker.ready;
+      const subscription = await registration.pushManager.getSubscription();
+
+      if (subscription) {
+        setNotificationStatus("Notifications activées sur cette tablette");
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  checkExistingSubscription();
+}, []);
   async function subscribeToPushNotifications() {
     setNotificationStatus("Activation des notifications en cours...");
     try {
