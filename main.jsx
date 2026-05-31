@@ -947,7 +947,7 @@ KRUA PEÈN THAÏ`;
     printWindow.document.close();
   }
 
-  const activeOrdersCount = orders.filter(o => o.status === "À confirmer" || o.status === "Confirmée").length;
+  const activeOrdersCount = orders.filter(o => o.status === "À confirmer").length;
 
   const visibleOrders = useMemo(() => {
     const statusOrder = { "À confirmer":0, "Confirmée":1, "Récupérée":2, "Annulée":3 };
@@ -955,7 +955,7 @@ KRUA PEÈN THAÏ`;
     return orders
       .filter(o => adminLocationFilter === "ALL" || locationCode(o.locationId) === adminLocationFilter)
       .filter(o => {
-        if (adminStatusFilter === "ACTIVE") return o.status === "À confirmer" || o.status === "Confirmée";
+        if (adminStatusFilter === "ACTIVE") return o.status === "À confirmer";
         if (adminStatusFilter === "ALL") return true;
         return o.status === adminStatusFilter;
       })
