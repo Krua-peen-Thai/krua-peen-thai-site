@@ -175,7 +175,6 @@ function KruaSite() {
   const [locationId, setLocationId] = useState("PLAB");
   const [customer, setCustomer] = useState({ firstName: "", lastName: "", phone: "", email: "", note: "" });
   const [categoryFilter, setCategoryFilter] = useState("Tous");
-  const [searchTerm, setSearchTerm] = useState("");
   const [openCategory, setOpenCategory] = useState("thai-nouilles");
   const [orderSearch, setOrderSearch] = useState("");
   const [appMode, setAppMode] = useState(supabase ? "Connecté à Supabase" : "Mode démo local");
@@ -388,10 +387,9 @@ useEffect(() => {
 
   const availableProducts = products.filter(p => p.available);
   const categories = ["Tous", ...categoryOrder.filter(cat => availableProducts.some(p => p.category === cat))];
-  const filteredProducts = availableProducts.filter(p => {
-    const q = searchTerm.trim().toLowerCase();
-    return (categoryFilter === "Tous" || p.category === categoryFilter) && (!q || p.name.toLowerCase().includes(q) || (p.code || "").toLowerCase().includes(q));
-  });
+  const filteredProducts = availableProducts.filter(
+    p => categoryFilter === "Tous" || p.category === categoryFilter
+  );
   const productsByCategory = categoryOrder.map(category => ({ category, items: filteredProducts.filter(p => p.category === category) })).filter(g => g.items.length);
   const cartLines = useMemo(() => Object.entries(cart).map(([id, qty]) => ({ ...products.find(p => p.id === id), qty })).filter(x => x.id), [cart, products]);
   const cartTotal = cartLines.reduce((s, i) => s + i.price * i.qty, 0);
@@ -1046,23 +1044,16 @@ KRUA PEÈN THAÏ`;
     return parse(a) - parse(b) || String(a.name).localeCompare(String(b.name));
   }
 
-  function matchesProductSearch(product) {
-    const q = searchTerm.trim().toLowerCase();
-    if (!q) return true;
-    return [product.name, product.code, product.category, product.desc].filter(Boolean).join(" ").toLowerCase().includes(q);
-  }
-
   function categoryProducts(category) {
     return products
       .filter((p) => p.category === category)
       .filter((p) => !thaiRiceOptionIds.includes(p.id))
       .filter((p) => !(category === "Accompagnements" && sushiAccompanimentIds.includes(p.id)))
-      .filter(matchesProductSearch)
       .sort(productSort);
   }
 
   function productsFromIds(ids) {
-    return ids.map(findProduct).filter(Boolean).filter(matchesProductSearch);
+    return ids.map(findProduct).filter(Boolean);
   }
 
   function productImage(product) {
@@ -1467,7 +1458,6 @@ KRUA PEÈN THAÏ`;
                 <p className="max-w-3xl text-lg font-semibold leading-relaxed text-stone-200">Précommande en ligne et vente directe au camion. Les produits indisponibles ou complets sont grisés automatiquement.</p>
 
               </div>
-              <div className="relative w-full lg:max-w-sm"><Search className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400" size={18}/><input value={searchTerm} onChange={e=>setSearchTerm(e.target.value)} placeholder="Rechercher : saumon, poké, S16..." className="w-full rounded-2xl border border-white/10 bg-stone-900 py-4 pl-12 pr-4"/></div>
             </div>
 
             <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_390px]">
