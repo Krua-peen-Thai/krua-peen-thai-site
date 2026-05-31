@@ -44,7 +44,8 @@ const productsSeed = [
   { id: "nouilles-sautees-accompagnement", code: "A2", name: "Nouilles de blé sautées", category: "Accompagnements", price: 5.5, available: true, fixed: true, desc: "Accompagnement." },
   { id: "option-riz-cantonais", code: "OPT", name: "Option riz cantonais", category: "Accompagnements", price: 2.5, available: true, fixed: true, desc: "Remplacer le riz nature par du riz cantonais." },
   { id: "option-nouilles-sautees", code: "OPT", name: "Option nouilles sautées", category: "Accompagnements", price: 2.5, available: true, fixed: true, desc: "Remplacer le riz nature par des nouilles sautées." },
-  { id: "pad-thai", code: "P1", name: "Pad Thaï", category: "Plats avec nouilles", price: 10.5, available: true, fixed: true, desc: "Nouilles de riz, œuf, soja, cacahuètes, ciboulettes. Au choix : porc, poulet ou crevettes." },
+  { id: "pad-thai-poulet", code: "P1", name: "Pad Thaï poulet", category: "Plats avec nouilles", price: 10.5, available: true, fixed: true, desc: "Nouilles de riz, œuf, soja, cacahuètes, ciboulettes. Variante poulet." },
+  { id: "pad-thai-crevettes", code: "P1", name: "Pad Thaï crevettes", category: "Plats avec nouilles", price: 10.5, available: true, fixed: true, desc: "Nouilles de riz, œuf, soja, cacahuètes, ciboulettes. Variante crevettes." },
   { id: "nouilles-sautees", code: "P2", name: "Nouilles sautées", category: "Plats avec nouilles", price: 9.5, available: true, fixed: true, desc: "Nouilles de riz sautées avec légumes. Au choix : porc, poulet ou crevettes." },
   { id: "pad-nam-man-hoi", code: "P3", name: "Pad Nam Man Hoi", category: "Plats avec riz", price: 9.9, available: true, fixed: false, desc: "Bœuf sauté, sauce huître, oignons, ciboulettes. Au choix : porc, poulet ou crevettes." },
   { id: "pad-kra-pao", code: "P4", name: "Pad Kra Pao", category: "Plats avec riz", price: 9.5, available: true, fixed: false, desc: "Viande hachée, basilic thaï, oignons. Au choix : porc, poulet ou crevettes." },
@@ -100,6 +101,10 @@ const productsSeed = [
   { id: "s36", code: "S36", name: "Tartare de riz saumon avocat", category: "Accompagnements", price: 8.5, available: true, fixed: true, desc: "Accompagnement." },
   { id: "s37", code: "S37", name: "Salade de chou", category: "Accompagnements", price: 2.5, available: true, fixed: true, desc: "Accompagnement." },
 ];
+
+const padThaiVariantProducts = productsSeed.filter((product) =>
+  ["pad-thai-poulet", "pad-thai-crevettes"].includes(product.id)
+);
 
 const showcase = ["Pad Thaï signature","Currys thaï","Poulet noix de cajou","Porc caramel","Pad Kra Pao","Sushis sur commande","Poké bowls","Nems, samoussas, bouchées vapeur","Traiteur mariage, retour de mariage, entreprise"];
 
@@ -391,7 +396,18 @@ useEffect(() => {
         supabase.from("settings").select("*"),
         supabase.from("orders").select("*, order_items(*)").order("created_at", { ascending: false }),
       ]);
-      if (productsRes.data?.length) setProducts(productsRes.data.map(p => ({ id:p.id, code:p.code, name:p.name, category:p.category, price:Number(p.price), available:p.available, fixed:p.fixed, desc:p.description || "" })));
+      if (productsRes.data?.length) {
+        const dbProducts = productsRes.data.map(p => ({ id:p.id, code:p.code, name:p.name, category:p.category, price:Number(p.price), available:p.available, fixed:p.fixed, desc:p.description || "" }));
+        const missingPadThaiVariants = padThaiVariantProducts.filter(variant => !dbProducts.some(product => product.id === variant.id));
+        if (missingPadThaiVariants.length) {
+          await supabase.from("products").upsert(missingPadThaiVariants.map(p => ({ id:p.id, code:p.code, name:p.name, category:p.category, price:p.price, available:p.available, fixed:p.fixed, description:p.desc })));
+        }
+        const mergedProducts = [
+          ...dbProducts.filter(product => product.id !== "pad-thai"),
+          ...missingPadThaiVariants
+        ];
+        setProducts(mergedProducts);
+      }
       else await supabase.from("products").upsert(productsSeed.map(p => ({ id:p.id, code:p.code, name:p.name, category:p.category, price:p.price, available:p.available, fixed:p.fixed, description:p.desc })));
       if (locationsRes.data?.length) setLocations(locationsRes.data.map(l => ({ id:l.id, city:l.city, label:l.label, place:l.place, day:l.day, hours:l.hours, active:l.active !== false })));
       else await supabase.from("locations").upsert(initialLocations.map(l => ({ ...l, active:true })));
