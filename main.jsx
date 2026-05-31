@@ -1124,7 +1124,7 @@ KRUA PEÈN THAÏ`;
         <div className="flex flex-col gap-4 border-b border-amber-300/10 bg-gradient-to-r from-amber-500/15 to-transparent p-5 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h3 className="text-2xl font-black text-amber-200">🥟 Entrées thaï</h3>
-            <p className="mt-1 text-sm text-stone-300">Présentation comme sur la carte : cliquez directement sur le prix.</p>
+            <p className="mt-1 text-sm text-stone-300">Cliquez directement sur le prix.</p>
           </div>
           <img src={asset("thai-entrees.png")} alt="Entrées thaï" className="h-24 w-full rounded-2xl object-cover sm:w-44" />
         </div>
@@ -1163,7 +1163,7 @@ KRUA PEÈN THAÏ`;
         <div className="flex flex-col gap-4 border-b border-amber-300/10 bg-gradient-to-r from-amber-500/15 to-transparent p-5 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h3 className="text-2xl font-black text-amber-200">🍣 Sushis</h3>
-            <p className="mt-1 text-sm text-stone-300">Format lisible comme la carte : choisissez directement 6 ou 10 pièces.</p>
+            <p className="mt-1 text-sm text-stone-300">Choisissez directement 6 ou 10 pièces.</p>
           </div>
           <img src={asset("sushi-saumon.jpg")} alt="Sushis saumon" className="h-24 w-full rounded-2xl object-cover sm:w-44" />
         </div>
