@@ -50,7 +50,7 @@ const productsSeed = [
   { id: "pad-kra-pao", code: "P4", name: "Pad Kra Pao", category: "Plats avec riz", price: 9.5, available: true, fixed: false, desc: "Viande hachée, basilic thaï, oignons. Au choix : porc, poulet ou crevettes." },
   { id: "porc-caramel", code: "P5", name: "Porc au caramel", category: "Plats avec riz", price: 9.9, available: true, fixed: false, desc: "Porc mijoté sauce caramélisée maison." },
   { id: "poulet-cajou", code: "P6", name: "Poulet aux noix de cajou", category: "Plats avec riz", price: 9.5, available: true, fixed: false, desc: "Poulet sauté, légumes, noix de cajou." },
-  { id: "pad-phong-curry", code: "P7", name: "Pad Phong Curry", category: "Plats avec riz", price: 9.5, available: true, fixed: false, desc: "Poulet ou crevettes sautés au curry jaune, oignons, ciboulettes." },
+  { id: "pad-phong-curry", code: "P7", name: "Pad Phong Curry", category: "Plats avec riz", price: 9.5, available: true, fixed: false, desc: "Poulet ou crevettes sautées au curry jaune, oignons, ciboulettes." },
   { id: "curry-panang", code: "P8", name: "Curry Panang", category: "Currys", price: 9.9, available: true, fixed: false, desc: "Viande, légumes, pâte de curry, lait de coco. Au choix : poulet, porc ou crevette." },
   { id: "curry-rouge", code: "P9", name: "Curry rouge", category: "Currys", price: 9.9, available: true, fixed: false, desc: "Viande, légumes, pâte de curry, lait de coco. Au choix : poulet, porc ou crevette." },
   { id: "curry-vert", code: "P10", name: "Curry vert", category: "Currys", price: 9.9, available: true, fixed: false, desc: "Viande, légumes, pâte de curry, lait de coco. Au choix : poulet, porc ou crevette." },
