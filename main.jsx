@@ -189,6 +189,7 @@ function KruaSite() {
   const [hideDoneOrders, setHideDoneOrders] = useState(true);
   const [selectedMenuCard, setSelectedMenuCard] = useState(null);
   const [cartDrawerOpen, setCartDrawerOpen] = useState(false);
+  const [orderSubmitting, setOrderSubmitting] = useState(false);
   const [newProduct, setNewProduct] = useState({ code: "", name: "", category: "Entrées", price: "", desc: "", available: true, fixed: true });
   const [newLocation, setNewLocation] = useState({ city: "", label: "", place: "", day: "Dimanche", hours: "16h30 – 21h30", active: true });
   const [loginEmail, setLoginEmail] = useState(BRAND.email);
@@ -426,43 +427,58 @@ useEffect(() => {
   }
 
   async function submitOrder() {
+    if (orderSubmitting) return;
     const orderAvailability = getOrderAvailability(selectedLocation);
     if (!orderAvailability.open) return alert(orderAvailability.message);
     const blockedCartLine = cartLines.find(item => isProductBlocked(item));
     if (blockedCartLine) return alert(`${blockedCartLine.name} est complet à la réservation pour cet emplacement.`);
     if (!customer.firstName || !customer.phone || cartLines.length === 0) return alert("Merci de remplir prénom, téléphone et panier.");
-const orderItems = cartLines.map(({id,name,qty,price}) => ({id,name,qty,price}));
-    // IMPORTANT : la remise n'est pas insérée dans order_items.
-    // order_items.product_id est lié à products.id, donc une fausse ligne "discount" casse Supabase.
-    // La remise est uniquement enregistrée dans orders.total.
-    const order = { id: await makeOrderCode(locationId), createdAt:new Date().toISOString(), status:"À confirmer", customer, locationId, items: orderItems, total };
-    if (supabase) {
-      const response = await fetch("/api/create-order", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          code: order.id,
-          status: order.status,
-          firstName: customer.firstName,
-          lastName: customer.lastName,
-          phone: customer.phone,
-          email: customer.email || null,
-          note: customer.note,
-          locationId,
-          total,
-          items: order.items
-        })
-      });
 
-      const result = await response.json().catch(() => ({}));
-      if (!response.ok) return alert("Erreur commande : " + (result.error || "création impossible"));
+    setOrderSubmitting(true);
+    try {
+      const orderItems = cartLines.map(({id,name,qty,price}) => ({id,name,qty,price}));
+      // IMPORTANT : la remise n'est pas insérée dans order_items.
+      // order_items.product_id est lié à products.id, donc une fausse ligne "discount" casse Supabase.
+      // La remise est uniquement enregistrée dans orders.total.
+      const order = { id: await makeOrderCode(locationId), createdAt:new Date().toISOString(), status:"À confirmer", customer, locationId, items: orderItems, total };
+      if (supabase) {
+        const response = await fetch("/api/create-order", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            code: order.id,
+            status: order.status,
+            firstName: customer.firstName,
+            lastName: customer.lastName,
+            phone: customer.phone,
+            email: customer.email || null,
+            note: customer.note,
+            locationId,
+            total,
+            items: order.items
+          })
+        });
 
-      order.dbId = result.id;
-      order.createdAt = result.created_at || order.createdAt;
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          alert("Erreur commande : " + (result.error || "création impossible"));
+          return;
+        }
+
+        order.dbId = result.id;
+        order.createdAt = result.created_at || order.createdAt;
+      }
+      await sendOrderNotification(order, total);
+      setOrders(old => [order, ...old]);
+      setCart({});
+      setCustomer({ firstName:"", lastName:"", phone:"", email:"", note:"" });
+      setCartDrawerOpen(false);
+      setView("site");
+      setTimeout(() => window.scrollTo({ top: 0, behavior: "smooth" }), 150);
+      alert(`Demande enregistrée : ${order.id}\nTina confirmera par téléphone, WhatsApp ou email.`);
+    } finally {
+      setOrderSubmitting(false);
     }
-    await sendOrderNotification(order, total);
-    setOrders(old => [order, ...old]); setCart({}); setCustomer({ firstName:"", lastName:"", phone:"", email:"", note:"" });
-    alert(`Demande enregistrée : ${order.id}\nTina confirmera par téléphone, WhatsApp ou email.`);
   }
 
   async function updateOrderStatus(id, status) {
@@ -1027,7 +1043,6 @@ KRUA PEÈN THAÏ`;
     if (weeklyReason) return alert(weeklyReason);
     if (isProductBlocked(product)) return alert(`${product.name} est complet à la réservation pour cet emplacement.`);
     addToCart(product.id);
-    setCartDrawerOpen(true);
   }
 
   function productSort(a, b) {
@@ -1217,7 +1232,7 @@ KRUA PEÈN THAÏ`;
           {cards.map((card) => (
             <button key={card.anchor} type="button" onClick={() => document.getElementById(card.anchor)?.scrollIntoView({ behavior: "smooth", block: "start" })} className="group rounded-2xl border border-white/10 bg-stone-950/80 p-2 text-center transition hover:border-amber-300/40">
               <img src={card.image} alt={card.label} className="mx-auto h-16 w-20 rounded-xl object-cover transition group-hover:scale-105" />
-              <div className="mt-2 text-xs font-black text-white sm:text-sm">{card.label}</div>
+              <div className="mt-2 min-h-[2rem] text-[11px] font-black leading-tight text-white [overflow-wrap:anywhere] sm:text-sm">{card.label}</div>
               <div className="mx-auto mt-2 h-0.5 w-8 rounded-full bg-amber-400" />
             </button>
           ))}
@@ -1294,7 +1309,7 @@ KRUA PEÈN THAÏ`;
           <input placeholder="Téléphone *" inputMode="tel" autoComplete="tel" value={customer.phone} onChange={e=>setCustomer({...customer, phone:e.target.value})} className="rounded-2xl border border-white/10 bg-stone-900 p-4 text-base"/>
           <input placeholder="Email (optionnel)" type="email" inputMode="email" autoComplete="email" value={customer.email} onChange={e=>setCustomer({...customer, email:e.target.value})} className="rounded-2xl border border-white/10 bg-stone-900 p-4 text-base"/>
           <textarea placeholder="Commentaire" value={customer.note} onChange={e=>setCustomer({...customer, note:e.target.value})} className="min-h-24 rounded-2xl border border-white/10 bg-stone-900 p-4 text-base"/>
-          <button disabled={!selectedAvailability.open} onClick={submitOrder} className="rounded-2xl bg-amber-400 px-5 py-4 font-black text-black disabled:opacity-40">{selectedAvailability.open ? "Envoyer la demande" : "Commandes fermées"}</button>
+          <button disabled={!selectedAvailability.open || orderSubmitting} onClick={submitOrder} className="rounded-2xl bg-amber-400 px-5 py-4 font-black text-black disabled:opacity-40">{orderSubmitting ? "Envoi en cours..." : selectedAvailability.open ? "Envoyer la demande" : "Commandes fermées"}</button>
           <p className="text-xs text-stone-400">{selectedAvailability.message}</p>
         </div>
       </aside>
@@ -1384,16 +1399,15 @@ KRUA PEÈN THAÏ`;
                 </div>
                 <div className="rounded-2xl bg-black/35 p-4">
                   <h3 className="mb-2 text-xl font-black text-amber-200">🍜 Pad Thaï signature</h3>
-                  <p className="text-base font-semibold leading-relaxed text-stone-200">Disponible chaque semaine à la précommande. La variante proposée (porc, poulet ou crevettes) est annoncée chaque semaine sur nos réseaux sociaux avec le menu.</p>
+                  <p className="text-base font-semibold leading-relaxed text-stone-200">Disponible chaque semaine à la précommande, avec porc, poulet ou crevettes au choix.</p>
                 </div>
                 <div className="rounded-2xl bg-black/35 p-4">
                   <h3 className="mb-2 text-xl font-black text-amber-200">🌶️ Plats thaï de la semaine</h3>
-                  <p className="text-base font-semibold leading-relaxed text-stone-200">Les plats de la semaine et leurs variantes sont annoncés chaque dimanche soir ou lundi matin sur nos réseaux sociaux.</p>
+                  <p className="text-base font-semibold leading-relaxed text-stone-200">Les plats changent chaque semaine et sont annoncés chaque dimanche soir ou lundi matin.</p>
                 </div>
                 <div className="rounded-2xl bg-black/35 p-4">
                   <h3 className="mb-2 text-xl font-black text-amber-200">⏰ Précommandes</h3>
-                  <p className="text-base font-semibold leading-relaxed text-stone-200">Clôture la veille du service à 20h00 pour tous nos lieux de vente.
-Les produits non disponibles à la précommande sont automatiquement grisés..</p>
+                  <p className="text-base font-semibold leading-relaxed text-stone-200">Clôture la veille du service à 20h00. Les plats de la semaine peuvent être grisés avant annonce ou après clôture.</p>
                 </div>
                 <div className="rounded-2xl bg-black/35 p-4 md:col-span-2">
                   <h3 className="mb-2 text-xl font-black text-amber-200">🚚 Vente directe au camion</h3>
@@ -1439,7 +1453,7 @@ Les produits non disponibles à la précommande sont automatiquement grisés..</
                     <p className="mt-2 max-w-md text-stone-200">Sushis, makis, california, crunch, makis printemps et poké bowls.</p>
                   </div>
                 </div>
-                <div className="grid gap-3 p-5 sm:grid-cols-2"><button onClick={() => setSelectedMenuCard(menuVisualCards[1])} className="rounded-2xl border border-amber-300/30 px-4 py-3 font-black text-amber-200">Voir la carte sushi</button><button onClick={() => document.getElementById("commander")?.scrollIntoView({behavior:"smooth"})} className="rounded-2xl bg-amber-400 px-4 py-3 font-black text-black">Commander</button></div>
+                <div className="grid gap-3 p-5 sm:grid-cols-2"><button onClick={() => setSelectedMenuCard(menuVisualCards[1])} className="rounded-2xl border border-amber-300/30 px-4 py-3 font-black text-amber-200">Voir la carte sushi</button><button onClick={() => document.getElementById("sushi-mix")?.scrollIntoView({behavior:"smooth", block:"start"})} className="rounded-2xl bg-amber-400 px-4 py-3 font-black text-black">Commander</button></div>
               </article>
             </div>
           </section>
