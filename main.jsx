@@ -692,7 +692,7 @@ useEffect(() => {
 
     const closingDate = new Date(date);
     closingDate.setDate(closingDate.getDate() - 1);
-    closingDate.setHours(20, 0, 0, 0);
+    closingDate.setHours(23, 0, 0, 0);
 
     const serviceOpenDate = new Date(date);
     serviceOpenDate.setHours(0, 0, 0, 0);
@@ -741,7 +741,7 @@ useEffect(() => {
     const { date } = getServiceWindow(location);
     const closingDate = new Date(date);
     closingDate.setDate(closingDate.getDate() - 1);
-    closingDate.setHours(20, 0, 0, 0);
+    closingDate.setHours(23, 0, 0, 0);
     return closingDate;
   }
 
