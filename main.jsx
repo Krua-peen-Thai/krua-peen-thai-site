@@ -463,7 +463,12 @@ useEffect(() => {
 
     setOrderSubmitting(true);
     try {
-      const orderItems = cartLines.map(({id,name,qty,price}) => ({id,name,qty,price}));
+      const orderItems = cartLines.map(({id,code,name,qty,price}) => ({
+  id,
+  name: code ? `${code} - ${name}` : name,
+  qty,
+  price
+}));
       // IMPORTANT : la remise n'est pas insérée dans order_items.
       // order_items.product_id est lié à products.id, donc une fausse ligne "discount" casse Supabase.
       // La remise est uniquement enregistrée dans orders.total.
