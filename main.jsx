@@ -1694,7 +1694,7 @@ KRUA PEÈN THAÏ`;
                 </div>
                 <div className="rounded-3xl border border-white/10 bg-stone-900 p-5">
                   <h2 className="mb-4 flex items-center gap-2 text-2xl font-black"><Eye className="text-amber-300"/>Règles service</h2>
-                  <ul className="space-y-3 text-stone-300"><li>• Précommande jusqu’à la veille 20h</li><li>• Retrait pendant le service</li><li>• Paiement sur place</li><li>• Confirmation par WhatsApp, SMS ou téléphone</li></ul>
+                  <ul className="space-y-3 text-stone-300"><li>• Précommande jusqu’à la veille 23h</li><li>• Retrait pendant le service</li><li>• Paiement sur place</li><li>• Confirmation par WhatsApp, SMS ou téléphone</li></ul>
                 </div>
               </aside>
             </div>
