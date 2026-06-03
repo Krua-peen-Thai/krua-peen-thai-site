@@ -1537,7 +1537,7 @@ KRUA PEÈN THAÏ`;
             <div className="mb-6 flex items-center gap-3"><CalendarDays className="text-amber-300"/><h2 className="text-3xl font-black">Où nous trouver</h2></div>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
               {visibleLocations.map(l => {
-                const soon = l.id !== "PLAB";
+               const soon = l.id === "KERJ" || l.id === "KERD";
                 return (
                   <div key={l.id} className="rounded-3xl border border-white/10 bg-white/[0.03] p-5">
                     <div className="font-bold text-amber-300">{l.label}</div>
