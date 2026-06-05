@@ -1507,7 +1507,11 @@ KRUA PEÈN THAÏ`;
               <div className="mt-5 rounded-2xl bg-amber-500/10 p-4 text-center">
                 <p className="text-lg font-black text-amber-100">📍 Plabennec tous les mardis</p>
                 <p className="mt-1 text-base font-black text-amber-100">15h30 à 20h30</p>
-                <p className="mt-1 text-base font-semibold text-stone-300">Kerlouan et Brignogan prochainement.</p>
+                <p className="mt-1 text-base font-semibold text-stone-300">
+  📍 Brignogan, devant le camping Slow Village tous les dimanches de 16h à 21h
+  <br />
+  📍 Lanarvily prochainement
+</p>
               </div>
             </div>
           </section>
