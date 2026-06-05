@@ -595,11 +595,28 @@ useEffect(() => {
     return null;
   }
 
- function isProductEnabledForLocation(product, locId = locationId) {
-  if (!product || !locId) return false;
-  const code = locationCode(locId);
-  return stockBlocks?.[code]?.products?.[product.id] === true;
-}
+  function isProductEnabledForLocation(product, locId = locationId) {
+    if (!product || !locId) return false;
+    const code = locationCode(locId);
+    return stockBlocks?.[code]?.products?.[product.id] === true;
+  }
+
+  function isProductDisabledForLocation(product, locId = locationId) {
+    if (!product || !locId) return false;
+    const code = locationCode(locId);
+    return stockBlocks?.[code]?.products?.[product.id] === false;
+  }
+
+  function isWeeklySelectionProduct(product) {
+    return Boolean(product && product.fixed === false && ["Plats avec riz", "Currys"].includes(product.category));
+  }
+
+  function isProductActiveForDashboard(product, code) {
+    if (!product || !code) return false;
+    const value = stockBlocks?.[code]?.products?.[product.id];
+    if (isWeeklySelectionProduct(product)) return value === true;
+    return value !== false;
+  }
 
   function isCategoryBlockedForLocation(product, locId) {
     const group = productBlockGroup(product);
@@ -609,10 +626,10 @@ useEffect(() => {
   }
 
   function isProductBlocked(product) {
-  if (isProductDisabledForLocation(product, locationId)) return true;
-  if (isProductEnabledForLocation(product, locationId)) return false;
-  return isCategoryBlockedForLocation(product, locationId);
-}
+    if (isProductDisabledForLocation(product, locationId)) return true;
+    if (isProductEnabledForLocation(product, locationId)) return false;
+    return isCategoryBlockedForLocation(product, locationId);
+  }
 
   function blockedMessagesForLocation(location) {
     const code = locationCode(location?.id);
@@ -654,14 +671,15 @@ useEffect(() => {
   }
 
   async function toggleProductForLocation(code, productId) {
-    const current = stockBlocks?.[code]?.products?.[productId] !== false;
+    const product = products.find(p => p.id === productId);
+    const currentActive = isProductActiveForDashboard(product, code);
     const nextBlocks = {
       ...(stockBlocks || {}),
       [code]: {
         ...(stockBlocks?.[code] || {}),
         products: {
           ...(stockBlocks?.[code]?.products || {}),
-          [productId]: !current
+          [productId]: !currentActive
         }
       }
     };
@@ -1901,7 +1919,7 @@ KRUA PEÈN THAÏ`;
 
             <div className="rounded-3xl border border-white/10 bg-stone-900 p-5 lg:col-span-2">
               <h2 className="mb-2 text-2xl font-black">Menus disponibles par emplacement</h2>
-              <p className="mb-5 text-sm text-stone-400">Coche les produits que Tina veut proposer selon le lieu de retrait. OFF = le produit reste visible mais le client ne peut pas le commander pour cet emplacement.</p>
+              <p className="mb-5 text-sm text-stone-400">Coche les produits que Tina veut proposer selon le lieu de retrait. Les plats de la semaine sont OFF par défaut : active seulement les plats prévus pour cet emplacement.</p>
               <div className="grid gap-5 lg:grid-cols-2">
                 {[
                   ["PLAB", "Plabennec"],
@@ -1918,7 +1936,7 @@ KRUA PEÈN THAÏ`;
                             <div className="mb-2 text-sm font-black text-amber-100">{categoryLabels[category] || category}</div>
                             <div className="grid gap-2 sm:grid-cols-2">
                               {items.map(p => {
-                                const active = stockBlocks?.[code]?.products?.[p.id] !== false;
+                                const active = isProductActiveForDashboard(p, code);
                                 return (
                                   <button
                                     key={`${code}-${p.id}`}
