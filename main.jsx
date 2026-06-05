@@ -1088,26 +1088,9 @@ KRUA PEÈN THAÏ`;
     })).sort((a,b)=>a.code.localeCompare(b.code));
   }, [orders, locations, adminLocationFilter, adminStatusFilter]);
 
-  function setOpenCategoryWithoutJump(nextCategory, event) {
-    const anchor = event?.currentTarget || null;
-    const beforeTop = anchor ? anchor.getBoundingClientRect().top : null;
-
-    setOpenCategory((current) => {
-      const next = typeof nextCategory === "function" ? nextCategory(current) : nextCategory;
-
-      requestAnimationFrame(() => {
-        if (!anchor || beforeTop === null) return;
-        const afterTop = anchor.getBoundingClientRect().top;
-        window.scrollBy(0, afterTop - beforeTop);
-      });
-
-      return next;
-    });
-  }
-
-  function goToMenuCategory(category, event) {
+  function goToMenuCategory(category) {
     setCategoryFilter("Tous");
-    setOpenCategoryWithoutJump(category, event);
+    setOpenCategory(category);
   }
 
   const asset = (name) => `/krua-v3/${name}`;
@@ -1331,7 +1314,7 @@ KRUA PEÈN THAÏ`;
         <div className="mb-3 text-center text-sm font-black uppercase tracking-wide text-amber-300">{title}</div>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-7">
           {cards.map((card) => (
-            <button key={card.anchor} type="button" onClick={(event) => setOpenCategoryWithoutJump(card.anchor, event)} className={`group rounded-2xl border p-2 text-center transition ${openCategory === card.anchor ? "border-amber-300/70 bg-amber-400/10" : "border-white/10 bg-stone-950/80 hover:border-amber-300/40"}`}>
+            <button key={card.anchor} type="button" onClick={() => setOpenCategory(card.anchor)} className={`group rounded-2xl border p-2 text-center transition ${openCategory === card.anchor ? "border-amber-300/70 bg-amber-400/10" : "border-white/10 bg-stone-950/80 hover:border-amber-300/40"}`}>
               <img src={card.image} alt={card.label} className="mx-auto h-16 w-20 rounded-xl object-cover transition group-hover:scale-105" />
               <div className="mt-2 min-h-[2rem] text-[11px] font-black leading-tight text-white [overflow-wrap:anywhere] sm:text-sm">{card.label}</div>
               <div className="mx-auto mt-2 h-0.5 w-8 rounded-full bg-amber-400" />
@@ -1343,22 +1326,19 @@ KRUA PEÈN THAÏ`;
   }
 
   function CategorySection({ id, title, image, children }) {
-    const isOpen = openCategory === id;
+    // Mode onglets : on affiche seulement la catégorie choisie.
+    // Les autres catégories ne prennent pas de place dans la page, donc fini l'effet yo-yo sur mobile.
+    if (openCategory !== id) return null;
     return (
-      <section id={id} className={`scroll-mt-24 overflow-hidden rounded-[2rem] border transition ${isOpen ? "border-amber-300/35 bg-black/45" : "border-white/10 bg-black/25"}`}>
-        <button
-          type="button"
-          onClick={(event) => setOpenCategoryWithoutJump(isOpen ? "" : id, event)}
-          className="flex w-full items-center gap-4 bg-gradient-to-r from-amber-500/10 to-transparent p-4 text-left"
-        >
+      <section id={id} className="scroll-mt-24 overflow-hidden rounded-[2rem] border border-amber-300/35 bg-black/45">
+        <div className="flex w-full items-center gap-4 bg-gradient-to-r from-amber-500/10 to-transparent p-4 text-left">
           <img src={image} alt="" className="h-16 w-20 rounded-2xl object-cover shadow-lg shadow-black/30 sm:h-20 sm:w-28" />
           <div className="min-w-0 flex-1">
             <h3 className="text-xl font-black text-amber-200 sm:text-2xl">{title}</h3>
-            <p className="text-sm text-stone-300">{isOpen ? "Cliquer pour refermer cette catégorie." : "Cliquer pour voir les menus et compositions."}</p>
+            <p className="text-sm text-stone-300">Choisissez une autre catégorie avec les boutons au-dessus.</p>
           </div>
-          <ChevronDown className={`shrink-0 text-amber-300 transition ${isOpen ? "rotate-180" : ""}`} />
-        </button>
-        {isOpen && <div className="border-t border-white/10 p-4">{children}</div>}
+        </div>
+        <div className="border-t border-white/10 p-4">{children}</div>
       </section>
     );
   }
@@ -1593,7 +1573,7 @@ KRUA PEÈN THAÏ`;
                     <p className="mt-2 max-w-md text-stone-200">Pad Thaï, currys, plats avec riz ou nouilles, entrées à partager.</p>
                   </div>
                 </div>
-                <div className="grid gap-3 p-5 sm:grid-cols-2"><button onClick={() => setSelectedMenuCard(menuVisualCards[0])} className="rounded-2xl border border-amber-300/30 px-4 py-3 font-black text-amber-200">Voir la carte thaï</button><button onClick={(event) => setOpenCategoryWithoutJump("thai-nouilles", event)} className="rounded-2xl bg-amber-400 px-4 py-3 font-black text-black">Commander</button></div>
+                <div className="grid gap-3 p-5 sm:grid-cols-2"><button onClick={() => setSelectedMenuCard(menuVisualCards[0])} className="rounded-2xl border border-amber-300/30 px-4 py-3 font-black text-amber-200">Voir la carte thaï</button><button onClick={() => setOpenCategory("thai-nouilles")} className="rounded-2xl bg-amber-400 px-4 py-3 font-black text-black">Commander</button></div>
               </article>
               <article className="overflow-hidden rounded-[2rem] border border-amber-300/20 bg-stone-950 shadow-2xl">
                 <div className="relative h-80 overflow-hidden">
@@ -1605,7 +1585,7 @@ KRUA PEÈN THAÏ`;
                     <p className="mt-2 max-w-md text-stone-200">Sushis, makis, california, crunch, makis printemps et poké bowls.</p>
                   </div>
                 </div>
-                <div className="grid gap-3 p-5 sm:grid-cols-2"><button onClick={() => setSelectedMenuCard(menuVisualCards[1])} className="rounded-2xl border border-amber-300/30 px-4 py-3 font-black text-amber-200">Voir la carte sushi</button><button onClick={(event) => setOpenCategoryWithoutJump("sushi-mix", event)} className="rounded-2xl bg-amber-400 px-4 py-3 font-black text-black">Commander</button></div>
+                <div className="grid gap-3 p-5 sm:grid-cols-2"><button onClick={() => setSelectedMenuCard(menuVisualCards[1])} className="rounded-2xl border border-amber-300/30 px-4 py-3 font-black text-amber-200">Voir la carte sushi</button><button onClick={() => setOpenCategory("sushi-mix")} className="rounded-2xl bg-amber-400 px-4 py-3 font-black text-black">Commander</button></div>
               </article>
             </div>
           </section>
