@@ -189,6 +189,7 @@ function KruaSite() {
   const [hideDoneOrders, setHideDoneOrders] = useState(true);
   const [selectedMenuCard, setSelectedMenuCard] = useState(null);
   const [cartDrawerOpen, setCartDrawerOpen] = useState(false);
+  const [locationModalOpen, setLocationModalOpen] = useState(true);
   const [orderSubmitting, setOrderSubmitting] = useState(false);
   const [newProduct, setNewProduct] = useState({ code: "", name: "", category: "Entrées", price: "", desc: "", available: true, fixed: true });
   const [newLocation, setNewLocation] = useState({ city: "", label: "", place: "", day: "Dimanche", hours: "16h30 – 21h30", active: true });
@@ -409,7 +410,7 @@ useEffect(() => {
         setProducts(mergedProducts);
       }
       else await supabase.from("products").upsert(productsSeed.map(p => ({ id:p.id, code:p.code, name:p.name, category:p.category, price:p.price, available:p.available, fixed:p.fixed, description:p.desc })));
-      if (locationsRes.data?.length) setLocations(locationsRes.data.map(l => ({ id:l.id, city:l.city, label:l.label, place:l.place, day:l.day, hours:l.hours, active:(l.id === "KERJ" || l.id === "KERD") ? false : l.active !== false })));
+      if (locationsRes.data?.length) setLocations(locationsRes.data.map(l => ({ id:l.id, city:l.city, label:l.label, place:l.place, day:l.day, hours:l.hours, active:l.active !== false })));
       else await supabase.from("locations").upsert(initialLocations.map(l => ({ ...l, active:true })));
       const setting = settingsRes.data?.[0];
       if (setting) { setOrdersOpen(setting.orders_open); setServiceOrdersOpen(Boolean(setting.service_orders_open)); setStockBlocks(setting.stock_blocks || {}); setSiteMessage(setting.site_message || "Précommandes ouvertes jusqu’à la veille 23h"); }
@@ -429,7 +430,7 @@ useEffect(() => {
   const sushiDiscountBase = cartLines.filter(isSushiDiscountProduct).reduce((s, i) => s + i.price * i.qty, 0);
   const sushiDiscount = sushiDiscountBase >= 25 ? Math.round(sushiDiscountBase * 0.10 * 100) / 100 : 0;
   const total = Math.max(0, cartTotal - sushiDiscount);
-  const visibleLocations = locations.filter(l => l.active !== false);
+  const visibleLocations = locations.filter(l => l.active !== false && l.id !== "KERJ" && l.id !== "KERD");
   const selectedLocation = visibleLocations.find(l => l.id === locationId) || null;
   const selectedAvailability = selectedLocation
     ? getOrderAvailability(selectedLocation)
@@ -457,7 +458,11 @@ useEffect(() => {
 
   async function submitOrder() {
     if (orderSubmitting) return;
-    const orderAvailability = selectedAvailability;
+    if (!selectedLocation) {
+      setLocationModalOpen(true);
+      return;
+    }
+    const orderAvailability = getOrderAvailability(selectedLocation);
     if (!orderAvailability.open) return alert(orderAvailability.message);
     const blockedCartLine = cartLines.find(item => isProductBlocked(item));
     if (blockedCartLine) return alert(`${blockedCartLine.name} est complet à la réservation pour cet emplacement.`);
@@ -683,6 +688,7 @@ useEffect(() => {
   }
 
   function servicePickupText(location) {
+    if (!location) return "Choisissez votre lieu de retrait";
     const { pickupEndDate } = getServiceWindow(location);
     return `${location?.hours || ""} · retrait max ${formatTime(pickupEndDate)}`;
   }
@@ -769,8 +775,8 @@ useEffect(() => {
   }
 
   function weeklyThaiLockReason(product) {
+    if (!selectedLocation) return "";
     if (!isWeeklyThaiProduct(product)) return "";
-    if (!locationId || !selectedLocation) return "Choisissez d’abord votre lieu de retrait.";
     if (selectedAvailability.mode === "service") return "";
 
     const now = new Date();
@@ -1070,12 +1076,16 @@ KRUA PEÈN THAÏ`;
   }
 
   function canOrderProduct(product) {
-    return Boolean(locationId && selectedLocation && product && product.available && selectedAvailability.open && !isProductBlocked(product) && !isWeeklyThaiProductLocked(product));
+    if (!selectedLocation) return Boolean(product && product.available);
+    return Boolean(product && product.available && selectedAvailability.open && !isProductBlocked(product) && !isWeeklyThaiProductLocked(product));
   }
 
   function addProduct(product) {
     if (!product) return;
-    if (!locationId || !selectedLocation) return alert("Choisissez d’abord votre lieu de retrait.");
+    if (!selectedLocation) {
+      setLocationModalOpen(true);
+      return;
+    }
     if (!selectedAvailability.open) return alert(selectedAvailability.message);
     if (!product.available) return alert(`${product.name} n'est pas disponible cette semaine.`);
     const weeklyReason = weeklyThaiLockReason(product);
@@ -1327,14 +1337,9 @@ KRUA PEÈN THAÏ`;
 
         <label className="text-sm font-bold text-stone-300">Lieu de retrait</label>
         <select value={locationId} onChange={e=>setLocationId(e.target.value)} className="mt-2 w-full rounded-2xl border border-white/10 bg-stone-900 p-3">
-          <option value="">Choisir un lieu de retrait</option>
           {visibleLocations.map(l=><option key={l.id} value={l.id}>{l.label} – {l.city}</option>)}
         </select>
-        {selectedLocation ? (
-          <div className="mt-3 rounded-2xl bg-white/[0.04] p-3 text-sm text-stone-300"><MapPin className="mr-2 inline text-amber-300" size={16}/>{selectedLocation.place} • {servicePickupText(selectedLocation)}</div>
-        ) : (
-          <div className="mt-3 rounded-2xl bg-amber-950/50 p-3 text-sm font-bold text-amber-100">Choisissez Plabennec ou Brignogan avant d’ajouter des plats.</div>
-        )}
+        <div className="mt-3 rounded-2xl bg-white/[0.04] p-3 text-sm text-stone-300"><MapPin className="mr-2 inline text-amber-300" size={16}/>{selectedLocation ? `${selectedLocation.place} • ${servicePickupText(selectedLocation)}` : "Choisissez d’abord votre lieu de retrait"}</div>
         {currentBlockMessages.map(block=><div key={block.group} className="mt-4 rounded-2xl bg-orange-950/70 p-4 text-sm font-bold text-orange-100">⚠️ {block.text}</div>)}
         {!selectedAvailability.open && <div className="mt-4 rounded-2xl bg-red-950/70 p-4 text-sm font-bold text-red-100">{selectedAvailability.message}</div>}
         {selectedAvailability.open && selectedAvailability.mode === "service" && <div className="mt-4 rounded-2xl bg-green-950/70 p-4 text-sm font-bold text-green-100">{selectedAvailability.message}</div>}
@@ -1359,8 +1364,41 @@ KRUA PEÈN THAÏ`;
     );
   }
 
+  function LocationRequiredModal() {
+    if (view !== "site" || !locationModalOpen) return null;
+    const choices = visibleLocations.filter((l) => l.id === "PLAB" || l.id === "BRI");
+    return (
+      <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/85 p-4 backdrop-blur-md">
+        <div className="w-full max-w-lg rounded-[2rem] border border-amber-300/30 bg-[#090705] p-5 shadow-2xl shadow-black/60">
+          <div className="mb-4 inline-flex rounded-full bg-amber-400 px-4 py-2 text-xs font-black uppercase tracking-wide text-black">Étape obligatoire</div>
+          <h2 className="text-3xl font-black text-white">📍 Choisissez votre lieu de retrait</h2>
+          <p className="mt-3 text-sm font-semibold text-stone-300">Les menus disponibles changent selon l’emplacement. Sélectionnez votre lieu avant de consulter la carte.</p>
+          <div className="mt-6 grid gap-3">
+            {choices.map((l) => (
+              <button
+                key={l.id}
+                type="button"
+                onClick={() => {
+                  setLocationId(l.id);
+                  setLocationModalOpen(false);
+                }}
+                className="rounded-3xl border border-amber-300/25 bg-white/[0.04] p-5 text-left transition hover:border-amber-300/60 hover:bg-amber-400/10"
+              >
+                <div className="text-sm font-black text-amber-300">{l.label}</div>
+                <div className="mt-1 text-2xl font-black text-white">{l.city}</div>
+                <div className="mt-2 text-sm font-semibold text-stone-300">{l.place}</div>
+                <div className="mt-3 flex items-center gap-2 text-sm font-bold text-stone-100"><Clock size={16}/>{servicePickupText(l)}</div>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#070504] text-stone-50">
+      <LocationRequiredModal />
       <header className="sticky top-0 z-50 border-b border-amber-500/20 bg-black/80 backdrop-blur-xl">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
           <button onClick={() => setView("site")} className="text-left"><div className="text-xl font-black tracking-wide text-amber-300">{BRAND.name}</div><div className="text-xs text-stone-300">Thaï • Sushi • Poké • Traiteur</div></button>
@@ -1374,6 +1412,15 @@ KRUA PEÈN THAÏ`;
   >
     Site client
   </button>
+
+  {view === "site" && locationId && (
+    <button
+      onClick={() => setLocationModalOpen(true)}
+      className="hidden rounded-full bg-white/10 px-4 py-2 font-bold text-stone-100 sm:inline-flex"
+    >
+      📍 {selectedLocation?.city || "Retrait"}
+    </button>
+  )}
 
   {view === "admin" && (
     <button
