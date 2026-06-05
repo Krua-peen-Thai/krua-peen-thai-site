@@ -1425,15 +1425,7 @@ KRUA PEÈN THAÏ`;
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
           <button onClick={() => setView("site")} className="text-left"><div className="text-xl font-black tracking-wide text-amber-300">{BRAND.name}</div><div className="text-xs text-stone-300">Thaï • Sushi • Poké • Traiteur</div></button>
      <nav className="flex items-center gap-2 text-sm">
-  <button
-    onClick={() => {
-      setView("site");
-      window.history.replaceState(null, "", "/");
-    }}
-    className="rounded-full bg-amber-400 px-4 py-2 text-black"
-  >
-    Site client
-  </button>
+
 
   {view === "site" && locationId && (
     <button
