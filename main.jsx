@@ -595,11 +595,11 @@ useEffect(() => {
     return null;
   }
 
-  function isProductDisabledForLocation(product, locId = locationId) {
-    if (!product || !locId) return false;
-    const code = locationCode(locId);
-    return stockBlocks?.[code]?.products?.[product.id] === false;
-  }
+ function isProductEnabledForLocation(product, locId = locationId) {
+  if (!product || !locId) return false;
+  const code = locationCode(locId);
+  return stockBlocks?.[code]?.products?.[product.id] === true;
+}
 
   function isCategoryBlockedForLocation(product, locId) {
     const group = productBlockGroup(product);
@@ -609,8 +609,10 @@ useEffect(() => {
   }
 
   function isProductBlocked(product) {
-    return isProductDisabledForLocation(product, locationId) || isCategoryBlockedForLocation(product, locationId);
-  }
+  if (isProductDisabledForLocation(product, locationId)) return true;
+  if (isProductEnabledForLocation(product, locationId)) return false;
+  return isCategoryBlockedForLocation(product, locationId);
+}
 
   function blockedMessagesForLocation(location) {
     const code = locationCode(location?.id);
@@ -797,6 +799,7 @@ useEffect(() => {
 
   function weeklyThaiLockReason(product) {
     if (!selectedLocation) return "";
+    if (isProductEnabledForLocation(product, selectedLocation.id)) return "";
     if (!isWeeklyThaiProduct(product)) return "";
     if (selectedAvailability.mode === "service") return "";
 
