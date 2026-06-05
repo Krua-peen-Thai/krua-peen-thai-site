@@ -10,7 +10,7 @@ const initialLocations = [
   { id: "PLAB", city: "Plabennec", label: "Mardi soir", place: "Devant l’église", day: "Mardi", hours: "15h30 – 20h30", active: true },
   { id: "KERJ", city: "Kerlouan", label: "Jeudi matin", place: "Place de la mairie", day: "Jeudi", hours: "08h00 – 13h00", active: false },
   { id: "KERD", city: "Kerlouan", label: "Dimanche matin", place: "Place de la mairie", day: "Dimanche", hours: "08h00 – 13h00", active: false },
-  { id: "BRI", city: "Brignogan", label: "Dimanche soir", place: "Devant le camping Slow Village", day: "Dimanche", hours: "16h30 – 21h30", active: true },
+  { id: "BRI", city: "Brignogan", label: "Dimanche soir", place: "Devant le camping Slow Village", day: "Dimanche", hours: "16h00 – 21h00", active: true },
 ];
 
 const categoryOrder = ["Entrées","Accompagnements","Plats avec nouilles","Plats avec riz","Currys","Mix sushi découverte","Sushis","Makis","California","Sushis spécial","Crunch","Makis printemps","Poké bowls"];
