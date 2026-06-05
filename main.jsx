@@ -1334,7 +1334,7 @@ KRUA PEÈN THAÏ`;
           <div className="mt-3 rounded-2xl bg-white/[0.04] p-3 text-sm text-stone-300"><MapPin className="mr-2 inline text-amber-300" size={16}/>{selectedLocation.place} • {servicePickupText(selectedLocation)}</div>
         ) : (
           <div className="mt-3 rounded-2xl bg-amber-950/50 p-3 text-sm font-bold text-amber-100">Choisissez Plabennec ou Brignogan avant d’ajouter des plats.</div>
-        )
+        )}
         {currentBlockMessages.map(block=><div key={block.group} className="mt-4 rounded-2xl bg-orange-950/70 p-4 text-sm font-bold text-orange-100">⚠️ {block.text}</div>)}
         {!selectedAvailability.open && <div className="mt-4 rounded-2xl bg-red-950/70 p-4 text-sm font-bold text-red-100">{selectedAvailability.message}</div>}
         {selectedAvailability.open && selectedAvailability.mode === "service" && <div className="mt-4 rounded-2xl bg-green-950/70 p-4 text-sm font-bold text-green-100">{selectedAvailability.message}</div>}
