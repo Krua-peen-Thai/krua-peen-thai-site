@@ -8,8 +8,8 @@ const BRAND = { name: "KRUA PEÈN THAÏ", phone: "0670395523", email: "kruapeent
 
 const initialLocations = [
   { id: "PLAB", city: "Plabennec", label: "Mardi soir", place: "Devant l’église", day: "Mardi", hours: "15h30 – 20h30", active: true },
-  { id: "KERJ", city: "Kerlouan", label: "Jeudi matin", place: "Place de la mairie", day: "Jeudi", hours: "08h00 – 13h00", active: true },
-  { id: "KERD", city: "Kerlouan", label: "Dimanche matin", place: "Place de la mairie", day: "Dimanche", hours: "08h00 – 13h00", active: true },
+  { id: "KERJ", city: "Kerlouan", label: "Jeudi matin", place: "Place de la mairie", day: "Jeudi", hours: "08h00 – 13h00", active: false },
+  { id: "KERD", city: "Kerlouan", label: "Dimanche matin", place: "Place de la mairie", day: "Dimanche", hours: "08h00 – 13h00", active: false },
   { id: "BRI", city: "Brignogan", label: "Dimanche soir", place: "Devant le camping Slow Village", day: "Dimanche", hours: "16h30 – 21h30", active: true },
 ];
 
@@ -177,7 +177,7 @@ function KruaSite() {
   const [locations, setLocations] = useState(initialLocations);
   const [orders, setOrders] = useState([]);
   const [cart, setCart] = useState({});
-  const [locationId, setLocationId] = useState("PLAB");
+  const [locationId, setLocationId] = useState("");
   const [customer, setCustomer] = useState({ firstName: "", lastName: "", phone: "", email: "", note: "" });
   const [categoryFilter, setCategoryFilter] = useState("Tous");
   const [openCategory, setOpenCategory] = useState("thai-nouilles");
@@ -409,7 +409,7 @@ useEffect(() => {
         setProducts(mergedProducts);
       }
       else await supabase.from("products").upsert(productsSeed.map(p => ({ id:p.id, code:p.code, name:p.name, category:p.category, price:p.price, available:p.available, fixed:p.fixed, description:p.desc })));
-      if (locationsRes.data?.length) setLocations(locationsRes.data.map(l => ({ id:l.id, city:l.city, label:l.label, place:l.place, day:l.day, hours:l.hours, active:l.active !== false })));
+      if (locationsRes.data?.length) setLocations(locationsRes.data.map(l => ({ id:l.id, city:l.city, label:l.label, place:l.place, day:l.day, hours:l.hours, active:(l.id === "KERJ" || l.id === "KERD") ? false : l.active !== false })));
       else await supabase.from("locations").upsert(initialLocations.map(l => ({ ...l, active:true })));
       const setting = settingsRes.data?.[0];
       if (setting) { setOrdersOpen(setting.orders_open); setServiceOrdersOpen(Boolean(setting.service_orders_open)); setStockBlocks(setting.stock_blocks || {}); setSiteMessage(setting.site_message || "Précommandes ouvertes jusqu’à la veille 23h"); }
@@ -430,8 +430,10 @@ useEffect(() => {
   const sushiDiscount = sushiDiscountBase >= 25 ? Math.round(sushiDiscountBase * 0.10 * 100) / 100 : 0;
   const total = Math.max(0, cartTotal - sushiDiscount);
   const visibleLocations = locations.filter(l => l.active !== false);
-  const selectedLocation = visibleLocations.find(l => l.id === locationId) || visibleLocations[0] || locations[0];
-  const selectedAvailability = getOrderAvailability(selectedLocation);
+  const selectedLocation = visibleLocations.find(l => l.id === locationId) || null;
+  const selectedAvailability = selectedLocation
+    ? getOrderAvailability(selectedLocation)
+    : { open: false, mode: "no_location", message: "Choisissez d’abord votre lieu de retrait." };
 
   function addToCart(id) { setCart(old => ({ ...old, [id]:(old[id] || 0) + 1 })); }
   function removeFromCart(id) { setCart(old => { const n={...old}; n[id]=(n[id]||0)-1; if(n[id]<=0) delete n[id]; return n; }); }
@@ -455,7 +457,7 @@ useEffect(() => {
 
   async function submitOrder() {
     if (orderSubmitting) return;
-    const orderAvailability = getOrderAvailability(selectedLocation);
+    const orderAvailability = selectedAvailability;
     if (!orderAvailability.open) return alert(orderAvailability.message);
     const blockedCartLine = cartLines.find(item => isProductBlocked(item));
     if (blockedCartLine) return alert(`${blockedCartLine.name} est complet à la réservation pour cet emplacement.`);
@@ -692,6 +694,9 @@ useEffect(() => {
   }
 
   function getOrderAvailability(location) {
+    if (!location) {
+      return { open: false, mode: "no_location", message: "Choisissez d’abord votre lieu de retrait." };
+    }
     const now = new Date();
     const { date, endDate, pickupEndDate } = getServiceWindow(location);
 
@@ -765,6 +770,7 @@ useEffect(() => {
 
   function weeklyThaiLockReason(product) {
     if (!isWeeklyThaiProduct(product)) return "";
+    if (!locationId || !selectedLocation) return "Choisissez d’abord votre lieu de retrait.";
     if (selectedAvailability.mode === "service") return "";
 
     const now = new Date();
@@ -1064,11 +1070,12 @@ KRUA PEÈN THAÏ`;
   }
 
   function canOrderProduct(product) {
-    return Boolean(product && product.available && selectedAvailability.open && !isProductBlocked(product) && !isWeeklyThaiProductLocked(product));
+    return Boolean(locationId && selectedLocation && product && product.available && selectedAvailability.open && !isProductBlocked(product) && !isWeeklyThaiProductLocked(product));
   }
 
   function addProduct(product) {
     if (!product) return;
+    if (!locationId || !selectedLocation) return alert("Choisissez d’abord votre lieu de retrait.");
     if (!selectedAvailability.open) return alert(selectedAvailability.message);
     if (!product.available) return alert(`${product.name} n'est pas disponible cette semaine.`);
     const weeklyReason = weeklyThaiLockReason(product);
@@ -1320,9 +1327,14 @@ KRUA PEÈN THAÏ`;
 
         <label className="text-sm font-bold text-stone-300">Lieu de retrait</label>
         <select value={locationId} onChange={e=>setLocationId(e.target.value)} className="mt-2 w-full rounded-2xl border border-white/10 bg-stone-900 p-3">
+          <option value="">Choisir un lieu de retrait</option>
           {visibleLocations.map(l=><option key={l.id} value={l.id}>{l.label} – {l.city}</option>)}
         </select>
-        <div className="mt-3 rounded-2xl bg-white/[0.04] p-3 text-sm text-stone-300"><MapPin className="mr-2 inline text-amber-300" size={16}/>{selectedLocation.place} • {servicePickupText(selectedLocation)}</div>
+        {selectedLocation ? (
+          <div className="mt-3 rounded-2xl bg-white/[0.04] p-3 text-sm text-stone-300"><MapPin className="mr-2 inline text-amber-300" size={16}/>{selectedLocation.place} • {servicePickupText(selectedLocation)}</div>
+        ) : (
+          <div className="mt-3 rounded-2xl bg-amber-950/50 p-3 text-sm font-bold text-amber-100">Choisissez Plabennec ou Brignogan avant d’ajouter des plats.</div>
+        )
         {currentBlockMessages.map(block=><div key={block.group} className="mt-4 rounded-2xl bg-orange-950/70 p-4 text-sm font-bold text-orange-100">⚠️ {block.text}</div>)}
         {!selectedAvailability.open && <div className="mt-4 rounded-2xl bg-red-950/70 p-4 text-sm font-bold text-red-100">{selectedAvailability.message}</div>}
         {selectedAvailability.open && selectedAvailability.mode === "service" && <div className="mt-4 rounded-2xl bg-green-950/70 p-4 text-sm font-bold text-green-100">{selectedAvailability.message}</div>}
