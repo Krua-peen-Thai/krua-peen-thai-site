@@ -595,6 +595,12 @@ useEffect(() => {
     return null;
   }
 
+  function isProductDisabledForLocation(product, locId = locationId) {
+    if (!product || !locId) return false;
+    const code = locationCode(locId);
+    return stockBlocks?.[code]?.products?.[product.id] === false;
+  }
+
   function isCategoryBlockedForLocation(product, locId) {
     const group = productBlockGroup(product);
     if (!group) return false;
@@ -603,7 +609,7 @@ useEffect(() => {
   }
 
   function isProductBlocked(product) {
-    return isCategoryBlockedForLocation(product, locationId);
+    return isProductDisabledForLocation(product, locationId) || isCategoryBlockedForLocation(product, locationId);
   }
 
   function blockedMessagesForLocation(location) {
@@ -640,6 +646,21 @@ useEffect(() => {
       [code]: {
         ...(stockBlocks?.[code] || {}),
         [group]: !current
+      }
+    };
+    await saveStockBlocks(nextBlocks);
+  }
+
+  async function toggleProductForLocation(code, productId) {
+    const current = stockBlocks?.[code]?.products?.[productId] !== false;
+    const nextBlocks = {
+      ...(stockBlocks || {}),
+      [code]: {
+        ...(stockBlocks?.[code] || {}),
+        products: {
+          ...(stockBlocks?.[code]?.products || {}),
+          [productId]: !current
+        }
       }
     };
     await saveStockBlocks(nextBlocks);
@@ -1090,7 +1111,8 @@ KRUA PEÈN THAÏ`;
     if (!product.available) return alert(`${product.name} n'est pas disponible cette semaine.`);
     const weeklyReason = weeklyThaiLockReason(product);
     if (weeklyReason) return alert(weeklyReason);
-    if (isProductBlocked(product)) return alert(`${product.name} est complet à la réservation pour cet emplacement.`);
+    if (isProductDisabledForLocation(product)) return alert(`${product.name} n'est pas disponible pour cet emplacement.`);
+    if (isCategoryBlockedForLocation(product, locationId)) return alert(`${product.name} est complet à la réservation pour cet emplacement.`);
     addToCart(product.id);
   }
 
@@ -1166,7 +1188,7 @@ KRUA PEÈN THAÏ`;
         </div>
         <p className="min-h-10 text-sm text-stone-300">{product.desc}</p>
         {weeklyReason && <p className="mt-2 rounded-xl bg-amber-950/70 p-3 text-sm font-black text-amber-100">⏰ {weeklyReason}</p>}
-        {blocked && <p className="mt-2 rounded-xl bg-orange-950/70 p-2 text-xs font-bold text-orange-100">Complet à la réservation pour cet emplacement.</p>}
+        {blocked && <p className="mt-2 rounded-xl bg-orange-950/70 p-2 text-xs font-bold text-orange-100">{isProductDisabledForLocation(product) ? "Non disponible pour ce lieu de retrait." : "Complet à la réservation pour cet emplacement."}</p>}
         {!product.available && <p className="mt-2 rounded-xl bg-white/5 p-2 text-xs font-bold text-stone-400">Non disponible cette semaine.</p>}
         <button disabled={disabled} onClick={() => addProduct(product)} className="mt-4 w-full rounded-2xl bg-amber-400 px-4 py-3 font-black text-black disabled:bg-white/10 disabled:text-stone-500">
           Ajouter
@@ -1875,6 +1897,48 @@ KRUA PEÈN THAÏ`;
                       {Object.entries(blockGroupLabels).map(([group, groupLabel]) => {
                         const active = Boolean(stockBlocks?.[code]?.[group]);
                         return <button key={group} onClick={() => toggleStockBlockForLocation(code, group)} className={`rounded-2xl px-4 py-4 text-sm font-black ${active ? "bg-red-500 text-white" : "bg-white/10 text-white"}`}>{active ? `${groupLabel} COMPLETS` : `${groupLabel} ouverts`}</button>;
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-3xl border border-white/10 bg-stone-900 p-5 lg:col-span-2">
+              <h2 className="mb-2 text-2xl font-black">Menus disponibles par emplacement</h2>
+              <p className="mb-5 text-sm text-stone-400">Coche les produits que Tina veut proposer selon le lieu de retrait. OFF = le produit reste visible mais le client ne peut pas le commander pour cet emplacement.</p>
+              <div className="grid gap-5 lg:grid-cols-2">
+                {[
+                  ["PLAB", "Plabennec"],
+                  ["BRI", "Brignogan"]
+                ].map(([code, label]) => (
+                  <div key={code} className="rounded-2xl bg-black/40 p-4">
+                    <div className="mb-4 text-xl font-black text-amber-300">{label}</div>
+                    <div className="space-y-4">
+                      {categoryOrder.map(category => {
+                        const items = products.filter(p => p.category === category).sort(productSort);
+                        if (!items.length) return null;
+                        return (
+                          <div key={`${code}-${category}`} className="rounded-xl border border-white/10 p-3">
+                            <div className="mb-2 text-sm font-black text-amber-100">{categoryLabels[category] || category}</div>
+                            <div className="grid gap-2 sm:grid-cols-2">
+                              {items.map(p => {
+                                const active = stockBlocks?.[code]?.products?.[p.id] !== false;
+                                return (
+                                  <button
+                                    key={`${code}-${p.id}`}
+                                    type="button"
+                                    onClick={() => toggleProductForLocation(code, p.id)}
+                                    className={`rounded-xl px-3 py-2 text-left text-xs font-bold ${active ? "bg-green-500/20 text-green-100" : "bg-red-500/25 text-red-100 line-through"}`}
+                                  >
+                                    <span className="mr-2 font-black">{active ? "ON" : "OFF"}</span>
+                                    <span>{p.code} - {p.name}</span>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
                       })}
                     </div>
                   </div>
