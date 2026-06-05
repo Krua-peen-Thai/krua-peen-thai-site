@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { createClient } from "@supabase/supabase-js";
 import { ShoppingCart, MapPin, Phone, MessageCircle, Clock, ChefHat, Lock, CheckCircle2, XCircle, PackageCheck, Settings, Eye, CalendarDays, Sparkles, UtensilsCrossed, Search, ChevronDown, Clipboard } from "lucide-react";
@@ -197,6 +197,38 @@ function KruaSite() {
   const [loginPassword, setLoginPassword] = useState("");
   const [loginError, setLoginError] = useState("");
   const [authLoading, setAuthLoading] = useState(false);
+
+  const scrollAnchorRef = useRef(null);
+
+  useLayoutEffect(() => {
+    const anchor = scrollAnchorRef.current;
+    if (!anchor?.element) return;
+
+    const newTop = anchor.element.getBoundingClientRect().top;
+    const delta = newTop - anchor.top;
+
+    if (Math.abs(delta) > 1) {
+      window.scrollBy({ top: delta, left: 0, behavior: "auto" });
+    }
+
+    scrollAnchorRef.current = null;
+  }, [openCategory, selectedMenuCard, cartDrawerOpen]);
+
+  function keepScreenStill(event) {
+    const element = event?.currentTarget || null;
+    if (!element || typeof element.getBoundingClientRect !== "function") return;
+    scrollAnchorRef.current = {
+      element,
+      top: element.getBoundingClientRect().top
+    };
+  }
+
+  function changeOpenCategory(nextCategory, event) {
+    keepScreenStill(event);
+    setCategoryFilter("Tous");
+    setOpenCategory(nextCategory);
+  }
+
 
 useEffect(() => {
   const normalizePath = () => window.location.pathname.replace(/\/$/, "");
@@ -1088,9 +1120,8 @@ KRUA PEÈN THAÏ`;
     })).sort((a,b)=>a.code.localeCompare(b.code));
   }, [orders, locations, adminLocationFilter, adminStatusFilter]);
 
-  function goToMenuCategory(category) {
-    setCategoryFilter("Tous");
-    setOpenCategory(category);
+  function goToMenuCategory(category, event) {
+    changeOpenCategory(category, event);
   }
 
   const asset = (name) => `/krua-v3/${name}`;
@@ -1314,7 +1345,7 @@ KRUA PEÈN THAÏ`;
         <div className="mb-3 text-center text-sm font-black uppercase tracking-wide text-amber-300">{title}</div>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-7">
           {cards.map((card) => (
-            <button key={card.anchor} type="button" onClick={() => setOpenCategory(card.anchor)} className={`group rounded-2xl border p-2 text-center transition ${openCategory === card.anchor ? "border-amber-300/70 bg-amber-400/10" : "border-white/10 bg-stone-950/80 hover:border-amber-300/40"}`}>
+            <button key={card.anchor} type="button" onClick={(event) => changeOpenCategory(card.anchor, event)} className={`group rounded-2xl border p-2 text-center transition ${openCategory === card.anchor ? "border-amber-300/70 bg-amber-400/10" : "border-white/10 bg-stone-950/80 hover:border-amber-300/40"}`}>
               <img src={card.image} alt={card.label} className="mx-auto h-16 w-20 rounded-xl object-cover transition group-hover:scale-105" />
               <div className="mt-2 min-h-[2rem] text-[11px] font-black leading-tight text-white [overflow-wrap:anywhere] sm:text-sm">{card.label}</div>
               <div className="mx-auto mt-2 h-0.5 w-8 rounded-full bg-amber-400" />
@@ -1331,7 +1362,7 @@ KRUA PEÈN THAÏ`;
       <section id={id} className={`scroll-mt-24 overflow-hidden rounded-[2rem] border transition ${isOpen ? "border-amber-300/35 bg-black/45" : "border-white/10 bg-black/25"}`}>
         <button
           type="button"
-          onClick={() => setOpenCategory(isOpen ? "" : id)}
+          onClick={(event) => changeOpenCategory(isOpen ? "" : id, event)}
           className="flex w-full items-center gap-4 bg-gradient-to-r from-amber-500/10 to-transparent p-4 text-left"
         >
           <img src={image} alt="" className="h-16 w-20 rounded-2xl object-cover shadow-lg shadow-black/30 sm:h-20 sm:w-28" />
@@ -1576,7 +1607,7 @@ KRUA PEÈN THAÏ`;
                     <p className="mt-2 max-w-md text-stone-200">Pad Thaï, currys, plats avec riz ou nouilles, entrées à partager.</p>
                   </div>
                 </div>
-                <div className="grid gap-3 p-5 sm:grid-cols-2"><button onClick={() => setSelectedMenuCard(menuVisualCards[0])} className="rounded-2xl border border-amber-300/30 px-4 py-3 font-black text-amber-200">Voir la carte thaï</button><button onClick={() => setOpenCategory("thai-nouilles")} className="rounded-2xl bg-amber-400 px-4 py-3 font-black text-black">Commander</button></div>
+                <div className="grid gap-3 p-5 sm:grid-cols-2"><button onClick={() => setSelectedMenuCard(menuVisualCards[0])} className="rounded-2xl border border-amber-300/30 px-4 py-3 font-black text-amber-200">Voir la carte thaï</button><button onClick={(event) => changeOpenCategory("thai-nouilles", event)} className="rounded-2xl bg-amber-400 px-4 py-3 font-black text-black">Commander</button></div>
               </article>
               <article className="overflow-hidden rounded-[2rem] border border-amber-300/20 bg-stone-950 shadow-2xl">
                 <div className="relative h-80 overflow-hidden">
@@ -1588,7 +1619,7 @@ KRUA PEÈN THAÏ`;
                     <p className="mt-2 max-w-md text-stone-200">Sushis, makis, california, crunch, makis printemps et poké bowls.</p>
                   </div>
                 </div>
-                <div className="grid gap-3 p-5 sm:grid-cols-2"><button onClick={() => setSelectedMenuCard(menuVisualCards[1])} className="rounded-2xl border border-amber-300/30 px-4 py-3 font-black text-amber-200">Voir la carte sushi</button><button onClick={() => setOpenCategory("sushi-mix")} className="rounded-2xl bg-amber-400 px-4 py-3 font-black text-black">Commander</button></div>
+                <div className="grid gap-3 p-5 sm:grid-cols-2"><button onClick={() => setSelectedMenuCard(menuVisualCards[1])} className="rounded-2xl border border-amber-300/30 px-4 py-3 font-black text-amber-200">Voir la carte sushi</button><button onClick={(event) => changeOpenCategory("sushi-mix", event)} className="rounded-2xl bg-amber-400 px-4 py-3 font-black text-black">Commander</button></div>
               </article>
             </div>
           </section>
