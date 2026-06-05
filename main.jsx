@@ -1315,7 +1315,7 @@ KRUA PEÈN THAÏ`;
         <div className="mb-3 text-center text-sm font-black uppercase tracking-wide text-amber-300">{title}</div>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-7">
           {cards.map((card) => (
-            <button key={card.anchor} type="button" onClick={() => { setOpenCategory(card.anchor); setTimeout(() => document.getElementById(card.anchor)?.scrollIntoView({ behavior: "smooth", block: "start" }), 80); }} className={`group rounded-2xl border p-2 text-center transition ${openCategory === card.anchor ? "border-amber-300/70 bg-amber-400/10" : "border-white/10 bg-stone-950/80 hover:border-amber-300/40"}`}>
+            <button key={card.anchor} type="button" onClick={() => setOpenCategory(card.anchor)} className={`group rounded-2xl border p-2 text-center transition ${openCategory === card.anchor ? "border-amber-300/70 bg-amber-400/10" : "border-white/10 bg-stone-950/80 hover:border-amber-300/40"}`}>
               <img src={card.image} alt={card.label} className="mx-auto h-16 w-20 rounded-xl object-cover transition group-hover:scale-105" />
               <div className="mt-2 min-h-[2rem] text-[11px] font-black leading-tight text-white [overflow-wrap:anywhere] sm:text-sm">{card.label}</div>
               <div className="mx-auto mt-2 h-0.5 w-8 rounded-full bg-amber-400" />
