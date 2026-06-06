@@ -8,9 +8,10 @@ const BRAND = { name: "KRUA PEÈN THAÏ", phone: "0670395523", email: "kruapeent
 
 const initialLocations = [
   { id: "PLAB", city: "Plabennec", label: "Mardi soir", place: "Devant l’église", day: "Mardi", hours: "15h30 – 20h30", active: true },
-  { id: "KERJ", city: "Kerlouan", label: "Jeudi matin", place: "Place de la mairie", day: "Jeudi", hours: "08h00 – 13h00", active: false },
-  { id: "KERD", city: "Kerlouan", label: "Dimanche matin", place: "Place de la mairie", day: "Dimanche", hours: "08h00 – 13h00", active: false },
- { id: "BRI", city: "PLONÉOUR-BRIGNOGAN-PLAGES", label: "Dimanche soir", place: "Devant le camping Slow Village", day: "Dimanche", hours: "16h00 – 21h00", active: true },
+  { id: "BRI", city: "PLONÉOUR-BRIGNOGAN-PLAGES", label: "Dimanche soir", place: "Devant le camping Slow Village", day: "Dimanche", hours: "16h00 – 21h00", active: true },
+  { id: "KERJ", city: "Kerlouan", label: "Jeudi matin", place: "Place de la mairie", day: "Jeudi", hours: "08h00 – 13h00", active: true },
+  { id: "KERD", city: "Kerlouan", label: "Dimanche matin", place: "Place de la mairie", day: "Dimanche", hours: "08h00 – 13h00", active: true },
+  { id: "LANA207", city: "LANARVILY", label: "Vendredi soir 12 et 26 Juin", place: "Devant la mairie", day: "Vendredi", hours: "18h00-20h30", active: true },
 ];
 
 const categoryOrder = ["Entrées","Accompagnements","Plats avec nouilles","Plats avec riz","Currys","Mix sushi découverte","Sushis","Makis","California","Sushis spécial","Crunch","Makis printemps","Poké bowls"];
@@ -134,9 +135,11 @@ const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY;
 
 function euro(value) { return new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" }).format(value || 0); }
 function locationCode(locationId) {
-  if (locationId === "KERJ" || locationId === "KERD") return "KER";
   if (locationId === "PLAB") return "PLAB";
   if (locationId === "BRI") return "BRI";
+  if (locationId === "KERJ") return "KERJ";
+  if (locationId === "KERD") return "KERD";
+  if (String(locationId || "").startsWith("LANA")) return String(locationId);
   return locationId;
 }
 
@@ -440,8 +443,12 @@ const visibleLocations = locations
       KERD: 4,
       LANA207: 5,
     };
-    return (order[a.id] || 99) - (order[b.id] || 99);
+    const byPriority = (order[a.id] || 99) - (order[b.id] || 99);
+    if (byPriority !== 0) return byPriority;
+    return `${a.city || ""} ${a.label || ""}`.localeCompare(`${b.city || ""} ${b.label || ""}`);
   });
+const adminLocationChoices = [["ALL", "Toutes"], ...visibleLocations.map(l => [locationCode(l.id), `${l.city} · ${l.label}`])];
+const locationSettingsChoices = visibleLocations.map(l => [locationCode(l.id), `${l.city} · ${l.label}`]);
   const selectedLocation = visibleLocations.find(l => l.id === locationId) || null;
   const selectedAvailability = selectedLocation
     ? getOrderAvailability(selectedLocation)
@@ -1062,7 +1069,7 @@ KRUA PEÈN THAÏ`;
   }, [orders, orderSearch, locations, adminLocationFilter, adminStatusFilter, hideDoneOrders]);
 
   const prepSummary = useMemo(() => {
-    const groups = { PLAB: {}, BRI: {}, KER: {} };
+    const groups = {};
     orders
       .filter(o => o.status !== "Annulée" && o.status !== "Récupérée")
       .filter(o => adminLocationFilter === "ALL" || locationCode(o.locationId) === adminLocationFilter)
@@ -1416,7 +1423,7 @@ KRUA PEÈN THAÏ`;
 
   function LocationRequiredModal() {
     if (view !== "site" || !locationModalOpen) return null;
-    const choices = visibleLocations.filter((l) => l.id === "PLAB" || l.id === "BRI");
+    const choices = visibleLocations;
     return (
       <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/85 p-4 backdrop-blur-md">
         <div className="w-full max-w-lg rounded-[2rem] border border-amber-300/30 bg-[#090705] p-5 shadow-2xl shadow-black/60">
@@ -1648,23 +1655,14 @@ KRUA PEÈN THAÏ`;
           <section id="lieux" className="mx-auto max-w-7xl px-4 py-12">
             <div className="mb-6 flex items-center gap-3"><CalendarDays className="text-amber-300"/><h2 className="text-3xl font-black">Où nous trouver</h2></div>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-              {visibleLocations.map(l => {
-               const soon = l.id === "KERJ" || l.id === "KERD";
-                return (
+              {visibleLocations.map(l => (
                   <div key={l.id} className="rounded-3xl border border-white/10 bg-white/[0.03] p-5">
                     <div className="font-bold text-amber-300">{l.label}</div>
                     <div className="mt-2 text-2xl font-black">{l.city}</div>
-                    {soon ? (
-                      <div className="mt-4 inline-flex rounded-full bg-amber-400 px-4 py-2 text-base font-black text-black">Bientôt disponible</div>
-                    ) : (
-                      <>
-                        <div className="mt-2 text-lg font-semibold text-stone-200">{l.place}</div>
-                        <div className="mt-4 flex items-center gap-2 text-lg font-bold text-stone-100"><Clock size={18}/>{servicePickupText(l)}</div>
-                      </>
-                    )}
+                    <div className="mt-2 text-lg font-semibold text-stone-200">{l.place}</div>
+                    <div className="mt-4 flex items-center gap-2 text-lg font-bold text-stone-100"><Clock size={18}/>{servicePickupText(l)}</div>
                   </div>
-                );
-              })}
+                ))}
             </div>
           </section>
 
@@ -1749,7 +1747,7 @@ KRUA PEÈN THAÏ`;
 
                   <div className="mb-4 grid gap-3 md:grid-cols-2">
                     <div className="flex gap-2 overflow-x-auto">
-                      {[["ALL","Toutes"],["PLAB","PLAB"],["BRI","BRI"],["KER","KER"]].map(([id,label])=><button key={id} onClick={()=>setAdminLocationFilter(id)} className={`rounded-full px-4 py-3 text-sm font-black ${adminLocationFilter===id ? "bg-amber-400 text-black" : "bg-black"}`}>{label}</button>)}
+                      {adminLocationChoices.map(([id,label])=><button key={id} onClick={()=>setAdminLocationFilter(id)} className={`rounded-full px-4 py-3 text-sm font-black ${adminLocationFilter===id ? "bg-amber-400 text-black" : "bg-black"}`}>{label}</button>)}
                     </div>
                     <div className="flex gap-2 overflow-x-auto">
                       {[["ACTIVE","À traiter"],["ALL","Toutes"],["À confirmer","À confirmer"],["Confirmée","Confirmées"],["Récupérée","Récupérées"],["Annulée","Annulées"]].map(([id,label])=><button key={id} onClick={()=>setAdminStatusFilter(id)} className={`rounded-full px-4 py-3 text-sm font-black ${adminStatusFilter===id ? "bg-amber-400 text-black" : "bg-black"}`}>{label}</button>)}
@@ -1826,7 +1824,7 @@ KRUA PEÈN THAÏ`;
 
                 <div className="mb-5 grid gap-3 md:grid-cols-2">
                   <div className="flex gap-2 overflow-x-auto">
-                    {[["ALL","Tous"],["PLAB","Plabennec"],["BRI","PLONÉOUR-BRIGNOGAN-PLAGES"],["KER","Kerlouan"]].map(([id,label])=><button key={id} onClick={()=>setAdminLocationFilter(id)} className={`rounded-full px-4 py-3 text-sm font-black ${adminLocationFilter===id ? "bg-amber-400 text-black" : "bg-black"}`}>{label}</button>)}
+                    {adminLocationChoices.map(([id,label])=><button key={id} onClick={()=>setAdminLocationFilter(id)} className={`rounded-full px-4 py-3 text-sm font-black ${adminLocationFilter===id ? "bg-amber-400 text-black" : "bg-black"}`}>{label}</button>)}
                   </div>
                   <div className="flex gap-2 overflow-x-auto">
                     {[["ACTIVE","À préparer"],["ALL","Historique"],["À confirmer","À confirmer"],["Confirmée","Confirmées"],["Récupérée","Récupérées"],["Annulée","Annulées"]].map(([id,label])=><button key={id} onClick={()=>setAdminStatusFilter(id)} className={`rounded-full px-4 py-3 text-sm font-black ${adminStatusFilter===id ? "bg-amber-400 text-black" : "bg-black"}`}>{label}</button>)}
@@ -1906,11 +1904,7 @@ KRUA PEÈN THAÏ`;
               <h2 className="mb-4 text-2xl font-black">Complet à la réservation</h2>
               <p className="mb-4 text-sm text-stone-400">Désactive une famille de produits pour un emplacement. Le client voit un message clair : sélection possible au camion selon stock.</p>
               <div className="space-y-4">
-                {[
-                  ["PLAB", "Plabennec"],
-                  ["BRI", "PLONÉOUR-BRIGNOGAN-PLAGES"],
-                  ["KER", "Kerlouan"]
-                ].map(([code, label]) => (
+                {locationSettingsChoices.map(([code, label]) => (
                   <div key={code} className="rounded-2xl bg-black/40 p-4">
                     <div className="mb-3 text-lg font-black text-amber-300">{label}</div>
                     <div className="grid gap-2 sm:grid-cols-2">
@@ -1928,10 +1922,7 @@ KRUA PEÈN THAÏ`;
               <h2 className="mb-2 text-2xl font-black">Menus disponibles par emplacement</h2>
               <p className="mb-5 text-sm text-stone-400">Coche les produits que Tina veut proposer selon le lieu de retrait. Les plats de la semaine sont OFF par défaut : active seulement les plats prévus pour cet emplacement.</p>
               <div className="grid gap-5 lg:grid-cols-2">
-                {[
-                  ["PLAB", "Plabennec"],
-                  ["BRI", "PLONÉOUR-BRIGNOGAN-PLAGES"]
-                ].map(([code, label]) => (
+                {locationSettingsChoices.map(([code, label]) => (
                   <div key={code} className="rounded-2xl bg-black/40 p-4">
                     <div className="mb-4 text-xl font-black text-amber-300">{label}</div>
                     <div className="space-y-4">
