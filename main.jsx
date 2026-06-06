@@ -430,7 +430,18 @@ useEffect(() => {
   const sushiDiscountBase = cartLines.filter(isSushiDiscountProduct).reduce((s, i) => s + i.price * i.qty, 0);
   const sushiDiscount = sushiDiscountBase >= 25 ? Math.round(sushiDiscountBase * 0.10 * 100) / 100 : 0;
   const total = Math.max(0, cartTotal - sushiDiscount);
-  const visibleLocations = locations.filter(l => l.active !== false && l.id !== "KERJ" && l.id !== "KERD");
+const visibleLocations = locations
+  .filter(l => l.active !== false)
+  .sort((a, b) => {
+    const order = {
+      PLAB: 1,
+      BRI: 2,
+      KERJ: 3,
+      KERD: 4,
+      LANA207: 5,
+    };
+    return (order[a.id] || 99) - (order[b.id] || 99);
+  });
   const selectedLocation = visibleLocations.find(l => l.id === locationId) || null;
   const selectedAvailability = selectedLocation
     ? getOrderAvailability(selectedLocation)
