@@ -1540,7 +1540,7 @@ KRUA PEÈN THAÏ`;
                 <p className="mt-1 text-base font-black text-amber-100">15h30 à 20h30</p>
                <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-4 text-center">
   <div>
-    <p className="font-black text-amber-100">📍 Brignogan</p>
+    <p className="font-black text-amber-100">📍 PLONÉOUR-BRIGNOGAN-PLAGES</p>
     <p className="text-stone-300">Devant le camping Slow Village</p>
     <p className="font-bold">Tous les dimanches de 16h à 21h</p>
   </div>
@@ -1815,7 +1815,7 @@ KRUA PEÈN THAÏ`;
 
                 <div className="mb-5 grid gap-3 md:grid-cols-2">
                   <div className="flex gap-2 overflow-x-auto">
-                    {[["ALL","Tous"],["PLAB","Plabennec"],["BRI","Brignogan"],["KER","Kerlouan"]].map(([id,label])=><button key={id} onClick={()=>setAdminLocationFilter(id)} className={`rounded-full px-4 py-3 text-sm font-black ${adminLocationFilter===id ? "bg-amber-400 text-black" : "bg-black"}`}>{label}</button>)}
+                    {[["ALL","Tous"],["PLAB","Plabennec"],["BRI","PLONÉOUR-BRIGNOGAN-PLAGES"],["KER","Kerlouan"]].map(([id,label])=><button key={id} onClick={()=>setAdminLocationFilter(id)} className={`rounded-full px-4 py-3 text-sm font-black ${adminLocationFilter===id ? "bg-amber-400 text-black" : "bg-black"}`}>{label}</button>)}
                   </div>
                   <div className="flex gap-2 overflow-x-auto">
                     {[["ACTIVE","À préparer"],["ALL","Historique"],["À confirmer","À confirmer"],["Confirmée","Confirmées"],["Récupérée","Récupérées"],["Annulée","Annulées"]].map(([id,label])=><button key={id} onClick={()=>setAdminStatusFilter(id)} className={`rounded-full px-4 py-3 text-sm font-black ${adminStatusFilter===id ? "bg-amber-400 text-black" : "bg-black"}`}>{label}</button>)}
@@ -1897,7 +1897,7 @@ KRUA PEÈN THAÏ`;
               <div className="space-y-4">
                 {[
                   ["PLAB", "Plabennec"],
-                  ["BRI", "Brignogan"],
+                  ["BRI", "PLONÉOUR-BRIGNOGAN-PLAGES"],
                   ["KER", "Kerlouan"]
                 ].map(([code, label]) => (
                   <div key={code} className="rounded-2xl bg-black/40 p-4">
@@ -1919,7 +1919,7 @@ KRUA PEÈN THAÏ`;
               <div className="grid gap-5 lg:grid-cols-2">
                 {[
                   ["PLAB", "Plabennec"],
-                  ["BRI", "Brignogan"]
+                  ["BRI", "PLONÉOUR-BRIGNOGAN-PLAGES"]
                 ].map(([code, label]) => (
                   <div key={code} className="rounded-2xl bg-black/40 p-4">
                     <div className="mb-4 text-xl font-black text-amber-300">{label}</div>
