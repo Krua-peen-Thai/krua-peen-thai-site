@@ -1139,6 +1139,20 @@ KRUA PEÈN THAÏ`;
     return Boolean(product && product.available && selectedAvailability.open && !isProductBlocked(product) && !isWeeklyThaiProductLocked(product));
   }
 
+  function isProductHiddenFromClient(product, locId = locationId) {
+    if (!product) return true;
+    if (!product.available) return true;
+    if (!locId) return false;
+
+    // OFF dans "Menus disponibles par emplacement" = le produit ne doit pas apparaître côté client.
+    if (isProductDisabledForLocation(product, locId)) return true;
+
+    // Les plats de la semaine sont OFF par défaut : on les affiche uniquement quand Tina les active pour l'emplacement.
+    if (isWeeklySelectionProduct(product) && !isProductEnabledForLocation(product, locId)) return true;
+
+    return false;
+  }
+
   function addProduct(product) {
     if (!product) return;
     if (!selectedLocation) {
@@ -1164,11 +1178,12 @@ KRUA PEÈN THAÏ`;
       .filter((p) => p.category === category)
       .filter((p) => !thaiRiceOptionIds.includes(p.id))
       .filter((p) => !(category === "Accompagnements" && sushiAccompanimentIds.includes(p.id)))
+      .filter((p) => !isProductHiddenFromClient(p))
       .sort(productSort);
   }
 
   function productsFromIds(ids) {
-    return ids.map(findProduct).filter(Boolean);
+    return ids.map(findProduct).filter((p) => p && !isProductHiddenFromClient(p));
   }
 
   function productImage(product) {
@@ -1196,6 +1211,7 @@ KRUA PEÈN THAÏ`;
   }
 
   function PriceAddButton({ product, label }) {
+    if (isProductHiddenFromClient(product)) return null;
     const disabled = !canOrderProduct(product);
     return (
       <button
@@ -1211,7 +1227,7 @@ KRUA PEÈN THAÏ`;
   }
 
   function ProductCard({ product }) {
-    if (!product) return null;
+    if (!product || isProductHiddenFromClient(product)) return null;
     const blocked = isProductBlocked(product);
     const weeklyReason = weeklyThaiLockReason(product);
     const disabled = !product.available || blocked || Boolean(weeklyReason) || !selectedAvailability.open;
@@ -1249,15 +1265,18 @@ KRUA PEÈN THAÏ`;
           {thaiEntreeRows.map((row) => {
             const p1 = findProduct(row.ids[0]);
             const p2 = findProduct(row.ids[1]);
-            const disabled = (p1 && (!p1.available || isProductBlocked(p1))) && (!p2 || !p2.available || isProductBlocked(p2));
+            const visibleP1 = p1 && !isProductHiddenFromClient(p1) ? p1 : null;
+            const visibleP2 = p2 && !isProductHiddenFromClient(p2) ? p2 : null;
+            if (!visibleP1 && !visibleP2) return null;
+            const disabled = (visibleP1 && !canOrderProduct(visibleP1)) && (!visibleP2 || !canOrderProduct(visibleP2));
             return (
               <div key={row.label} className={`grid gap-3 p-4 sm:grid-cols-[1fr_auto_auto] sm:items-center ${disabled ? "opacity-50" : ""}`}>
                 <div>
                   <div className="font-black text-white">{row.label}</div>
-                  <div className="text-xs text-stone-400">{p1?.code || ""} {disabled ? "• non disponible" : ""}</div>
+                  <div className="text-xs text-stone-400">{(visibleP1 || visibleP2)?.code || ""} {disabled ? "• non disponible" : ""}</div>
                 </div>
-                <PriceAddButton product={p1} label="1 pièce" />
-                {p2 ? <PriceAddButton product={p2} label={p2.name.includes("x6") ? "6 pièces" : "4 pièces"} /> : <div className="hidden sm:block" />}
+                <PriceAddButton product={visibleP1} label="1 pièce" />
+                {visibleP2 ? <PriceAddButton product={visibleP2} label={visibleP2.name.includes("x6") ? "6 pièces" : "4 pièces"} /> : <div className="hidden sm:block" />}
               </div>
             );
           })}
@@ -1286,18 +1305,21 @@ KRUA PEÈN THAÏ`;
         </div>
         <div className="divide-y divide-white/10">
           {sushiGroupedRows.map((row) => {
-            const productsRow = row.ids.map(findProduct).filter(Boolean);
-            const disabled = productsRow.length > 0 && productsRow.every((product) => !canOrderProduct(product));
+            const productsRow = row.ids.map(findProduct).filter((product) => product && !isProductHiddenFromClient(product));
+            if (!productsRow.length) return null;
+            const visibleIds = row.ids.filter((id) => productsRow.some((product) => product.id === id));
+            const disabled = productsRow.every((product) => !canOrderProduct(product));
             return (
               <div key={row.label} className={`grid gap-3 p-4 sm:grid-cols-[1fr_auto_auto] sm:items-center ${disabled ? "opacity-50" : ""}`}>
                 <div>
                   <div className="font-black text-white">{row.label}</div>
                   <div className="text-xs text-stone-400">{productsRow.map(p => p.code).join(" / ")} {disabled ? "• non disponible" : ""}</div>
                 </div>
-                {row.ids.map((id, index) => (
-                  <PriceAddButton key={id} product={findProduct(id)} label={row.labels[index] || ""} />
-                ))}
-                {row.ids.length === 1 && <div className="hidden sm:block" />}
+                {visibleIds.map((id) => {
+                  const originalIndex = row.ids.indexOf(id);
+                  return <PriceAddButton key={id} product={findProduct(id)} label={row.labels[originalIndex] || ""} />;
+                })}
+                {visibleIds.length === 1 && <div className="hidden sm:block" />}
               </div>
             );
           })}
@@ -1378,7 +1400,8 @@ KRUA PEÈN THAÏ`;
   }
 
   function ProductGrid({ items }) {
-    return <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{items.map((p) => <ProductCard key={p.id} product={p} />)}</div>;
+    const visibleItems = items.filter((p) => !isProductHiddenFromClient(p));
+    return <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{visibleItems.map((p) => <ProductCard key={p.id} product={p} />)}</div>;
   }
 
   function renderCartPanel(mobile = false) {
